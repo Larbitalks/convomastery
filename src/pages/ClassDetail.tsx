@@ -65,7 +65,7 @@ export default function ClassDetail() {
         </form>
       </div>
 
-      <nav className="mt-8 flex gap-1 overflow-x-auto border-b-2 border-line" aria-label="Class sections">
+      <nav className="mt-8 no-scrollbar flex gap-1 overflow-x-auto border-b-2 border-line" aria-label="Class sections">
         {TABS.map(([k, l]) => (
           <button key={k} onClick={() => setParams(k === 'scores' ? {} : { tab: k }, { replace: true })} aria-current={tab === k ? 'page' : undefined}
             className={`-mb-[2px] shrink-0 border-b-[3px] px-4 py-2.5 font-bold ${tab === k ? 'border-teal text-ink' : 'border-transparent text-inksoft hover:text-ink'}`}>{l}</button>

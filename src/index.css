@@ -36,3 +36,7 @@
 @keyframes pop { from { transform: scale(.96) rotate(-1deg); opacity: 0 } to { transform: none; opacity: 1 } }
 .pop { animation: pop .28s cubic-bezier(.2,.9,.3,1.2); }
 @media (prefers-reduced-motion: reduce) { .pop { animation: none } }
+
+/* Tab rows scroll sideways on small screens without showing a scrollbar */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
