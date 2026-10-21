@@ -5,6 +5,7 @@ import { Field, Input, Notice, Select, Spinner, Textarea } from '../../component
 import { api } from '../../lib/api'
 import { errorMessage, slugify } from '../../lib/format'
 import { useLoad } from '../../lib/hooks'
+import { shrinkImage, withTimeout } from '../../lib/imageUtil'
 import { ACTIVITY_TYPES, AGE_GROUPS, LEVELS, type AgeGroup, type LessonInput, type Level } from '../../lib/types'
 
 const COVER_COLORS = ['#0E7C7B', '#3D4FA8', '#7A4FB5', '#B5651D', '#C2410C', '#1B2A4A', '#B91C1C', '#2563A8', '#0F766E']
@@ -73,34 +74,41 @@ export default function AdminLessonEdit() {
           images = list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
         }
         setProgress(`Uploading ${images.length} slides`)
-        const paths = await api.uploadSlideImages(slug, images)
+        const paths = await withTimeout(api.uploadSlideImages(slug, images), 60 + images.length * 20, 'Uploading the slides')
         setForm((f) => ({ ...f, slideImages: paths, slideCount: paths.length }))
         setMsg({ tone: 'success', text: `${paths.length} slides ready. Click Save lesson to keep them.` })
       } else if (kind === 'file') {
         const slug = form.slug || slugify(form.title) || 'lesson'
         const file = files[0]
         setProgress('Uploading the lesson file')
-        const { path, name } = await api.uploadLessonFile(slug, file)
+        const { path, name } = await withTimeout(api.uploadLessonFile(slug, file), 240, 'Uploading the lesson file')
         setForm((f) => ({ ...f, filePath: path, fileName: name }))
         // A PDF lesson file also becomes the teaching slides, unless slides were already added
         if (/\.pdf$/i.test(file.name) && form.slideImages.length === 0) {
           const { pdfToSlideImages } = await import('../../lib/pdfSlides')
           const images = await pdfToSlideImages(file, (d, t) => setProgress(`Making teaching slides: page ${d} of ${t}`))
           setProgress(`Uploading ${images.length} slides`)
-          const paths = await api.uploadSlideImages(slug, images)
+          const paths = await withTimeout(api.uploadSlideImages(slug, images), 60 + images.length * 20, 'Uploading the teaching slides')
           setForm((f) => ({ ...f, slideImages: paths, slideCount: paths.length }))
           setMsg({ tone: 'success', text: `Lesson file added, and its ${paths.length} pages are ready as teaching slides. Click Save lesson to keep them.` })
         } else {
           setMsg({ tone: 'success', text: 'Lesson file added. Click Save lesson to keep it.' })
         }
       } else if (kind === 'cover') {
-        const url = await api.uploadImage(files[0])
+        setProgress('Uploading cover image')
+        const url = await withTimeout(api.uploadImage(await shrinkImage(files[0])), 90, 'Uploading the cover image')
         set('coverImageUrl', url)
       } else {
-        const urls = await Promise.all(Array.from(files).slice(0, 6).map((f) => api.uploadImage(f)))
+        const list = Array.from(files).slice(0, 6)
+        const urls: string[] = []
+        for (const [n, f] of list.entries()) {
+          setProgress(`Uploading image ${n + 1} of ${list.length}`)
+          urls.push(await withTimeout(api.uploadImage(await shrinkImage(f)), 90, 'Uploading a preview image'))
+        }
         setForm((f) => ({ ...f, previewImages: [...f.previewImages, ...urls].slice(0, 6) }))
       }
     } catch (e) {
+      console.error('Upload failed', e)
       setMsg({ tone: 'error', text: errorMessage(e) })
     } finally {
       setBusy(null)
@@ -212,14 +220,14 @@ export default function AdminLessonEdit() {
           <div>
             <p className="label">Lesson file</p>
             <p className="mb-2 text-[15px]">{form.fileName ? <>Current file: <strong>{form.fileName}</strong></> : <span className="text-inksoft">No file uploaded yet.</span>}</p>
-            <input id="lessonFile" type="file" accept=".pptx,.ppt,.pdf,.zip,.key" className="text-[15px]" onChange={(e) => upload('file', e.target.files)} />
+            <input id="lessonFile" type="file" disabled={busy !== null} accept=".pptx,.ppt,.pdf,.zip,.key" className="text-[15px]" onChange={(e) => upload('file', e.target.files)} />
             {busy === 'file' && <p className="hint font-bold text-ink" role="status">{progress || 'Uploading file'}</p>}
             <p className="hint">PowerPoint, PDF or zip. Only buyers can download it. If you upload a PDF, its pages also become the teaching slides.</p>
           </div>
           <div>
             <p className="label">Slides for teaching on the website</p>
             <p className="mb-2 text-[15px]">{form.slideImages.length ? <><strong>{form.slideImages.length} slides</strong> uploaded. Buyers can teach this lesson from the website.</> : <span className="text-inksoft">No slides yet. Buyers see the sample questions as simple slides instead.</span>}</p>
-            <input id="slideFiles" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.ppt,.pptx" multiple className="text-[15px]" disabled={busy === 'slides'} onChange={(e) => { upload('slides', e.target.files); e.target.value = '' }} />
+            <input id="slideFiles" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.ppt,.pptx" multiple className="text-[15px]" disabled={busy !== null} onChange={(e) => { upload('slides', e.target.files); e.target.value = '' }} />
             {busy === 'slides' && <p className="hint font-bold text-ink" role="status">{progress || 'Working'}</p>}
             <p className="hint">Easiest: in PowerPoint choose File, Save As, then PDF, and upload that one PDF. Each page becomes a slide. You can also upload slide images. Uploading again replaces the current slides.</p>
             {form.slideImages.length > 0 && <button type="button" className="mt-2 text-sm font-bold underline" onClick={() => set('slideImages', [])}>Remove all slides</button>}
@@ -236,8 +244,8 @@ export default function AdminLessonEdit() {
                 ))}
               </ul>
             )}
-            <input type="file" accept="image/*" multiple className="text-[15px]" onChange={(e) => upload('preview', e.target.files)} />
-            {busy === 'preview' && <p className="hint">Uploading images</p>}
+            <input type="file" accept="image/*" multiple className="text-[15px]" disabled={busy !== null} onChange={(e) => { upload('preview', e.target.files); e.target.value = '' }} />
+            {busy === 'preview' && <p className="hint font-bold text-ink" role="status">{progress || 'Uploading images'}</p>}
             <p className="hint">Up to 6 screenshots of slides. Anyone can see these.</p>
           </div>
         </section>
@@ -258,7 +266,8 @@ export default function AdminLessonEdit() {
           </div>
           <div>
             <p className="label">Or upload a cover image</p>
-            <input type="file" accept="image/*" className="text-[14px] w-full" onChange={(e) => upload('cover', e.target.files)} />
+            <input type="file" accept="image/*" className="text-[14px] w-full" disabled={busy !== null} onChange={(e) => { upload('cover', e.target.files); e.target.value = '' }} />
+            {busy === 'cover' && <p className="hint font-bold text-ink" role="status">{progress || 'Uploading'}</p>}
             {form.coverImageUrl && <button type="button" className="mt-2 text-sm font-bold underline" onClick={() => set('coverImageUrl', null)}>Remove cover image</button>}
           </div>
         </div>
@@ -266,7 +275,8 @@ export default function AdminLessonEdit() {
           <label className="flex items-center gap-3 font-bold"><input type="checkbox" className="h-5 w-5 accent-teal" checked={form.published} onChange={(e) => set('published', e.target.checked)} />Published</label>
           <p className="hint -mt-2">Drafts are hidden from the catalogue.</p>
           <label className="flex items-center gap-3 font-bold"><input type="checkbox" className="h-5 w-5 accent-teal" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} />Show on home page</label>
-          <button className="btn-primary mt-2 !py-3" disabled={busy !== null}>{busy === 'save' ? 'Saving' : 'Save lesson'}</button>
+          {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
+          <button className="btn-primary mt-2 !py-3" disabled={busy !== null}>{busy === 'save' ? 'Saving' : busy ? 'Wait for the upload to finish' : 'Save lesson'}</button>
           <Link to="/admin" className="btn-ghost">Back to lessons</Link>
         </div>
         {!isNew && (
