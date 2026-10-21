@@ -53,7 +53,7 @@ export async function downloadLesson(lesson: Lesson) {
 
 export default function LessonDetail() {
   const { slug = '' } = useParams()
-  const { session } = useAuth()
+  const { session, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -155,6 +155,17 @@ export default function LessonDetail() {
           <div className="mt-6 panel p-5">
             {justBought && <div className="mb-4"><Notice tone="success">{isFree ? 'Added to your library.' : 'Payment complete. The lesson is in your library.'} Download it below.</Notice></div>}
             {error && <div className="mb-4"><Notice tone="error">{error}</Notice></div>}
+            {isAdmin && !owned && (
+              <div className="mb-4 rounded-xl bg-board p-4">
+                <p className="text-[15px]"><strong>Your lesson.</strong> As admin you can teach and download it without buying. Visitors see the price and the Buy button below.</p>
+                {lesson.slideImages.length === 0 && <p className="mt-1 text-[15px] text-inksoft">No teaching slides yet, so the presenter shows the sample questions. Add a PDF of the slides in Edit lesson.</p>}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link to={`/teach/${lesson.slug}`} className="btn-sun">Teach from the website</Link>
+                  <button className="btn-ghost" onClick={download} disabled={busy}>Download</button>
+                  <Link to={`/admin/lessons/${lesson.id}`} className="btn-ghost">Edit lesson</Link>
+                </div>
+              </div>
+            )}
             {owned ? (
               <div className="flex flex-wrap items-center gap-3">
                 <button className="btn-primary !px-6 !py-3" onClick={download} disabled={busy}>{busy ? 'Preparing download' : 'Download lesson'}</button>
@@ -168,7 +179,7 @@ export default function LessonDetail() {
                 </button>
               </div>
             )}
-            <p className="mt-3 text-sm text-inksoft">PowerPoint file ({lesson.fileName ?? '.pptx'}). One-time purchase: download it any time, or teach it straight from the website with a timer, name picker and class awards.</p>
+            <p className="mt-3 text-sm text-inksoft">{/\.pdf$/i.test(lesson.fileName ?? '') ? 'PDF' : 'PowerPoint'} file ({lesson.fileName ?? '.pptx'}). One-time purchase: download it any time, or teach it straight from the website with a timer, name picker and class awards.</p>
           </div>
 
           {lesson.activityTypes.length > 0 && (

@@ -78,8 +78,21 @@ export default function AdminLessonEdit() {
         setMsg({ tone: 'success', text: `${paths.length} slides ready. Click Save lesson to keep them.` })
       } else if (kind === 'file') {
         const slug = form.slug || slugify(form.title) || 'lesson'
-        const { path, name } = await api.uploadLessonFile(slug, files[0])
+        const file = files[0]
+        setProgress('Uploading the lesson file')
+        const { path, name } = await api.uploadLessonFile(slug, file)
         setForm((f) => ({ ...f, filePath: path, fileName: name }))
+        // A PDF lesson file also becomes the teaching slides, unless slides were already added
+        if (/\.pdf$/i.test(file.name) && form.slideImages.length === 0) {
+          const { pdfToSlideImages } = await import('../../lib/pdfSlides')
+          const images = await pdfToSlideImages(file, (d, t) => setProgress(`Making teaching slides: page ${d} of ${t}`))
+          setProgress(`Uploading ${images.length} slides`)
+          const paths = await api.uploadSlideImages(slug, images)
+          setForm((f) => ({ ...f, slideImages: paths, slideCount: paths.length }))
+          setMsg({ tone: 'success', text: `Lesson file added, and its ${paths.length} pages are ready as teaching slides. Click Save lesson to keep them.` })
+        } else {
+          setMsg({ tone: 'success', text: 'Lesson file added. Click Save lesson to keep it.' })
+        }
       } else if (kind === 'cover') {
         const url = await api.uploadImage(files[0])
         set('coverImageUrl', url)
@@ -200,8 +213,8 @@ export default function AdminLessonEdit() {
             <p className="label">Lesson file</p>
             <p className="mb-2 text-[15px]">{form.fileName ? <>Current file: <strong>{form.fileName}</strong></> : <span className="text-inksoft">No file uploaded yet.</span>}</p>
             <input id="lessonFile" type="file" accept=".pptx,.ppt,.pdf,.zip,.key" className="text-[15px]" onChange={(e) => upload('file', e.target.files)} />
-            {busy === 'file' && <p className="hint">Uploading file</p>}
-            <p className="hint">PowerPoint, PDF or zip. Only buyers can download it.</p>
+            {busy === 'file' && <p className="hint font-bold text-ink" role="status">{progress || 'Uploading file'}</p>}
+            <p className="hint">PowerPoint, PDF or zip. Only buyers can download it. If you upload a PDF, its pages also become the teaching slides.</p>
           </div>
           <div>
             <p className="label">Slides for teaching on the website</p>
