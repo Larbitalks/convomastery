@@ -71,6 +71,7 @@ export default function LessonDetail() {
   if (!data) return <NotFound />
   const { lesson, owned, related } = data
   const isFree = lesson.priceCents === 0
+  const canPay = config.paymentsEnabled || api.mode === 'demo'
 
   const buy = async () => {
     setError(null)
@@ -172,12 +173,22 @@ export default function LessonDetail() {
                 <Link to={`/teach/${lesson.slug}`} className="btn-sun !px-6 !py-3">Teach from the website</Link>
               </div>
             ) : (
+              <>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <p className="font-display text-3xl font-extrabold">{price}</p>
-                <button className="btn-primary !px-6 !py-3" onClick={buy} disabled={busy}>
-                  {busy ? 'One moment' : isFree ? (session ? 'Add to my library' : 'Sign up to download free') : session ? `Buy for ${price}` : 'Sign up to buy'}
-                </button>
+                {isFree || canPay ? (
+                  <button className="btn-primary !px-6 !py-3" onClick={buy} disabled={busy}>
+                    {busy ? 'One moment' : isFree ? (session ? 'Add to my library' : 'Sign up to download free') : session ? `Buy for ${price}` : 'Sign up to buy'}
+                  </button>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="rounded-full bg-sun-light px-4 py-2 font-bold">Coming soon</span>
+                    <Link to={`/contact?lesson=${encodeURIComponent(lesson.title)}`} className="btn-ghost">Message about this lesson</Link>
+                  </div>
+                )}
               </div>
+              {!isFree && !canPay && <p className="mt-3 text-[15px]">Online payment opens soon. Send a message to get this lesson now or to hear when it's available.</p>}
+              </>
             )}
             <p className="mt-3 text-sm text-inksoft">{/\.pdf$/i.test(lesson.fileName ?? '') ? 'PDF' : 'PowerPoint'} file ({lesson.fileName ?? '.pptx'}). One-time purchase: download it any time, or teach it straight from the website with a timer, name picker and class awards.</p>
           </div>

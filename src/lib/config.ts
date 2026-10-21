@@ -7,6 +7,8 @@ export const config = {
   hashRouter: env.VITE_HASH_ROUTER === 'true',
   siteUrl: ((env.VITE_SITE_URL as string) || '').replace(/\/$/, ''),
   gaId: (env.VITE_GA_ID as string) || '',
+  /** Turn on once a payment service is connected. Until then paid lessons show "Coming soon". */
+  paymentsEnabled: env.VITE_PAYMENTS_ENABLED === 'true',
   social: {
     instagram: (env.VITE_INSTAGRAM_URL as string) || '',
     facebook: (env.VITE_FACEBOOK_URL as string) || '',

@@ -69,6 +69,9 @@ You'll need these accounts. All have free plans that are enough to launch.
 
 ## Step 4. Set up payments and server functions
 
+Until payments are connected, paid lessons show **Coming soon** and a button to send you a message; free lessons work as normal. When payments are set up, add `VITE_PAYMENTS_ENABLED` = `true` in Vercel (Environment Variables) and redeploy to turn on the Buy buttons.
+
+
 1. In Stripe, stay in **Test mode** for now. Copy the **secret key** (starts `sk_test_`).
 2. Install the Supabase command line tool (supabase.com/docs/guides/cli), then in this folder run:
 

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Field, Input, Notice, Select, Textarea } from '../components/ui'
 import { trackEvent } from '../lib/analytics'
 import { api } from '../lib/api'
@@ -11,7 +12,9 @@ const KINDS: Inquiry['kind'][] = ['Lesson materials', 'Partnership or school', '
 
 export default function Contact() {
   const { profile } = useAuth()
-  const [form, setForm] = useState({ name: profile?.fullName ?? '', email: profile?.email ?? '', userType: profile?.userType ?? '', kind: KINDS[0], message: '', website: '' })
+  const [params] = useSearchParams()
+  const aboutLesson = params.get('lesson')
+  const [form, setForm] = useState({ name: profile?.fullName ?? '', email: profile?.email ?? '', userType: profile?.userType ?? '', kind: KINDS[0], message: aboutLesson ? `Hello, I'm interested in the lesson "${aboutLesson}". ` : '', website: '' })
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState<string | null>(null)
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value })
