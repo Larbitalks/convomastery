@@ -1,5 +1,6 @@
 // Demo versions of the teaching, booking and messaging functions.
 import { DEFAULT_AWARD_CATEGORIES, type Api, type TeachApi } from '../types'
+import { getBlob, putBlob } from '../idb'
 import { currentUser, demoCore, load, requireAdmin, requireUser, save, uid, wait } from './demo'
 
 const strip = <T extends { ownerId: string }>(x: T) => {
@@ -14,14 +15,6 @@ function own<T extends { ownerId: string }>(list: T[], id: string, what: string)
   const item = mine(list).find((x) => (x as unknown as { id: string }).id === id)
   if (!item) throw new Error(`That ${what} no longer exists.`)
   return item
-}
-function readAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const r = new FileReader()
-    r.onload = () => resolve(String(r.result))
-    r.onerror = () => reject(new Error('Could not read that file.'))
-    r.readAsDataURL(file)
-  })
 }
 const slotWithCount = (slotId: string) => {
   const db = load()
@@ -196,13 +189,24 @@ const demoTeach: TeachApi = {
     const u = requireUser()
     const owns = load().purchases.some((p) => p.userId === u.id && p.lessonId === lesson.id)
     if (!owns && u.role !== 'admin') throw new Error('Get this lesson first to teach it from the website.')
-    return lesson.slideImages
+    // Slides uploaded in demo mode live in this browser's IndexedDB ("idb:" keys)
+    return Promise.all(lesson.slideImages.map(async (ref) => {
+      if (!ref.startsWith('idb:')) return ref
+      const blob = await getBlob(ref.slice(4)).catch(() => null)
+      if (!blob) throw new Error('These slides were uploaded in a different browser. Upload them again here to teach this lesson.')
+      return URL.createObjectURL(blob)
+    }))
   },
-  async uploadSlideImages(_slug, files) {
+  async uploadSlideImages(slug, files) {
     requireAdmin()
-    const big = files.find((f) => f.size > 1_500_000)
-    if (big) throw new Error(`In demo mode, each slide image must be under 1.5 MB (${big.name} is larger).`)
-    return Promise.all(files.map(readAsDataUrl))
+    const stamp = Date.now()
+    const keys: string[] = []
+    for (const [i, f] of files.entries()) {
+      const key = `slides/${slug}/${stamp}-${i}`
+      try { await putBlob(key, f) } catch { throw new Error('This browser could not store the slides. Try a different browser, or switch off private browsing.') }
+      keys.push('idb:' + key)
+    }
+    return keys
   },
 
   async listSlots(opts) {

@@ -118,7 +118,7 @@ Create a GA4 property at analytics.google.com, copy the **Measurement ID** (star
 ## Step 8. Before you announce it
 
 - [ ] Upload your real lessons in the admin area (lesson file, description, sample questions, previews). Mark one as free.
-- [ ] For each lesson, upload its slides as images so buyers can teach it from the website. In PowerPoint: **File > Export**, choose **PNG**, then **All slides**, and upload every image from the folder it creates. Without slide images, the presenter shows the sample questions as simple slides.
+- [ ] For each lesson, upload its slides so buyers can teach it from the website. In PowerPoint choose **File > Save As > PDF**, then upload that PDF under **Slides for teaching on the website** on the lesson's admin page and click **Save lesson**. Each page becomes a slide. Without slides, the presenter shows the sample questions as simple slides.
 - [ ] Add your first bookable times under **Admin > Bookings**, then book one with a test account and check both emails arrive.
 - [ ] Send a message from a test account and reply from **Admin > Customer messages**.
 - [ ] Review the wording on Home, About and Pricing. It was written from your project goals, so check every claim (prices "from $3.99", slide counts, reply times, the About story) and change anything that isn't right.

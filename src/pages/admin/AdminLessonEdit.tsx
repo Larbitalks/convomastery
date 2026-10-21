@@ -33,6 +33,7 @@ export default function AdminLessonEdit() {
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [progress, setProgress] = useState('')
 
   useEffect(() => {
     if (data?.lesson) {
@@ -57,10 +58,24 @@ export default function AdminLessonEdit() {
     try {
       if (kind === 'slides') {
         const slug = form.slug || slugify(form.title) || 'lesson'
-        // Keep slides in the order PowerPoint names them: Slide1, Slide2 ... Slide10
-        const sorted = Array.from(files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-        const paths = await api.uploadSlideImages(slug, sorted)
+        const list = Array.from(files)
+        const pdf = list.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name))
+        if (list.some((f) => /\.(pptx?|key)$/i.test(f.name))) {
+          throw new Error('Save the PowerPoint as a PDF first (File, Save As, PDF), then upload the PDF here.')
+        }
+        let images: File[]
+        if (pdf) {
+          setProgress('Reading the PDF')
+          const { pdfToSlideImages } = await import('../../lib/pdfSlides')
+          images = await pdfToSlideImages(pdf, (d, t) => setProgress(`Converting page ${d} of ${t}`))
+        } else {
+          // Keep image slides in the order PowerPoint names them: Slide1, Slide2 ... Slide10
+          images = list.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+        }
+        setProgress(`Uploading ${images.length} slides`)
+        const paths = await api.uploadSlideImages(slug, images)
         setForm((f) => ({ ...f, slideImages: paths, slideCount: paths.length }))
+        setMsg({ tone: 'success', text: `${paths.length} slides ready. Click Save lesson to keep them.` })
       } else if (kind === 'file') {
         const slug = form.slug || slugify(form.title) || 'lesson'
         const { path, name } = await api.uploadLessonFile(slug, files[0])
@@ -76,6 +91,7 @@ export default function AdminLessonEdit() {
       setMsg({ tone: 'error', text: errorMessage(e) })
     } finally {
       setBusy(null)
+      setProgress('')
     }
   }
 
@@ -190,9 +206,9 @@ export default function AdminLessonEdit() {
           <div>
             <p className="label">Slides for teaching on the website</p>
             <p className="mb-2 text-[15px]">{form.slideImages.length ? <><strong>{form.slideImages.length} slides</strong> uploaded. Buyers can teach this lesson from the website.</> : <span className="text-inksoft">No slides yet. Buyers see the sample questions as simple slides instead.</span>}</p>
-            <input id="slideFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple className="text-[15px]" onChange={(e) => upload('slides', e.target.files)} />
-            {busy === 'slides' && <p className="hint">Uploading slides</p>}
-            <p className="hint">In PowerPoint choose File, Export, then PNG and "All slides". Select every image in the folder it creates. Uploading again replaces the current slides.</p>
+            <input id="slideFiles" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.ppt,.pptx" multiple className="text-[15px]" disabled={busy === 'slides'} onChange={(e) => { upload('slides', e.target.files); e.target.value = '' }} />
+            {busy === 'slides' && <p className="hint font-bold text-ink" role="status">{progress || 'Working'}</p>}
+            <p className="hint">Easiest: in PowerPoint choose File, Save As, then PDF, and upload that one PDF. Each page becomes a slide. You can also upload slide images. Uploading again replaces the current slides.</p>
             {form.slideImages.length > 0 && <button type="button" className="mt-2 text-sm font-bold underline" onClick={() => set('slideImages', [])}>Remove all slides</button>}
           </div>
           <div>
