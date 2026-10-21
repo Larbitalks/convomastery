@@ -1,0 +1,460 @@
+-- ConvoMastery: complete database setup. Paste this whole file into the Supabase SQL Editor and click Run, once.
+
+
+-- ===== migrations/0001_init.sql =====
+-- ConvoMastery database schema.
+-- Run this once in the Supabase SQL editor (or with `supabase db push`).
+
+create extension if not exists pgcrypto;
+
+-- Profiles: one row per account, created automatically on sign-up.
+create table public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  email text not null,
+  full_name text,
+  user_type text,
+  role text not null default 'customer' check (role in ('customer', 'admin')),
+  created_at timestamptz not null default now()
+);
+
+create table public.categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  slug text not null unique,
+  description text not null default ''
+);
+
+create table public.lessons (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  summary text not null default '',
+  description text not null default '',
+  level text not null check (level in ('A2', 'B1', 'B2', 'C1')),
+  age_group text not null check (age_group in ('Teens', 'Adults', 'Young learners')),
+  category_id uuid references public.categories (id) on delete set null,
+  topics text[] not null default '{}',
+  activity_types text[] not null default '{}',
+  sample_questions text[] not null default '{}',
+  price_cents integer not null default 0 check (price_cents >= 0),
+  currency text not null default 'USD',
+  slide_count integer not null default 0,
+  duration_minutes integer not null default 60,
+  cover_color text not null default '#0E7C7B',
+  cover_image_url text,
+  preview_images text[] not null default '{}',
+  file_path text,
+  file_name text,
+  published boolean not null default false,
+  featured boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.purchases (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  lesson_id uuid references public.lessons (id) on delete set null,
+  amount_cents integer not null,
+  currency text not null default 'USD',
+  provider text not null,              -- 'free', 'stripe', ...
+  provider_ref text unique,            -- payment session id, prevents double recording
+  created_at timestamptz not null default now(),
+  unique (user_id, lesson_id)
+);
+
+create table public.inquiries (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 200),
+  email text not null check (char_length(email) between 3 and 320),
+  kind text not null,
+  user_type text,
+  message text not null check (char_length(message) between 1 and 5000),
+  handled boolean not null default false,
+  notified boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index lessons_published_idx on public.lessons (published, created_at desc);
+create index purchases_user_idx on public.purchases (user_id);
+
+-- Keep updated_at current
+create function public.touch_updated_at() returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end $$;
+create trigger lessons_touch before update on public.lessons for each row execute function public.touch_updated_at();
+
+-- Create a profile when someone signs up
+create function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, email, full_name, user_type)
+  values (new.id, new.email, new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'user_type');
+  return new;
+end $$;
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
+
+create function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+$$;
+
+-- Stop customers from promoting themselves to admin
+create function public.protect_role() returns trigger language plpgsql as $$
+begin
+  -- auth.uid() is empty in the Supabase SQL editor, where the owner sets the first admin
+  if new.role is distinct from old.role and auth.uid() is not null and not public.is_admin() then
+    raise exception 'Only admins can change roles';
+  end if;
+  return new;
+end $$;
+create trigger profiles_protect_role before update on public.profiles for each row execute function public.protect_role();
+
+-- Free lessons: add to the signed-in user's library without payment
+create function public.claim_free_lesson(p_lesson_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'Sign in to continue.'; end if;
+  if not exists (select 1 from lessons where id = p_lesson_id and published and price_cents = 0) then
+    raise exception 'This lesson is not free.';
+  end if;
+  insert into purchases (user_id, lesson_id, amount_cents, currency, provider)
+  values (auth.uid(), p_lesson_id, 0, 'USD', 'free')
+  on conflict (user_id, lesson_id) do nothing;
+end $$;
+
+-- ---------- Row level security ----------
+alter table public.profiles enable row level security;
+alter table public.categories enable row level security;
+alter table public.lessons enable row level security;
+alter table public.purchases enable row level security;
+alter table public.inquiries enable row level security;
+
+create policy "own profile read" on public.profiles for select using (id = auth.uid() or public.is_admin());
+create policy "own profile update" on public.profiles for update using (id = auth.uid() or public.is_admin());
+
+create policy "categories public read" on public.categories for select using (true);
+create policy "categories admin write" on public.categories for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "lessons public read" on public.lessons for select using (
+  published
+  or public.is_admin()
+  or exists (select 1 from public.purchases p where p.lesson_id = lessons.id and p.user_id = auth.uid())
+);
+create policy "lessons admin write" on public.lessons for all using (public.is_admin()) with check (public.is_admin());
+
+-- Purchases are only created by claim_free_lesson() or the payment webhook (service role).
+create policy "own purchases read" on public.purchases for select using (user_id = auth.uid() or public.is_admin());
+
+create policy "anyone can send a message" on public.inquiries for insert with check (handled = false and notified = false);
+create policy "admin reads messages" on public.inquiries for select using (public.is_admin());
+create policy "admin updates messages" on public.inquiries for update using (public.is_admin());
+
+-- ---------- File storage ----------
+insert into storage.buckets (id, name, public) values ('lesson-files', 'lesson-files', false) on conflict do nothing;
+insert into storage.buckets (id, name, public) values ('public-images', 'public-images', true) on conflict do nothing;
+
+-- Buyers can download the file of a lesson they own; admins can do everything.
+create policy "buyers download lesson files" on storage.objects for select using (
+  bucket_id = 'lesson-files' and (
+    public.is_admin()
+    or exists (
+      select 1 from public.lessons l join public.purchases p on p.lesson_id = l.id
+      where l.file_path = storage.objects.name and p.user_id = auth.uid()
+    )
+  )
+);
+create policy "admin manages lesson files" on storage.objects for all
+  using (bucket_id = 'lesson-files' and public.is_admin())
+  with check (bucket_id = 'lesson-files' and public.is_admin());
+
+create policy "public images read" on storage.objects for select using (bucket_id = 'public-images');
+create policy "admin manages images" on storage.objects for all
+  using (bucket_id = 'public-images' and public.is_admin())
+  with check (bucket_id = 'public-images' and public.is_admin());
+
+-- ===== migrations/0002_teaching_booking_messaging.sql =====
+-- Teaching tools (classes, students, awards, homework), teaching from the website,
+-- booking and messaging. Run after 0001_init.sql.
+
+-- ---------- Teaching from the website ----------
+alter table public.lessons add column slide_images text[] not null default '{}';
+
+insert into storage.buckets (id, name, public) values ('lesson-slides', 'lesson-slides', false) on conflict do nothing;
+
+create policy "owners view lesson slides" on storage.objects for select using (
+  bucket_id = 'lesson-slides' and (
+    public.is_admin()
+    or exists (
+      select 1 from public.lessons l join public.purchases p on p.lesson_id = l.id
+      where storage.objects.name = any (l.slide_images) and p.user_id = auth.uid()
+    )
+  )
+);
+create policy "admin manages lesson slides" on storage.objects for all
+  using (bucket_id = 'lesson-slides' and public.is_admin())
+  with check (bucket_id = 'lesson-slides' and public.is_admin());
+
+-- ---------- Classes, students and awards (private to each teacher) ----------
+create table public.classes (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  name text not null check (char_length(name) between 1 and 120),
+  level text not null default 'B1',
+  color text not null default '#0E7C7B',
+  created_at timestamptz not null default now()
+);
+
+create table public.students (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  class_id uuid not null references public.classes (id) on delete cascade,
+  name text not null check (char_length(name) between 1 and 120),
+  notes text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table public.award_categories (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  class_id uuid not null references public.classes (id) on delete cascade,
+  name text not null check (char_length(name) between 1 and 60),
+  points integer not null default 1 check (points between 1 and 10),
+  color text not null default '#0E7C7B',
+  position integer not null default 0
+);
+
+create table public.awards (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  class_id uuid not null references public.classes (id) on delete cascade,
+  student_id uuid not null references public.students (id) on delete cascade,
+  category_id uuid not null references public.award_categories (id) on delete cascade,
+  points integer not null,
+  lesson_id uuid references public.lessons (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table public.homework (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  class_id uuid not null references public.classes (id) on delete cascade,
+  title text not null check (char_length(title) between 1 and 200),
+  instructions text not null default '',
+  due_date date not null,
+  lesson_id uuid references public.lessons (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table public.homework_status (
+  homework_id uuid not null references public.homework (id) on delete cascade,
+  student_id uuid not null references public.students (id) on delete cascade,
+  owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  status text not null default 'assigned' check (status in ('assigned', 'done', 'late', 'missing')),
+  feedback text not null default '',
+  updated_at timestamptz not null default now(),
+  primary key (homework_id, student_id)
+);
+
+create index students_class_idx on public.students (class_id);
+create index awards_class_idx on public.awards (class_id, created_at);
+create index homework_class_idx on public.homework (class_id);
+
+-- Every new class starts with the default award categories
+create function public.add_default_award_categories() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into award_categories (owner_id, class_id, name, points, color, position) values
+    (new.owner_id, new.id, 'Participation', 1, '#0E7C7B', 0),
+    (new.owner_id, new.id, 'Great answer', 2, '#3D4FA8', 1),
+    (new.owner_id, new.id, 'New vocabulary', 1, '#7A4FB5', 2),
+    (new.owner_id, new.id, 'Teamwork', 1, '#B5651D', 3),
+    (new.owner_id, new.id, 'Homework', 2, '#B91C1C', 4);
+  return new;
+end $$;
+create trigger classes_default_awards after insert on public.classes for each row execute function public.add_default_award_categories();
+
+-- Give an award: points come from the category, and everything must belong to the same teacher and class
+create function public.give_award(p_class_id uuid, p_student_id uuid, p_category_id uuid, p_lesson_id uuid default null)
+returns public.awards language plpgsql security definer set search_path = public as $$
+declare
+  v_points integer;
+  v_award public.awards;
+begin
+  select points into v_points from award_categories
+    where id = p_category_id and class_id = p_class_id and owner_id = auth.uid();
+  if v_points is null then raise exception 'That award no longer exists.'; end if;
+  if not exists (select 1 from students where id = p_student_id and class_id = p_class_id and owner_id = auth.uid()) then
+    raise exception 'That student is not in this class.';
+  end if;
+  insert into awards (owner_id, class_id, student_id, category_id, points, lesson_id)
+    values (auth.uid(), p_class_id, p_student_id, p_category_id, v_points, p_lesson_id)
+    returning * into v_award;
+  return v_award;
+end $$;
+
+alter table public.classes enable row level security;
+alter table public.students enable row level security;
+alter table public.award_categories enable row level security;
+alter table public.awards enable row level security;
+alter table public.homework enable row level security;
+alter table public.homework_status enable row level security;
+
+create policy "own classes" on public.classes for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+create policy "own students" on public.students for all using (owner_id = auth.uid())
+  with check (owner_id = auth.uid() and exists (select 1 from public.classes c where c.id = class_id and c.owner_id = auth.uid()));
+create policy "own award categories" on public.award_categories for all using (owner_id = auth.uid())
+  with check (owner_id = auth.uid() and exists (select 1 from public.classes c where c.id = class_id and c.owner_id = auth.uid()));
+-- Awards are created through give_award(); teachers can read and undo their own.
+create policy "own awards read" on public.awards for select using (owner_id = auth.uid());
+create policy "own awards delete" on public.awards for delete using (owner_id = auth.uid());
+create policy "own homework" on public.homework for all using (owner_id = auth.uid())
+  with check (owner_id = auth.uid() and exists (select 1 from public.classes c where c.id = class_id and c.owner_id = auth.uid()));
+create policy "own homework status" on public.homework_status for all using (owner_id = auth.uid())
+  with check (
+    owner_id = auth.uid()
+    and exists (select 1 from public.homework h where h.id = homework_id and h.owner_id = auth.uid())
+    and exists (select 1 from public.students s where s.id = student_id and s.owner_id = auth.uid())
+  );
+
+-- ---------- Booking ----------
+create table public.booking_slots (
+  id uuid primary key default gen_random_uuid(),
+  starts_at timestamptz not null,
+  duration_minutes integer not null default 60 check (duration_minutes between 10 and 480),
+  kind text not null check (kind in ('One-to-one lesson', 'Trial lesson', 'Teacher training')),
+  capacity integer not null default 1 check (capacity between 1 and 100),
+  notes text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table public.bookings (
+  id uuid primary key default gen_random_uuid(),
+  slot_id uuid not null references public.booking_slots (id) on delete restrict,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  status text not null default 'confirmed' check (status in ('confirmed', 'cancelled')),
+  message text not null default '' check (char_length(message) <= 2000),
+  created_at timestamptz not null default now()
+);
+create unique index bookings_one_per_user on public.bookings (slot_id, user_id) where status = 'confirmed';
+create index booking_slots_start_idx on public.booking_slots (starts_at);
+
+-- Open times with the number of places taken (customers cannot see each other's bookings)
+create function public.list_slots(p_include_past boolean default false)
+returns table (id uuid, starts_at timestamptz, duration_minutes integer, kind text, capacity integer, notes text, booked_count integer)
+language sql stable security definer set search_path = public as $$
+  select s.id, s.starts_at, s.duration_minutes, s.kind, s.capacity, s.notes,
+    (select count(*)::int from bookings b where b.slot_id = s.id and b.status = 'confirmed')
+  from booking_slots s
+  where (p_include_past and (public.is_admin() or exists (select 1 from bookings b where b.slot_id = s.id and b.user_id = auth.uid())))
+     or s.starts_at > now()
+  order by s.starts_at
+$$;
+
+create function public.book_slot(p_slot_id uuid, p_message text default '')
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  v_slot booking_slots;
+  v_taken integer;
+  v_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Sign in to continue.'; end if;
+  select * into v_slot from booking_slots where id = p_slot_id for update;
+  if v_slot.id is null then raise exception 'This time is no longer available.'; end if;
+  if v_slot.starts_at <= now() then raise exception 'This time has already passed.'; end if;
+  if exists (select 1 from bookings where slot_id = p_slot_id and user_id = auth.uid() and status = 'confirmed') then
+    raise exception 'You have already booked this time.';
+  end if;
+  select count(*) into v_taken from bookings where slot_id = p_slot_id and status = 'confirmed';
+  if v_taken >= v_slot.capacity then raise exception 'This time was just taken. Choose another one.'; end if;
+  insert into bookings (slot_id, user_id, message) values (p_slot_id, auth.uid(), coalesce(p_message, '')) returning id into v_id;
+  return v_id;
+end $$;
+
+create function public.cancel_booking(p_booking_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  update bookings set status = 'cancelled'
+    where id = p_booking_id and status = 'confirmed' and (user_id = auth.uid() or public.is_admin());
+  if not found then raise exception 'That booking no longer exists.'; end if;
+end $$;
+
+alter table public.booking_slots enable row level security;
+alter table public.bookings enable row level security;
+create policy "slots admin manage" on public.booking_slots for all using (public.is_admin()) with check (public.is_admin());
+create policy "slots readable by bookers" on public.booking_slots for select using (
+  starts_at > now() or exists (select 1 from public.bookings b where b.slot_id = booking_slots.id and b.user_id = auth.uid())
+);
+create policy "own bookings read" on public.bookings for select using (user_id = auth.uid() or public.is_admin());
+
+-- ---------- Messages between customers and the site owner ----------
+create table public.messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_user_id uuid not null references public.profiles (id) on delete cascade,
+  sender_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  from_admin boolean not null default false,
+  body text not null check (char_length(body) between 1 and 5000),
+  read boolean not null default false,
+  notified boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index messages_thread_idx on public.messages (thread_user_id, created_at);
+
+alter table public.messages enable row level security;
+create policy "read own thread" on public.messages for select using (thread_user_id = auth.uid() or public.is_admin());
+create policy "customers write to their thread" on public.messages for insert with check (
+  thread_user_id = auth.uid() and sender_id = auth.uid() and from_admin = false and read = false and notified = false
+);
+create policy "admin replies" on public.messages for insert with check (
+  public.is_admin() and sender_id = auth.uid() and from_admin = true and read = false and notified = false
+);
+
+create function public.mark_thread_read(p_thread_user_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if public.is_admin() and p_thread_user_id <> auth.uid() then
+    update messages set read = true where thread_user_id = p_thread_user_id and from_admin = false and not read;
+  elsif p_thread_user_id = auth.uid() then
+    update messages set read = true where thread_user_id = auth.uid() and from_admin = true and not read;
+  end if;
+end $$;
+
+create function public.unread_message_count() returns integer
+language sql stable security definer set search_path = public as $$
+  select case when public.is_admin()
+    then (select count(*)::int from messages where from_admin = false and not read)
+    else (select count(*)::int from messages where thread_user_id = auth.uid() and from_admin = true and not read)
+  end
+$$;
+
+-- Bookings and emails sent by server functions need to know if a booking email went out
+alter table public.bookings add column notified_status text;
+
+-- ===== migrations/0003_student_records.sql =====
+-- Student records: extra details and a dated notes log. Run after 0002.
+alter table public.students
+  add column level text not null default '',
+  add column contact text not null default '',
+  add column goals text not null default '';
+
+create table public.student_notes (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  student_id uuid not null references public.students (id) on delete cascade,
+  date date not null default current_date,
+  body text not null check (char_length(body) between 1 and 5000),
+  created_at timestamptz not null default now()
+);
+create index student_notes_student_idx on public.student_notes (student_id, date desc);
+
+alter table public.student_notes enable row level security;
+create policy "own student notes" on public.student_notes for all using (owner_id = auth.uid())
+  with check (owner_id = auth.uid() and exists (select 1 from public.students s where s.id = student_id and s.owner_id = auth.uid()));
+
+-- ===== seed.sql =====
+-- Optional starter topic areas. Run after 0001_init.sql.
+insert into public.categories (name, slug, description) values
+  ('Everyday life', 'everyday-life', 'Family, sleep, habits and the routines everyone can talk about.'),
+  ('Society and money', 'society-and-money', 'Work, money, fairness and the choices people make.'),
+  ('Science and tech', 'science-and-tech', 'Screens, AI, health and the future.'),
+  ('Culture and travel', 'culture-and-travel', 'Food, places, traditions and luck.')
+on conflict (slug) do nothing;
