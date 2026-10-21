@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-paper text-ink font-body antialiased; font-size: 17px; line-height: 1.6; }
+  h1, h2, h3, h4 { @apply font-display text-ink; line-height: 1.12; letter-spacing: -0.015em; }
+  :focus-visible { outline: 3px solid #FFC845; outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: #FFF1C7; }
+}
+
+@layer components {
+  .wrap { @apply mx-auto w-full max-w-6xl px-4 sm:px-6; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-bold text-[15px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn bg-teal text-white hover:bg-teal-dark; }
+  .btn-sun { @apply btn bg-sun text-ink hover:bg-[#F5B820]; }
+  .btn-ghost { @apply btn border-2 border-ink/15 text-ink hover:border-ink/40 bg-white; }
+  .btn-danger { @apply btn border-2 border-coral/30 text-coral hover:bg-coral hover:text-white bg-white; }
+  .input { @apply w-full rounded-xl border-2 border-line bg-white px-3.5 py-2.5 text-ink placeholder:text-inksoft/60 focus:border-teal focus:outline-none; }
+  .label { @apply mb-1.5 block text-[15px] font-bold text-ink; }
+  .hint { @apply mt-1 text-sm text-inksoft; }
+  .panel { @apply rounded-2xl border-2 border-line bg-white; }
+  .chip { @apply inline-flex items-center rounded-full border-2 px-3 py-1 text-sm font-bold transition-colors; }
+  .prose-lesson p { @apply mb-4; }
+}
+
+/* Speech bubble tail used in the hero and lesson pages */
+.bubble { position: relative; }
+.bubble::after {
+  content: ''; position: absolute; left: 48px; bottom: -22px; width: 36px; height: 24px;
+  background: inherit; clip-path: polygon(0 0, 100% 0, 0 100%);
+  border-left: inherit;
+}
+
+@keyframes pop { from { transform: scale(.96) rotate(-1deg); opacity: 0 } to { transform: none; opacity: 1 } }
+.pop { animation: pop .28s cubic-bezier(.2,.9,.3,1.2); }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none } }
