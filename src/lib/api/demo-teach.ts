@@ -124,7 +124,7 @@ const demoTeach: TeachApi = {
         const c = db.awardCategories.find((x) => x.id === a.categoryId)
         return { date: a.createdAt, category: c?.name ?? 'Award', color: c?.color ?? '#3D405B', points: a.points, lesson: db.lessons.find((l) => l.id === a.lessonId)?.title ?? null }
       }),
-      homework: db.homework.filter((h) => h.classId === s.classId).sort((a, b) => b.dueDate.localeCompare(a.dueDate))
+      homework: db.homework.filter((h) => h.studentId === s.id).sort((a, b) => b.dueDate.localeCompare(a.dueDate))
         .map((h) => ({ title: h.title, instructions: h.instructions, dueDate: h.dueDate, status: st(h.id)?.status ?? 'assigned', feedback: st(h.id)?.feedback ?? '' })),
       notes: db.studentNotes.filter((n) => n.studentId === s.id && n.shared).sort((a, b) => b.date.localeCompare(a.date)).map((n) => ({ date: n.date, body: n.body })),
     }

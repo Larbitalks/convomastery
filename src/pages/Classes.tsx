@@ -30,10 +30,12 @@ export default function Classes() {
   if (loading) return <Spinner />
   if (error || !data) return <Notice tone="error">{error}</Notice>
 
+  // Homework not yet marked, due from two weeks ago to the coming week
+  const stateOf = (hid: string) => data.statuses.find((s) => s.homeworkId === hid)?.status ?? 'assigned'
   const upcoming = data.homework
-    .filter((h) => h.dueDate >= new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10))
+    .filter((h) => stateOf(h.id) === 'assigned' && h.dueDate >= new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10) && h.dueDate <= new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-    .slice(0, 5)
+    .slice(0, 8)
 
   return (
     <div>
@@ -85,23 +87,20 @@ export default function Classes() {
 
       {upcoming.length > 0 && (
         <section className="mt-12">
-          <h2 className="text-2xl font-extrabold">Homework</h2>
+          <h2 className="text-2xl font-extrabold">Homework to check</h2>
+          <p className="mt-1 text-inksoft">Homework due recently or this week that you haven't marked yet.</p>
           <ul className="mt-4 grid max-w-3xl gap-3">
             {upcoming.map((h) => {
+              const student = data.students.find((s) => s.id === h.studentId)
               const cls = data.classes.find((c) => c.id === h.classId)
-              const total = data.students.filter((s) => s.classId === h.classId).length
-              const done = data.statuses.filter((s) => s.homeworkId === h.id && (s.status === 'done' || s.status === 'late')).length
               const overdue = h.dueDate < today()
               return (
                 <li key={h.id} className="panel flex flex-wrap items-center justify-between gap-3 p-4">
                   <div>
-                    <p className="font-bold">{h.title}</p>
-                    <p className="text-[15px] text-inksoft">{cls?.name}. {overdue ? 'Was due' : 'Due'} {formatDate(h.dueDate)}</p>
+                    <p className="font-bold">{student?.name ?? 'Student'}: {h.title}</p>
+                    <p className={`text-[15px] ${overdue ? 'font-bold text-[#8E1C20]' : 'text-inksoft'}`}>{cls?.name}. {overdue ? 'Was due' : 'Due'} {formatDate(h.dueDate)}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${done === total && total > 0 ? 'bg-sage-light text-sage-dark' : overdue ? 'bg-[#FDECEC] text-[#8E1C20]' : 'bg-board'}`}>{done} of {total} handed in</span>
-                    <Link to={`/classes/${h.classId}?tab=homework`} className="font-bold underline underline-offset-4">Open</Link>
-                  </div>
+                  {student && <Link to={`/students/${student.id}`} className="font-bold underline underline-offset-4">Mark it</Link>}
                 </li>
               )
             })}

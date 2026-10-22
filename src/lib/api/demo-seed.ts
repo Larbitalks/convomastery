@@ -41,14 +41,16 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
       points: cat.points, lessonId: 'les-sleep-on-it', createdAt: iso(new Date(now.getTime() - (7 - (i % 3)) * day)),
     })
   })
-  const homework: DemoDb['homework'] = [
-    { id: 'hw-1', ownerId: 'u-admin', classId: 'c-teens', title: 'Sleep diary', instructions: 'Record what time you go to bed and wake up for five days. Be ready to talk about it using three words from the lesson.', dueDate: ymd(new Date(now.getTime() - 2 * day)), lessonId: 'les-sleep-on-it', createdAt: iso(new Date(now.getTime() - 9 * day)) },
-    { id: 'hw-2', ownerId: 'u-admin', classId: 'c-teens', title: 'Family interview', instructions: 'Ask an older family member three questions about their childhood. Write down their answers in English.', dueDate: ymd(new Date(now.getTime() + 5 * day)), lessonId: 'les-all-in-the-family', createdAt: iso(new Date(now.getTime() - 1 * day)) },
-  ]
+  // Homework is set for each student individually
+  const homework: DemoDb['homework'] = []
+  const homeworkStatus: DemoDb['homeworkStatus'] = []
   const states = ['done', 'done', 'late', 'done', 'missing', 'done'] as const
-  const homeworkStatus: DemoDb['homeworkStatus'] = names['c-teens'].map((_, i) => ({
-    ownerId: 'u-admin', homeworkId: 'hw-1', studentId: `s-c-teens-${i}`, status: states[i], feedback: i === 0 ? 'Great detail, well done.' : '',
-  }))
+  names['c-teens'].forEach((_, i) => {
+    const sid = `s-c-teens-${i}`
+    homework.push({ id: `hw-diary-${i}`, ownerId: 'u-admin', classId: 'c-teens', studentId: sid, title: 'Sleep diary', instructions: 'Record what time you go to bed and wake up for five days. Be ready to talk about it using three words from the lesson.', dueDate: ymd(new Date(now.getTime() - 2 * day)), lessonId: 'les-sleep-on-it', createdAt: iso(new Date(now.getTime() - 9 * day)) })
+    homeworkStatus.push({ ownerId: 'u-admin', homeworkId: `hw-diary-${i}`, studentId: sid, status: states[i], feedback: i === 0 ? 'Great detail, well done.' : '' })
+  })
+  ;[0, 1].forEach((i) => homework.push({ id: `hw-family-${i}`, ownerId: 'u-admin', classId: 'c-teens', studentId: `s-c-teens-${i}`, title: 'Family interview', instructions: 'Ask an older family member three questions about their childhood. Write down their answers in English.', dueDate: ymd(new Date(now.getTime() + 5 * day)), lessonId: 'les-all-in-the-family', createdAt: iso(new Date(now.getTime() - 1 * day)) }))
 
   // Bookable times over the next two weeks
   const slots: DemoDb['slots'] = []

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { StudentHomework } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
 import { errorMessage, formatDate } from '../lib/format'
@@ -26,7 +27,7 @@ export default function StudentRecord() {
     if (!student) return null
     const myAwards = awards.filter((a) => a.studentId === id)
     const categories = (await Promise.all([...new Set(myAwards.map((a) => a.classId).concat(student.classId))].map((c) => api.listAwardCategories(c)))).flat()
-    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.classId === student.classId), statuses: statuses.filter((s) => s.studentId === id), notes, lessons }
+    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons }
   }, [id])
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
@@ -139,25 +140,10 @@ export default function StudentRecord() {
 
           <section>
             <h2 className="text-2xl font-extrabold">Homework</h2>
-            {homework.length === 0 ? <p className="mt-2 text-inksoft">No homework set for {cls?.name ?? 'this class'} yet.</p> : (
-              <ul className="mt-3 divide-y-2 divide-line rounded-2xl border-2 border-line bg-white">
-                {homework.map((h) => {
-                  const st = statuses.find((s) => s.homeworkId === h.id)
-                  const label = STATUS_LABEL[st?.status ?? 'assigned']
-                  return (
-                    <li key={h.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
-                      <div className="min-w-0">
-                        <p className="font-bold">{h.title}</p>
-                        <p className="text-[15px] text-inksoft">Due {formatDate(h.dueDate)}{lessonTitle(h.lessonId) ? `. Lesson: ${lessonTitle(h.lessonId)}` : ''}</p>
-                        {st?.feedback && <p className="mt-1 text-[15px]">Feedback: {st.feedback}</p>}
-                      </div>
-                      <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${label.cls}`}>{label.text}</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-            {cls && <Link to={`/classes/${cls.id}?tab=homework`} className="mt-2 inline-block text-[15px] font-bold underline underline-offset-4">Update homework for the class</Link>}
+            <div className="mt-3">
+              <StudentHomework studentId={student.id} classId={student.classId} name={student.name}
+                lessons={lessons} onChange={reload} />
+            </div>
           </section>
         </div>
 

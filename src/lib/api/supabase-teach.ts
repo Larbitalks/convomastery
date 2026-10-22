@@ -14,7 +14,7 @@ const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r
 const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
 const toAward = (r: Row): Award => ({ id: r.id, classId: r.class_id, studentId: r.student_id, categoryId: r.category_id, points: r.points, lessonId: r.lesson_id, createdAt: r.created_at })
-const toHomework = (r: Row): Homework => ({ id: r.id, classId: r.class_id, title: r.title, instructions: r.instructions ?? '', dueDate: r.due_date, lessonId: r.lesson_id, createdAt: r.created_at })
+const toHomework = (r: Row): Homework => ({ id: r.id, classId: r.class_id, studentId: r.student_id ?? null, title: r.title, instructions: r.instructions ?? '', dueDate: r.due_date, lessonId: r.lesson_id, createdAt: r.created_at })
 const toStatus = (r: Row): HomeworkStatus => ({ homeworkId: r.homework_id, studentId: r.student_id, status: r.status, feedback: r.feedback ?? '' })
 const toSlot = (r: Row): BookingSlot => ({ id: r.id, startsAt: r.starts_at, durationMinutes: r.duration_minutes, kind: r.kind, capacity: r.capacity, notes: r.notes ?? '', bookedCount: r.booked_count ?? 0 })
 const toMessage = (r: Row): Message => ({ id: r.id, threadUserId: r.thread_user_id, fromAdmin: r.from_admin, body: r.body, createdAt: r.created_at, read: r.read })
@@ -104,8 +104,8 @@ export const supabaseTeach: TeachApi = {
     if (classId) q = q.eq('class_id', classId)
     return check(await q).map(toHomework)
   },
-  async saveHomework({ id, classId, title, instructions, dueDate, lessonId }) {
-    return toHomework(await upsert('homework', { class_id: classId, title, instructions, due_date: dueDate, lesson_id: lessonId }, id))
+  async saveHomework({ id, classId, studentId, title, instructions, dueDate, lessonId }) {
+    return toHomework(await upsert('homework', { class_id: classId, student_id: studentId, title, instructions, due_date: dueDate, lesson_id: lessonId }, id))
   },
   async deleteHomework(id) { check(await supabase.from('homework').delete().eq('id', id)) },
   async listHomeworkStatus(classId) {

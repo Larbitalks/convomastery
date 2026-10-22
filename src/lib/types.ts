@@ -165,7 +165,7 @@ export interface AwardCategory { id: string; classId: string; name: string; poin
 export interface Award { id: string; classId: string; studentId: string; categoryId: string; points: number; lessonId: string | null; createdAt: string }
 
 export type HomeworkState = 'assigned' | 'done' | 'late' | 'missing'
-export interface Homework { id: string; classId: string; title: string; instructions: string; dueDate: string; lessonId: string | null; createdAt: string }
+export interface Homework { id: string; classId: string; /** The student this homework is for */ studentId: string | null; title: string; instructions: string; dueDate: string; lessonId: string | null; createdAt: string }
 export interface HomeworkStatus { homeworkId: string; studentId: string; status: HomeworkState; feedback: string }
 
 export const SLOT_KINDS = ['One-to-one lesson', 'Trial lesson', 'Teacher training'] as const

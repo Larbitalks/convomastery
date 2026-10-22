@@ -23,7 +23,7 @@ This is the step-by-step list for taking the site from demo to live. Most steps 
 - Student progress codes: share a private code or link with a student or parent so they can see their own points, homework, feedback and the notes you mark as shared, without an account and without being able to change anything
 - Student records: a Students page listing everyone across classes, and a record for each student with contact, level, goals, private notes, a dated lesson-notes log, award totals and history, and homework results
 - Awards: each class has its own award categories and points (Participation, Great answer and so on, all editable), a scoreboard by lesson, week or all time, and undo
-- Homework: set it per class with a due date and an optional linked lesson, then mark each student Done, Late or Missing with feedback
+- Homework: set for each student on their own page, with a due date and an optional linked lesson, then marked Done, Late or Missing with feedback. The class page and Classes overview list what needs checking
 
 **Booking and messaging**
 - You publish bookable times (one-to-one lesson, trial lesson, teacher training), once or weekly. Customers book in their own time zone, and both of you get a confirmation email

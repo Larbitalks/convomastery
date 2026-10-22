@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AwardBoard } from '../components/AwardBoard'
+import { HOMEWORK_STATES } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -153,110 +154,43 @@ function Students({ classId }: { classId: string }) {
   )
 }
 
-const STATES: { value: HomeworkState; label: string; cls: string }[] = [
-  { value: 'assigned', label: 'Not yet', cls: 'bg-white' },
-  { value: 'done', label: 'Done', cls: 'bg-sage-light' },
-  { value: 'late', label: 'Late', cls: 'bg-sun-light' },
-  { value: 'missing', label: 'Missing', cls: 'bg-[#FDECEC]' },
-]
-
 function HomeworkTab({ classId, lessons }: { classId: string; lessons: Lesson[] }) {
-  const { data, loading, reload, setData } = useLoad(async () => {
+  const { data, loading } = useLoad(async () => {
     const [homework, students, statuses] = await Promise.all([api.listHomework(classId), api.listStudents(classId), api.listHomeworkStatus(classId)])
     return { homework, students, statuses }
   }, [classId])
-  const blank = { title: '', instructions: '', dueDate: new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10), lessonId: '' }
-  const [form, setForm] = useState(blank)
-  const [open, setOpen] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
-
-  const create = async (e: FormEvent) => {
-    e.preventDefault(); setErr(null)
-    try {
-      const h = await api.saveHomework({ classId, title: form.title, instructions: form.instructions, dueDate: form.dueDate, lessonId: form.lessonId || null })
-      setForm(blank); setCreating(false); setOpen(h.id); reload()
-    } catch (e2) { setErr(errorMessage(e2)) }
-  }
   if (loading || !data) return <Spinner />
-
-  const statusOf = (hid: string, sid: string) => data.statuses.find((s) => s.homeworkId === hid && s.studentId === sid)
-  const setStatus = async (homeworkId: string, studentId: string, patch: Partial<{ status: HomeworkState; feedback: string }>) => {
-    const cur = statusOf(homeworkId, studentId) ?? { homeworkId, studentId, status: 'assigned' as HomeworkState, feedback: '' }
-    const next = { ...cur, ...patch }
-    setData({ ...data, statuses: [...data.statuses.filter((s) => !(s.homeworkId === homeworkId && s.studentId === studentId)), next] })
-    try { await api.setHomeworkStatus(next) } catch (e) { setErr(errorMessage(e)); reload() }
-  }
-  const remove = async (id: string) => { try { await api.deleteHomework(id); reload() } catch (e) { setErr(errorMessage(e)) } }
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
+  const label = (state: HomeworkState) => HOMEWORK_STATES.find((s) => s.value === state) ?? HOMEWORK_STATES[0]
 
   return (
     <div className="grid max-w-4xl gap-6">
-      {err && <Notice tone="error">{err}</Notice>}
-      {creating ? (
-        <form onSubmit={create} className="panel grid gap-4 p-5">
-          <h2 className="text-lg font-bold">Set homework</h2>
-          <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-            <Field label="Title" htmlFor="hwTitle"><Input id="hwTitle" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Sleep diary" /></Field>
-            <Field label="Due" htmlFor="hwDue"><Input id="hwDue" type="date" required value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></Field>
-          </div>
-          <Field label="Instructions" htmlFor="hwInstr"><Textarea id="hwInstr" rows={3} value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} /></Field>
-          <Field label="Linked lesson (optional)" htmlFor="hwLesson">
-            <Select id="hwLesson" value={form.lessonId} onChange={(e) => setForm({ ...form, lessonId: e.target.value })}>
-              <option value="">None</option>
-              {lessons.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
-            </Select>
-          </Field>
-          <div className="flex gap-2"><button className="btn-primary">Set homework</button><button type="button" className="btn-ghost" onClick={() => setCreating(false)}>Cancel</button></div>
-        </form>
-      ) : (
-        <button className="btn-primary justify-self-start" onClick={() => setCreating(true)}>Set homework</button>
-      )}
-
-      {data.homework.length === 0 ? <p className="text-inksoft">No homework set for this class yet.</p> : (
+      <Notice>Homework is set for each student on their own page. Click a student's name to set or update theirs.</Notice>
+      {data.students.length === 0 ? <p className="text-inksoft">Add students to this class first.</p> : (
         <ul className="grid gap-4">
-          {data.homework.map((h) => {
-            const handed = data.students.filter((s) => ['done', 'late'].includes(statusOf(h.id, s.id)?.status ?? '')).length
-            const isOpen = open === h.id
-            const lesson = lessons.find((l) => l.id === h.lessonId)
+          {data.students.map((s) => {
+            const mine = data.homework.filter((h) => h.studentId === s.id).sort((a, b) => b.dueDate.localeCompare(a.dueDate))
             return (
-              <li key={h.id} className="panel">
-                <button className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left" onClick={() => setOpen(isOpen ? null : h.id)} aria-expanded={isOpen}>
-                  <span>
-                    <span className="block text-lg font-bold">{h.title}</span>
-                    <span className="text-[15px] text-inksoft">{h.dueDate < todayStr ? 'Was due' : 'Due'} {formatDate(h.dueDate)}{lesson ? `. Lesson: ${lesson.title}` : ''}</span>
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <span className="rounded-md bg-board px-2 py-0.5 text-sm font-bold">{handed} of {data.students.length} handed in</span>
-                    <span className="font-bold text-brand-dark">{isOpen ? 'Close' : 'Track'}</span>
-                  </span>
-                </button>
-                {isOpen && (
-                  <div className="border-t-2 border-line p-4">
-                    {h.instructions && <p className="mb-4 whitespace-pre-line text-inksoft">{h.instructions}</p>}
-                    {data.students.length === 0 ? <p className="text-inksoft">Add students to this class to track homework.</p> : (
-                      <ul className="grid gap-2">
-                        {data.students.map((s) => {
-                          const st = statusOf(h.id, s.id)
-                          const state = st?.status ?? 'assigned'
-                          return (
-                            <li key={s.id} className="grid items-center gap-2 sm:grid-cols-[140px_auto_1fr]">
-                              <span className="font-bold">{s.name}</span>
-                              <div className="flex flex-wrap gap-1" role="group" aria-label={`Homework status for ${s.name}`}>
-                                {STATES.map((o) => (
-                                  <button key={o.value} type="button" aria-pressed={state === o.value} onClick={() => setStatus(h.id, s.id, { status: o.value })}
-                                    className={`rounded-full border-2 px-2.5 py-0.5 text-[13px] font-bold ${state === o.value ? `border-ink ${o.cls}` : 'border-line text-inksoft'}`}>{o.label}</button>
-                                ))}
-                              </div>
-                              <Input aria-label={`Feedback for ${s.name}`} className="!py-1.5 text-[15px]" placeholder="Feedback (optional)" defaultValue={st?.feedback ?? ''}
-                                onBlur={(e) => { if (e.target.value !== (st?.feedback ?? '')) setStatus(h.id, s.id, { feedback: e.target.value }) }} />
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                    <button className="mt-4 text-sm font-bold text-coral underline" onClick={() => remove(h.id)}>Delete this homework</button>
-                  </div>
+              <li key={s.id} className="panel p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Link to={`/students/${s.id}`} className="text-lg font-bold underline underline-offset-2">{s.name}</Link>
+                  <Link to={`/students/${s.id}`} className="btn-ghost !py-1.5">Set homework</Link>
+                </div>
+                {mine.length === 0 ? <p className="mt-2 text-[15px] text-inksoft">No homework yet.</p> : (
+                  <ul className="mt-3 grid gap-2">
+                    {mine.slice(0, 4).map((h) => {
+                      const state = data.statuses.find((x) => x.homeworkId === h.id)?.status ?? 'assigned'
+                      const l = label(state)
+                      const overdue = state === 'assigned' && h.dueDate < today
+                      return (
+                        <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 text-[15px]">
+                          <span><strong>{h.title}</strong> <span className={overdue ? 'font-bold text-[#8E1C20]' : 'text-inksoft'}>{overdue ? 'overdue, was due' : 'due'} {formatDate(h.dueDate)}</span>{lessons.find((x) => x.id === h.lessonId) ? <span className="text-inksoft">, {lessons.find((x) => x.id === h.lessonId)?.title}</span> : null}</span>
+                          <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${l.cls}`}>{l.label}</span>
+                        </li>
+                      )
+                    })}
+                    {mine.length > 4 && <li className="text-sm text-inksoft">and {mine.length - 4} more on {s.name}'s page</li>}
+                  </ul>
                 )}
               </li>
             )

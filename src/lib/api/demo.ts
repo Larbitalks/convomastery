@@ -28,7 +28,7 @@ export interface DemoDb {
 export const DEMO_ADMIN = { email: 'admin@demo.com', password: 'demo1234' }
 export const DEMO_TEACHER = { email: 'teacher@demo.com', password: 'demo1234' }
 
-const KEY = 'convomastery-demo-v5'
+const KEY = 'convomastery-demo-v6'
 const memory: { db: DemoDb | null } = { db: null }
 
 function fresh(): DemoDb {
