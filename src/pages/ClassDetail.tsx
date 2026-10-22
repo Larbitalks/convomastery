@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { PerformanceMini } from '../components/Performance'
 import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { HOMEWORK_STATES } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
@@ -114,10 +113,19 @@ function Overview({ classId }: { classId: string }) {
         <Link key={s.id} to={`/students/${s.id}`} className="rounded-2xl border-2 border-line bg-white p-4 hover:border-ink/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-lg font-bold">{s.name}</span>
-            <span className="flex items-center gap-2">
-              {perf.band && <span className="text-sm font-bold text-inksoft">{perf.band.label}</span>}
-              <PerformanceMini perf={perf} />
-            </span>
+            {perf.score !== null && perf.band ? (
+              <span className="flex items-center gap-2">
+                {perf.trend !== null && Math.abs(perf.trend) >= 3 && (
+                  <span className={`text-sm font-bold ${perf.trend > 0 ? 'text-sage-dark' : 'text-[#8E1C20]'}`}>{perf.trend > 0 ? '▲' : '▼'} {Math.abs(perf.trend)}</span>
+                )}
+                <span className="rounded-full px-2.5 py-0.5 text-sm font-bold" style={{ backgroundColor: perf.band.color, color: perf.band.color === '#F2CC8F' ? '#3D405B' : '#FFFFFF' }}>{perf.band.label}</span>
+                <span className="font-display text-2xl font-extrabold tabular-nums">{perf.score}</span>
+              </span>
+            ) : <span className="text-sm text-inksoft">Score starts after the first class</span>}
+          </div>
+          <div className="mt-2 h-3 overflow-hidden rounded-full bg-board" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={perf.score ?? 0}
+            aria-label={perf.score !== null ? `Overall performance ${perf.score} out of 100` : 'No performance score yet'}>
+            {perf.score !== null && perf.band && <div className="h-full rounded-full" style={{ width: `${Math.max(perf.score, 2)}%`, backgroundColor: perf.band.color }} />}
           </div>
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[15px] sm:grid-cols-4">
             <div><dt className="text-sm text-inksoft">Awards</dt><dd className="font-bold tabular-nums">{awards} ({points} {points === 1 ? 'point' : 'points'})</dd></div>
