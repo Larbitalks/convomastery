@@ -63,7 +63,7 @@ function Header() {
   useEffect(() => setMenu(false), [pathname])
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
-    `rounded-full px-3.5 py-2 font-bold text-[15px] ${isActive ? 'bg-board text-ink' : 'text-inksoft hover:text-ink'}`
+    `whitespace-nowrap rounded-full px-3 py-2 font-bold text-[15px] ${isActive ? 'bg-board text-ink' : 'text-inksoft hover:text-ink'}`
 
   const nav = session ? [...memberNav, ...(isAdmin ? [] : [{ to: '/messages', label: 'Messages' }])] : publicNav
   const signOut = async () => { await api.signOut(); navigate('/') }
@@ -72,30 +72,32 @@ function Header() {
     <header className="border-b-2 border-line bg-white">
       <div className="wrap flex h-[68px] items-center justify-between gap-4">
         <Link to="/" aria-label="ConvoMastery home"><Logo /></Link>
-        <nav className="hidden lg:flex items-center gap-0.5" aria-label="Main">
+        <nav className="hidden xl:flex items-center gap-0.5" aria-label="Main">
           {nav.map((n) => <NavLink key={n.to} to={n.to} className={linkCls}>{n.label}{n.to === '/messages' && unread > 0 && <Dot n={unread} />}</NavLink>)}
         </nav>
-        <div className="hidden lg:flex items-center gap-1">
+        <div className="hidden xl:flex items-center gap-1">
+          <NavLink to="/progress" className={linkCls}>Student progress</NavLink>
           {session ? (
             <>
               {isAdmin && <NavLink to="/admin" className={linkCls}>Admin{unread > 0 && <Dot n={unread} />}</NavLink>}
               <NavLink to="/account" className={linkCls}>Account</NavLink>
-              <button onClick={signOut} className="btn-ghost !py-2">Sign out</button>
+              <button onClick={signOut} className="btn-ghost whitespace-nowrap !py-2">Sign out</button>
             </>
           ) : (
             <>
               <NavLink to="/login" className={linkCls}>Sign in</NavLink>
-              <Link to="/signup" className="btn-primary">Create free account</Link>
+              <Link to="/signup" className="btn-primary whitespace-nowrap">Create free account</Link>
             </>
           )}
         </div>
-        <button className="lg:hidden btn-ghost !px-3.5 !py-2" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-controls="mobile-menu">
+        <button className="xl:hidden btn-ghost !px-3.5 !py-2" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-controls="mobile-menu">
           {menu ? 'Close' : 'Menu'}
         </button>
       </div>
       {menu && (
-        <nav id="mobile-menu" className="lg:hidden border-t-2 border-line wrap py-3 grid gap-1" aria-label="Mobile">
+        <nav id="mobile-menu" className="xl:hidden border-t-2 border-line wrap py-3 grid gap-1" aria-label="Mobile">
           {nav.map((n) => <NavLink key={n.to} to={n.to} className={linkCls}>{n.label}</NavLink>)}
+          <NavLink to="/progress" className={linkCls}>Student progress</NavLink>
           {session ? (
             <>
               {isAdmin && <NavLink to="/admin" className={linkCls}>Admin{unread > 0 && <Dot n={unread} />}</NavLink>}
@@ -141,7 +143,6 @@ function Footer() {
           <ul className="mt-3 grid gap-2 text-white/80">
             <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
             <li><Link to="/about" className="hover:text-white">About</Link></li>
-            <li><Link to="/progress" className="hover:text-white">Student progress</Link></li>
             {socials.map((s) => <li key={s.label}><a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-white">{s.label}</a></li>)}
           </ul>
         </div>
