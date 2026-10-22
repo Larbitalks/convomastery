@@ -6,7 +6,7 @@ const day = 24 * 60 * 60 * 1000
 const iso = (d: Date) => d.toISOString()
 const ymd = (d: Date) => d.toISOString().slice(0, 10)
 
-export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
+export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'sessions' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
   const now = new Date()
   const classes: DemoDb['classes'] = [
     { id: 'c-teens', ownerId: 'u-admin', name: 'Thursday Teens', level: 'B1', color: '#46725D', createdAt: iso(new Date(now.getTime() - 30 * day)) },
@@ -19,7 +19,7 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
     'c-tutor': ['Leo', 'Mia', 'Noah'],
   }
   const students: DemoDb['students'] = classes.flatMap((c) =>
-    names[c.id].map((n, i) => ({ id: `s-${c.id}-${i}`, ownerId: c.ownerId, classId: c.id, name: n, notes: '', level: c.level, contact: '', goals: '', shareCode: null, createdAt: c.createdAt })),
+    names[c.id].map((n, i) => ({ id: `s-${c.id}-${i}`, ownerId: c.ownerId, classId: c.id, name: n, notes: '', level: c.level, contact: '', goals: '', shareCode: null, showBehaviour: false, createdAt: c.createdAt })),
   )
   Object.assign(students[0], { shareCode: 'DEMO-AMY2-CODE', contact: "Parent: Mrs Lee, lee.family@example.com", goals: 'Speak more fluently in debates; use linking words', notes: 'Confident speaker, sometimes rushes answers.' })
   Object.assign(students[1], { goals: 'Build confidence speaking in front of the group', notes: 'Quiet at first, warms up in pair work.' })
@@ -52,6 +52,15 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
   })
   ;[0, 1].forEach((i) => homework.push({ id: `hw-family-${i}`, ownerId: 'u-admin', classId: 'c-teens', studentId: `s-c-teens-${i}`, title: 'Family interview', instructions: 'Ask an older family member three questions about their childhood. Write down their answers in English.', dueDate: ymd(new Date(now.getTime() + 5 * day)), lessonId: 'les-all-in-the-family', createdAt: iso(new Date(now.getTime() - 1 * day)) }))
 
+  // Two past one-to-one classes for Amy, with attendance and behaviour
+  const mark = (label: string, color: string, d: number, min: number) => ({ label, color, at: iso(new Date(now.getTime() - d * day + min * 60000)) })
+  const sessions: DemoDb['sessions'] = [
+    { id: 'cs-1', ownerId: 'u-admin', studentId: students[0].id, classId: 'c-teens', date: ymd(new Date(now.getTime() - 14 * day)), startedAt: iso(new Date(now.getTime() - 14 * day)), endedAt: iso(new Date(now.getTime() - 14 * day + 55 * 60000)), attendance: 'present', lessonId: 'les-lucky-breaks',
+      behaviour: [mark('Active', '#46725D', 14, 5), mark('Distracted', '#D99A3D', 14, 20), mark('Active', '#46725D', 14, 35)], covered: 'Warm-up, vocabulary, conversation', newWords: 'superstition, coincidence', corrections: 'I am agree > I agree', notes: '', noteId: null, createdAt: iso(new Date(now.getTime() - 14 * day)) },
+    { id: 'cs-2', ownerId: 'u-admin', studentId: students[0].id, classId: 'c-teens', date: ymd(new Date(now.getTime() - 7 * day)), startedAt: iso(new Date(now.getTime() - 7 * day)), endedAt: iso(new Date(now.getTime() - 7 * day + 60 * 60000)), attendance: 'late', lessonId: 'les-sleep-on-it',
+      behaviour: [mark('Participating well', '#2F7F7A', 7, 10), mark('Active', '#46725D', 7, 25), mark('Active', '#46725D', 7, 40), mark('Participating well', '#2F7F7A', 7, 50)], covered: 'Dilemmas and debate', newWords: 'night owl, early bird', corrections: '', notes: 'Great debate.', noteId: null, createdAt: iso(new Date(now.getTime() - 7 * day)) },
+  ]
+
   // Bookable times over the next two weeks
   const slots: DemoDb['slots'] = []
   const kinds = ['One-to-one lesson', 'Trial lesson', 'One-to-one lesson', 'Teacher training'] as const
@@ -76,5 +85,5 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
     { id: 'm-2', threadUserId: 'u-teacher', fromAdmin: true, body: 'Yes. The debate and dilemma sections work well in groups. Put students in teams of four or five.', createdAt: iso(new Date(now.getTime() - 2 * day + 3600_000)), read: true },
     { id: 'm-3', threadUserId: 'u-teacher', fromAdmin: false, body: 'Thanks! I booked a trial lesson too.', createdAt: iso(new Date(now.getTime() - 1 * day)), read: false },
   ]
-  return { classes, students, studentNotes, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
+  return { classes, students, studentNotes, sessions, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
 }

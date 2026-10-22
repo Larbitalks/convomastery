@@ -1,5 +1,6 @@
 // Live versions of the teaching, booking and messaging functions (Supabase).
-import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi } from '../types'
+import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch } from '../types'
+import { DEFAULT_BEHAVIOURS } from '../types'
 import { supabase } from './supabase'
 
 type Row = Record<string, any>
@@ -10,7 +11,7 @@ function check<T = any>(res: { data: T | null; error: { message: string } | null
 const notify = (fn: string, body: object) => { supabase.functions.invoke(fn, { body }).catch(() => {}) }
 
 const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.level, color: r.color, createdAt: r.created_at })
-const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, createdAt: r.created_at })
+const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showBehaviour: Boolean(r.show_behaviour), createdAt: r.created_at })
 const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
 const toAward = (r: Row): Award => ({ id: r.id, classId: r.class_id, studentId: r.student_id, categoryId: r.category_id, points: r.points, lessonId: r.lesson_id, createdAt: r.created_at })
@@ -22,6 +23,18 @@ const toBooking = (r: Row, slots: Map<string, BookingSlot>): Booking => ({
   id: r.id, slotId: r.slot_id, userId: r.user_id, status: r.status, message: r.message ?? '', createdAt: r.created_at,
   slot: slots.get(r.slot_id) ?? (r.booking_slots ? toSlot(r.booking_slots) : undefined), userEmail: r.profiles?.email, userName: r.profiles?.full_name,
 })
+
+const toSession = (r: Row): ClassSession => ({
+  id: r.id, studentId: r.student_id, classId: r.class_id, date: r.date, startedAt: r.started_at, endedAt: r.ended_at,
+  attendance: r.attendance, lessonId: r.lesson_id, behaviour: r.behaviour ?? [], covered: r.covered ?? '', newWords: r.new_words ?? '',
+  corrections: r.corrections ?? '', notes: r.notes ?? '', noteId: r.note_id, createdAt: r.created_at,
+})
+function fromSessionPatch(p: SessionPatch): Row {
+  const map: Record<string, string> = { date: 'date', endedAt: 'ended_at', attendance: 'attendance', lessonId: 'lesson_id', behaviour: 'behaviour', covered: 'covered', newWords: 'new_words', corrections: 'corrections', notes: 'notes', noteId: 'note_id' }
+  const row: Row = {}
+  for (const [k, v] of Object.entries(p)) if (v !== undefined) row[map[k]] = v
+  return row
+}
 
 async function uid() {
   const { data } = await supabase.auth.getUser()
@@ -75,6 +88,33 @@ export const supabaseTeach: TeachApi = {
   async setNoteShared(id, shared) {
     check(await supabase.from('student_notes').update({ shared }).eq('id', id))
   },
+  async setStudentShowBehaviour(studentId, show) {
+    check(await supabase.from('students').update({ show_behaviour: show }).eq('id', studentId))
+  },
+  async getBehaviourOptions() {
+    const r = check(await supabase.from('profiles').select('behaviour_options').eq('id', await uid()).maybeSingle()) as Row | null
+    const opts = r?.behaviour_options
+    return Array.isArray(opts) && opts.length ? opts : DEFAULT_BEHAVIOURS
+  },
+  async saveBehaviourOptions(options) {
+    check(await supabase.from('profiles').update({ behaviour_options: options }).eq('id', await uid()))
+  },
+  async startClassSession(student) {
+    const now = new Date()
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+    return toSession(await upsert('class_sessions', { student_id: student.id, class_id: student.classId, date: local, started_at: now.toISOString() }))
+  },
+  async getClassSession(id) {
+    const r = check(await supabase.from('class_sessions').select('*').eq('id', id).maybeSingle()) as Row | null
+    return r ? toSession(r) : null
+  },
+  async listClassSessions(studentId) {
+    return check(await supabase.from('class_sessions').select('*').eq('student_id', studentId).order('date', { ascending: false }).order('started_at', { ascending: false })).map(toSession)
+  },
+  async updateClassSession(id, patch) {
+    check(await supabase.from('class_sessions').update(fromSessionPatch(patch)).eq('id', id))
+  },
+  async deleteClassSession(id) { check(await supabase.from('class_sessions').delete().eq('id', id)) },
   async setStudentShareCode(studentId, code) {
     check(await supabase.from('students').update({ share_code: code }).eq('id', studentId))
   },

@@ -20,6 +20,7 @@ This is the step-by-step list for taking the site from demo to live. Most steps 
 **Teaching tools (every signed-in teacher, in their dashboard)**
 - Teach from the website: any lesson the teacher owns opens full screen, with keyboard controls, a slide overview, a countdown timer, a random student picker and the class scoreboard
 - Classes and students (students don't need accounts)
+- Start class: from a student's profile, a class screen with the date, a timer, attendance (Present / Late / Absent), colour behaviour buttons you can customise, award buttons, live notes (covered, new words, say it better, other), last class's notes, homework and the lesson's slides. Ending the class saves a summary and a lesson note, and the profile shows a class history with behaviour bars. Students only see attendance and behaviour if you switch it on for them
 - Student progress codes: share a private code or link with a student or parent so they can see their own points, homework, feedback and the notes you mark as shared, without an account and without being able to change anything
 - Student records: a Students page listing everyone across classes, and a record for each student with contact, level, goals, private notes, a dated lesson-notes log, award totals and history, and homework results
 - Awards: each class has its own award categories and points (Participation, Great answer and so on, all editable), a scoreboard by lesson, week or all time, and undo

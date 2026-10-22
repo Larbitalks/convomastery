@@ -7,6 +7,7 @@ import ClassDetail from './pages/ClassDetail'
 import Classes from './pages/Classes'
 import Messages from './pages/Messages'
 import StudentRecord from './pages/StudentRecord'
+import ClassSessionPage from './pages/ClassSession'
 import Students from './pages/Students'
 import Teach from './pages/Teach'
 import AdminBookings from './pages/admin/AdminBookings'
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="classes/:id" element={<ClassDetail />} />
           <Route path="students" element={<Students />} />
           <Route path="students/:id" element={<StudentRecord />} />
+          <Route path="students/:id/class/:sessionId" element={<ClassSessionPage />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="messages" element={<Messages />} />
           <Route path="account" element={<Account />} />

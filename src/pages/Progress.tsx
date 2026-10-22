@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 import { formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import type { HomeworkState } from '../lib/types'
+import { textOn, type HomeworkState } from '../lib/types'
 
 const STATUS: Record<HomeworkState, { text: string; cls: string }> = {
   done: { text: 'Done', cls: 'bg-sage-light text-sage-dark' },
@@ -137,6 +137,36 @@ export function ProgressView() {
           )}
         </section>
       </div>
+
+      {data.classes && data.classes.length > 0 && (
+        <section className="mt-12 max-w-3xl">
+          <h2 className="text-2xl font-extrabold">Your recent classes</h2>
+          <ul className="mt-4 grid gap-3">
+            {data.classes.map((c, i) => {
+              const total = c.behaviour.reduce((t, b) => t + b.count, 0)
+              const att = { present: ['Present', 'bg-sage-light text-sage-dark'], late: ['Late', 'bg-sun-light'], absent: ['Absent', 'bg-[#FDECEC] text-[#8E1C20]'] }[c.attendance]
+              return (
+                <li key={i} className="panel p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-bold">{formatDate(c.date)}</p>
+                    <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${att[1]}`}>{att[0]}</span>
+                  </div>
+                  {total > 0 && (
+                    <>
+                      <div className="mt-2 flex h-2.5 overflow-hidden rounded-full" aria-hidden="true">
+                        {c.behaviour.map((b) => <span key={b.label} style={{ width: `${(b.count / total) * 100}%`, backgroundColor: b.color }} />)}
+                      </div>
+                      <ul className="mt-2 flex flex-wrap gap-1.5">
+                        {c.behaviour.map((b) => <li key={b.label} className="rounded-full px-2.5 py-0.5 text-[13px] font-bold" style={{ backgroundColor: b.color, color: textOn(b.color) }}>{b.label} {b.count}</li>)}
+                      </ul>
+                    </>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       {data.notes.length > 0 && (
         <section className="mt-12 max-w-3xl">

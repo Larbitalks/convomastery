@@ -3,10 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { StudentHomework } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
-import { errorMessage, formatDate } from '../lib/format'
+import { errorMessage, formatDate, formatTime } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { LEVELS, newShareCode } from '../lib/types'
+import { LEVELS, newShareCode, textOn, type ClassSession, type Lesson } from '../lib/types'
+import { BehaviourBar, tallyOf } from './ClassSession'
 import { config } from '../lib/config'
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
@@ -20,14 +21,15 @@ export default function StudentRecord() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data, loading, reload } = useLoad(async () => {
-    const [students, classes, awards, homework, statuses, notes, lessons] = await Promise.all([
+    const [students, classes, awards, homework, statuses, notes, lessons, sessions] = await Promise.all([
       api.listStudents(), api.listClasses(), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listStudentNotes(id), api.listLessons({ includeUnpublished: true }),
+      api.listClassSessions(id),
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!student) return null
     const myAwards = awards.filter((a) => a.studentId === id)
     const categories = (await Promise.all([...new Set(myAwards.map((a) => a.classId).concat(student.classId))].map((c) => api.listAwardCategories(c)))).flat()
-    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons }
+    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions }
   }, [id])
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
@@ -35,6 +37,7 @@ export default function StudentRecord() {
   const [note, setNote] = useState({ date: new Date().toISOString().slice(0, 10), body: '', shared: false })
   const [msg, setMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     if (data?.student) {
@@ -45,7 +48,8 @@ export default function StudentRecord() {
 
   if (loading && !data) return <Spinner />
   if (!data) return <Notice tone="error">This student no longer exists. <Link to="/students" className="underline">Back to students</Link></Notice>
-  const { student, classes, awards, categories, homework, statuses, notes, lessons } = data
+  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions } = data
+  const running = sessions.find((x) => !x.endedAt)
   const cls = classes.find((c) => c.id === student.classId)
 
   const totalPoints = awards.reduce((t, a) => t + a.points, 0)
@@ -68,6 +72,10 @@ export default function StudentRecord() {
     try { await api.addStudentNote({ studentId: student.id, date: note.date, body: note.body.trim(), shared: note.shared }); setNote({ ...note, body: '', shared: false }); reload() }
     catch (e2) { setMsg({ tone: 'error', text: errorMessage(e2) }) }
   }
+  const startClass = async () => {
+    setStarting(true)
+    try { const sess = await api.startClassSession(student); navigate(`/students/${student.id}/class/${sess.id}`) } catch (e) { setMsg({ tone: 'error', text: errorMessage(e) }); setStarting(false) }
+  }
   const toggleShared = async (nid: string, shared: boolean) => { try { await api.setNoteShared(nid, shared); reload() } catch (e) { setMsg({ tone: 'error', text: errorMessage(e) }) } }
   const removeNote = async (nid: string) => { try { await api.deleteStudentNote(nid); reload() } catch (e) { setMsg({ tone: 'error', text: errorMessage(e) }) } }
 
@@ -89,6 +97,11 @@ export default function StudentRecord() {
           <h1 className="text-4xl font-extrabold">{student.name}</h1>
           <p className="mt-1 text-inksoft">{cls && <Link to={`/classes/${cls.id}`} className="underline underline-offset-2">{cls.name}</Link>}{(student.level || cls?.level) && `, level ${student.level || cls?.level}`}</p>
         </div>
+        {running ? (
+          <Link to={`/students/${student.id}/class/${running.id}`} className="btn-sun !px-6 !py-3 text-base">Continue class (started {formatTime(running.startedAt)})</Link>
+        ) : (
+          <button className="btn-primary !px-6 !py-3 text-base" disabled={starting} onClick={startClass}>{starting ? 'Starting' : 'Start class'}</button>
+        )}
       </div>
 
       {msg && <div className="mt-4"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
@@ -138,6 +151,8 @@ export default function StudentRecord() {
             )}
           </section>
 
+          <ClassHistory studentId={student.id} sessions={sessions} lessons={lessons} onChange={reload} />
+
           <section>
             <h2 className="text-2xl font-extrabold">Homework</h2>
             <div className="mt-3">
@@ -148,7 +163,7 @@ export default function StudentRecord() {
         </div>
 
         <div className="grid content-start gap-8">
-          <SharePanel studentId={student.id} name={student.name} code={student.shareCode} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
+          <SharePanel studentId={student.id} name={student.name} code={student.shareCode} showBehaviour={student.showBehaviour} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
           <section className="panel p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-extrabold">Details</h2>
@@ -228,7 +243,7 @@ export default function StudentRecord() {
   )
 }
 
-function SharePanel({ studentId, name, code, sharedNotes, onChange }: { studentId: string; name: string; code: string | null; sharedNotes: number; onChange: () => void }) {
+function SharePanel({ studentId, name, code, showBehaviour, sharedNotes, onChange }: { studentId: string; name: string; code: string | null; showBehaviour: boolean; sharedNotes: number; onChange: () => void }) {
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<'new' | 'off' | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
@@ -267,6 +282,14 @@ function SharePanel({ studentId, name, code, sharedNotes, onChange }: { studentI
             </div>
           </div>
           <p className="text-[14px] text-inksoft">They see their points, homework and feedback, and {sharedNotes === 1 ? '1 shared note' : `${sharedNotes} shared notes`}. Private notes and contact details stay hidden.</p>
+          <label className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+            <span>
+              <span className="block font-bold">Show attendance and behaviour</span>
+              <span className="block text-[13px] text-inksoft">{showBehaviour ? `${name} can see attendance and behaviour from recent classes.` : 'Hidden. Switch on to let them see it.'}</span>
+            </span>
+            <input type="checkbox" role="switch" className="h-6 w-6 shrink-0 accent-sage-dark" checked={showBehaviour} disabled={busy}
+              onChange={async (e) => { setBusy(true); setErr(null); try { await api.setStudentShowBehaviour(studentId, e.target.checked); onChange() } catch (x) { setErr(errorMessage(x)) } finally { setBusy(false) } }} />
+          </label>
           <div className="flex flex-wrap gap-3">
             <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm font-bold underline">See what they see</a>
             {confirm === null && <>
@@ -284,6 +307,61 @@ function SharePanel({ studentId, name, code, sharedNotes, onChange }: { studentI
             </div>
           )}
         </div>
+      )}
+    </section>
+  )
+}
+
+function ClassHistory({ studentId, sessions, lessons, onChange }: { studentId: string; sessions: ClassSession[]; lessons: Lesson[]; onChange: () => void }) {
+  const [open, setOpen] = useState<string | null>(null)
+  const [confirm, setConfirm] = useState<string | null>(null)
+  const done = sessions.filter((x) => x.endedAt)
+  const label = { present: 'Present', late: 'Late', absent: 'Absent' } as const
+  const chip = { present: 'bg-sage-light text-sage-dark', late: 'bg-sun-light', absent: 'bg-[#FDECEC] text-[#8E1C20]' } as const
+  return (
+    <section>
+      <h2 className="text-2xl font-extrabold">Class history</h2>
+      {done.length === 0 ? <p className="mt-2 text-inksoft">No classes yet. Click Start class at the top when your next lesson begins.</p> : (
+        <ul className="mt-3 divide-y-2 divide-line rounded-2xl border-2 border-line bg-white">
+          {done.map((x) => {
+            const mins = Math.round((new Date(x.endedAt!).getTime() - new Date(x.startedAt).getTime()) / 60000)
+            const lesson = lessons.find((l) => l.id === x.lessonId)
+            const isOpen = open === x.id
+            return (
+              <li key={x.id} className="p-4">
+                <button className="grid w-full gap-2 text-left" onClick={() => setOpen(isOpen ? null : x.id)} aria-expanded={isOpen}>
+                  <span className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold">{formatDate(x.date)}{lesson ? <span className="font-normal text-inksoft">, {lesson.title}</span> : null}</span>
+                    <span className="flex items-center gap-2 text-sm">
+                      <span className={`rounded-md px-2 py-0.5 font-bold ${chip[x.attendance]}`}>{label[x.attendance]}</span>
+                      <span className="text-inksoft">{mins} min</span>
+                    </span>
+                  </span>
+                  <BehaviourBar marks={x.behaviour} />
+                </button>
+                {isOpen && (
+                  <div className="mt-3 grid gap-1 text-[15px]">
+                    {tallyOf(x.behaviour).length > 0 && (
+                      <ul className="mb-2 flex flex-wrap gap-1.5">
+                        {tallyOf(x.behaviour).map((t) => <li key={t.label} className="rounded-full px-2.5 py-0.5 text-[13px] font-bold" style={{ backgroundColor: t.color, color: textOn(t.color) }}>{t.label} {t.count}</li>)}
+                      </ul>
+                    )}
+                    {x.covered && <p><span className="text-inksoft">Covered:</span> {x.covered}</p>}
+                    {x.newWords && <p><span className="text-inksoft">New words:</span> {x.newWords}</p>}
+                    {x.corrections && <p><span className="text-inksoft">Say it better:</span> {x.corrections}</p>}
+                    {x.notes && <p><span className="text-inksoft">Notes:</span> {x.notes}</p>}
+                    <div className="mt-2 flex gap-3 text-sm font-bold">
+                      <Link to={`/students/${studentId}/class/${x.id}`} className="underline">Open summary</Link>
+                      {confirm === x.id ? (
+                        <span>Delete this class record? <button className="text-coral underline" onClick={async () => { await api.deleteClassSession(x.id); setConfirm(null); onChange() }}>Delete</button> <button className="underline" onClick={() => setConfirm(null)}>Keep</button></span>
+                      ) : <button className="underline" onClick={() => setConfirm(x.id)}>Delete</button>}
+                    </div>
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       )}
     </section>
   )

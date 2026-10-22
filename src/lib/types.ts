@@ -138,7 +138,37 @@ export interface Student {
   level: string; contact: string; goals: string
   /** Code that opens this student's read-only progress page; null when sharing is off */
   shareCode: string | null
+  /** Whether the progress page shows attendance and behaviour */
+  showBehaviour: boolean
 }
+
+export interface BehaviourOption { label: string; color: string }
+export const DEFAULT_BEHAVIOURS: BehaviourOption[] = [
+  { label: 'Active', color: '#46725D' },
+  { label: 'Participating well', color: '#2F7F7A' },
+  { label: 'Quiet', color: '#F2CC8F' },
+  { label: 'Distracted', color: '#D99A3D' },
+  { label: 'Not paying attention', color: '#B42318' },
+  { label: 'Off-task / phone', color: '#8E1C20' },
+]
+/** Dark or white text, whichever reads better on the colour */
+export function textOn(hex: string) {
+  const n = parseInt(hex.replace('#', ''), 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4 })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.3 ? '#3D405B' : '#FFFFFF'
+}
+
+export type Attendance = 'present' | 'late' | 'absent'
+export interface BehaviourMark { label: string; color: string; at: string }
+export interface ClassSession {
+  id: string; studentId: string; classId: string; date: string
+  startedAt: string; endedAt: string | null
+  attendance: Attendance; lessonId: string | null
+  behaviour: BehaviourMark[]
+  covered: string; newWords: string; corrections: string; notes: string
+  noteId: string | null; createdAt: string
+}
+export type SessionPatch = Partial<Pick<ClassSession, 'date' | 'endedAt' | 'attendance' | 'lessonId' | 'behaviour' | 'covered' | 'newWords' | 'corrections' | 'notes' | 'noteId'>>
 export interface StudentNote { id: string; studentId: string; date: string; body: string; createdAt: string; shared: boolean }
 
 /** What a student or parent sees on their progress page */
@@ -151,6 +181,8 @@ export interface StudentProgress {
   recentAwards: { date: string; category: string; color: string; points: number; lesson: string | null }[]
   homework: { title: string; instructions: string; dueDate: string; status: HomeworkState; feedback: string }[]
   notes: { date: string; body: string }[]
+  /** Only when the teacher has switched behaviour sharing on */
+  classes?: { date: string; attendance: Attendance; behaviour: { label: string; color: string; count: number }[] }[] | null
 }
 
 /** 12 random letters and digits (no look-alikes such as O/0 or I/1), shown as ABCD-EFGH-JKLM */
@@ -205,6 +237,15 @@ export interface TeachApi {
   setStudentShareCode(studentId: string, code: string | null): Promise<void>
   /** Public: read-only progress for a code, or null if the code is wrong or turned off */
   getStudentProgress(code: string): Promise<StudentProgress | null>
+  setStudentShowBehaviour(studentId: string, show: boolean): Promise<void>
+  // class sessions
+  getBehaviourOptions(): Promise<BehaviourOption[]>
+  saveBehaviourOptions(options: BehaviourOption[]): Promise<void>
+  startClassSession(student: Student): Promise<ClassSession>
+  getClassSession(id: string): Promise<ClassSession | null>
+  listClassSessions(studentId: string): Promise<ClassSession[]>
+  updateClassSession(id: string, patch: SessionPatch): Promise<void>
+  deleteClassSession(id: string): Promise<void>
   // awards
   listAwardCategories(classId: string): Promise<AwardCategory[]>
   saveAwardCategory(input: Omit<AwardCategory, 'id'> & { id?: string }): Promise<AwardCategory>

@@ -1,5 +1,5 @@
 // Demo versions of the teaching, booking and messaging functions.
-import { DEFAULT_AWARD_CATEGORIES, type Api, type TeachApi } from '../types'
+import { DEFAULT_AWARD_CATEGORIES, DEFAULT_BEHAVIOURS, type Api, type ClassSession, type TeachApi } from '../types'
 import { getBlob, putBlob } from '../idb'
 import { currentUser, demoCore, load, requireAdmin, requireUser, save, uid, wait } from './demo'
 
@@ -66,7 +66,7 @@ const demoTeach: TeachApi = {
       save()
       return strip(s)
     }
-    const s = { notes: '', level: '', contact: '', goals: '', shareCode: null, ...input, id: 's-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
+    const s = { notes: '', level: '', contact: '', goals: '', shareCode: null, showBehaviour: false, ...input, id: 's-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
     db.students.push(s)
     save()
     return strip(s)
@@ -78,6 +78,7 @@ const demoTeach: TeachApi = {
     db.awards = db.awards.filter((a) => a.studentId !== id)
     db.homeworkStatus = db.homeworkStatus.filter((s) => s.studentId !== id)
     db.studentNotes = db.studentNotes.filter((n) => n.studentId !== id)
+    db.sessions = db.sessions.filter((x) => x.studentId !== id)
     save()
   },
   async listAllAwards() { return mine(load().awards).map(strip) },
@@ -127,7 +128,54 @@ const demoTeach: TeachApi = {
       homework: db.homework.filter((h) => h.studentId === s.id).sort((a, b) => b.dueDate.localeCompare(a.dueDate))
         .map((h) => ({ title: h.title, instructions: h.instructions, dueDate: h.dueDate, status: st(h.id)?.status ?? 'assigned', feedback: st(h.id)?.feedback ?? '' })),
       notes: db.studentNotes.filter((n) => n.studentId === s.id && n.shared).sort((a, b) => b.date.localeCompare(a.date)).map((n) => ({ date: n.date, body: n.body })),
+      classes: s.showBehaviour ? db.sessions.filter((x) => x.studentId === s.id && x.endedAt).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8).map((x) => {
+        const tally = new Map<string, { label: string; color: string; count: number }>()
+        x.behaviour.forEach((m) => { const t = tally.get(m.label) ?? { label: m.label, color: m.color, count: 0 }; t.count++; tally.set(m.label, t) })
+        return { date: x.date, attendance: x.attendance, behaviour: [...tally.values()].sort((a, b) => b.count - a.count) }
+      }) : null,
     }
+  },
+  async setStudentShowBehaviour(studentId, show) {
+    own(load().students, studentId, 'student').showBehaviour = show
+    save()
+  },
+  async getBehaviourOptions() {
+    return currentUser()?.behaviourOptions ?? DEFAULT_BEHAVIOURS
+  },
+  async saveBehaviourOptions(options) {
+    requireUser().behaviourOptions = options
+    save()
+  },
+  async startClassSession(student) {
+    const u = requireUser()
+    own(load().students, student.id, 'student')
+    const now = new Date()
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+    const sess: ClassSession & { ownerId: string } = {
+      id: 'cs-' + uid(), ownerId: u.id, studentId: student.id, classId: student.classId, date: local, startedAt: now.toISOString(), endedAt: null,
+      attendance: 'present', lessonId: null, behaviour: [], covered: '', newWords: '', corrections: '', notes: '', noteId: null, createdAt: now.toISOString(),
+    }
+    load().sessions.push(sess)
+    save()
+    return strip(sess)
+  },
+  async getClassSession(id) {
+    const x = mine(load().sessions).find((y) => y.id === id)
+    return x ? strip(x) : null
+  },
+  async listClassSessions(studentId) {
+    return mine(load().sessions).filter((x) => x.studentId === studentId).map(strip)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.startedAt.localeCompare(a.startedAt))
+  },
+  async updateClassSession(id, patch) {
+    Object.assign(own(load().sessions, id, 'class'), patch)
+    save()
+  },
+  async deleteClassSession(id) {
+    own(load().sessions, id, 'class')
+    const db = load()
+    db.sessions = db.sessions.filter((x) => x.id !== id)
+    save()
   },
   async deleteStudentNote(id) {
     own(load().studentNotes, id, 'note')
