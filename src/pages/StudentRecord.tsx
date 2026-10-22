@@ -61,9 +61,6 @@ export default function StudentRecord() {
     .map((c) => ({ c, pts: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0), n: awards.filter((a) => a.categoryId === c.id).length }))
     .filter((x) => x.n > 0)
     .sort((a, b) => b.pts - a.pts)
-  const today = new Date().toISOString().slice(0, 10)
-  const due = homework.filter((h) => h.dueDate <= today)
-  const handed = due.filter((h) => ['done', 'late'].includes(statuses.find((s) => s.homeworkId === h.id)?.status ?? '')).length
   const lessonTitle = (lid: string | null) => lessons.find((l) => l.id === lid)?.title
 
   const saveDetails = async (e: FormEvent) => {
@@ -114,7 +111,7 @@ export default function StudentRecord() {
 
       <dl className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-3">
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Award points</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{totalPoints}</dd></div>
-        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Homework handed in</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{due.length ? `${handed} of ${due.length}` : 'None due'}</dd></div>
+        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Classes taken</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{sessions.filter((x) => x.endedAt).length}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Lesson notes</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{notes.length}</dd></div>
       </dl>
 
