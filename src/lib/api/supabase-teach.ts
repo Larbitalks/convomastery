@@ -1,5 +1,5 @@
 // Live versions of the teaching, booking and messaging functions (Supabase).
-import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, TeachApi } from '../types'
+import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi } from '../types'
 import { supabase } from './supabase'
 
 type Row = Record<string, any>
@@ -10,8 +10,8 @@ function check<T = any>(res: { data: T | null; error: { message: string } | null
 const notify = (fn: string, body: object) => { supabase.functions.invoke(fn, { body }).catch(() => {}) }
 
 const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.level, color: r.color, createdAt: r.created_at })
-const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', createdAt: r.created_at })
-const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, createdAt: r.created_at })
+const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, createdAt: r.created_at })
+const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
 const toAward = (r: Row): Award => ({ id: r.id, classId: r.class_id, studentId: r.student_id, categoryId: r.category_id, points: r.points, lessonId: r.lesson_id, createdAt: r.created_at })
 const toHomework = (r: Row): Homework => ({ id: r.id, classId: r.class_id, title: r.title, instructions: r.instructions ?? '', dueDate: r.due_date, lessonId: r.lesson_id, createdAt: r.created_at })
@@ -69,8 +69,18 @@ export const supabaseTeach: TeachApi = {
     if (studentId) q = q.eq('student_id', studentId)
     return check(await q).map(toNote)
   },
-  async addStudentNote({ studentId, date, body }) {
-    return toNote(await upsert('student_notes', { student_id: studentId, date, body }))
+  async addStudentNote({ studentId, date, body, shared = false }) {
+    return toNote(await upsert('student_notes', { student_id: studentId, date, body, shared }))
+  },
+  async setNoteShared(id, shared) {
+    check(await supabase.from('student_notes').update({ shared }).eq('id', id))
+  },
+  async setStudentShareCode(studentId, code) {
+    check(await supabase.from('students').update({ share_code: code }).eq('id', studentId))
+  },
+  async getStudentProgress(code) {
+    const data = check(await supabase.rpc('student_progress', { p_code: code }))
+    return (data as StudentProgress | null) ?? null
   },
   async deleteStudentNote(id) { check(await supabase.from('student_notes').delete().eq('id', id)) },
 

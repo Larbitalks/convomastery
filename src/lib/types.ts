@@ -136,8 +136,31 @@ export interface Student {
   id: string; classId: string; name: string; notes: string; createdAt: string
   /** Record details, all optional */
   level: string; contact: string; goals: string
+  /** Code that opens this student's read-only progress page; null when sharing is off */
+  shareCode: string | null
 }
-export interface StudentNote { id: string; studentId: string; date: string; body: string; createdAt: string }
+export interface StudentNote { id: string; studentId: string; date: string; body: string; createdAt: string; shared: boolean }
+
+/** What a student or parent sees on their progress page */
+export interface StudentProgress {
+  name: string
+  className: string
+  level: string
+  totalPoints: number
+  categories: { name: string; color: string; points: number }[]
+  recentAwards: { date: string; category: string; color: string; points: number; lesson: string | null }[]
+  homework: { title: string; instructions: string; dueDate: string; status: HomeworkState; feedback: string }[]
+  notes: { date: string; body: string }[]
+}
+
+/** 12 random letters and digits (no look-alikes such as O/0 or I/1), shown as ABCD-EFGH-JKLM */
+export function newShareCode() {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  const bytes = new Uint8Array(12)
+  crypto.getRandomValues(bytes)
+  const raw = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('')
+  return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8)}`
+}
 export interface AwardCategory { id: string; classId: string; name: string; points: number; color: string; position: number }
 export interface Award { id: string; classId: string; studentId: string; categoryId: string; points: number; lessonId: string | null; createdAt: string }
 
@@ -175,8 +198,13 @@ export interface TeachApi {
   listAllAwards(): Promise<Award[]>
   listAllHomeworkStatus(): Promise<HomeworkStatus[]>
   listStudentNotes(studentId?: string): Promise<StudentNote[]>
-  addStudentNote(input: { studentId: string; date: string; body: string }): Promise<StudentNote>
+  addStudentNote(input: { studentId: string; date: string; body: string; shared?: boolean }): Promise<StudentNote>
   deleteStudentNote(id: string): Promise<void>
+  setNoteShared(id: string, shared: boolean): Promise<void>
+  /** Turn a student's progress code on (new code) or off (null) */
+  setStudentShareCode(studentId: string, code: string | null): Promise<void>
+  /** Public: read-only progress for a code, or null if the code is wrong or turned off */
+  getStudentProgress(code: string): Promise<StudentProgress | null>
   // awards
   listAwardCategories(classId: string): Promise<AwardCategory[]>
   saveAwardCategory(input: Omit<AwardCategory, 'id'> & { id?: string }): Promise<AwardCategory>

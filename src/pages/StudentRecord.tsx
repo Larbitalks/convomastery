@@ -5,7 +5,8 @@ import { api } from '../lib/api'
 import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { LEVELS } from '../lib/types'
+import { LEVELS, newShareCode } from '../lib/types'
+import { config } from '../lib/config'
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   done: { text: 'Done', cls: 'bg-sage-light text-sage-dark' },
@@ -30,7 +31,7 @@ export default function StudentRecord() {
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
   const [editing, setEditing] = useState(false)
-  const [note, setNote] = useState({ date: new Date().toISOString().slice(0, 10), body: '' })
+  const [note, setNote] = useState({ date: new Date().toISOString().slice(0, 10), body: '', shared: false })
   const [msg, setMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -63,9 +64,10 @@ export default function StudentRecord() {
   }
   const addNote = async (e: FormEvent) => {
     e.preventDefault(); setMsg(null)
-    try { await api.addStudentNote({ studentId: student.id, date: note.date, body: note.body.trim() }); setNote({ ...note, body: '' }); reload() }
+    try { await api.addStudentNote({ studentId: student.id, date: note.date, body: note.body.trim(), shared: note.shared }); setNote({ ...note, body: '', shared: false }); reload() }
     catch (e2) { setMsg({ tone: 'error', text: errorMessage(e2) }) }
   }
+  const toggleShared = async (nid: string, shared: boolean) => { try { await api.setNoteShared(nid, shared); reload() } catch (e) { setMsg({ tone: 'error', text: errorMessage(e) }) } }
   const removeNote = async (nid: string) => { try { await api.deleteStudentNote(nid); reload() } catch (e) { setMsg({ tone: 'error', text: errorMessage(e) }) } }
 
   const detailRows: [string, string][] = [
@@ -105,15 +107,28 @@ export default function StudentRecord() {
                 <Field label="Date" htmlFor="noteDate"><Input id="noteDate" type="date" required value={note.date} onChange={(e) => setNote({ ...note, date: e.target.value })} /></Field>
                 <Field label="Note" htmlFor="noteBody"><Textarea id="noteBody" rows={2} required value={note.body} onChange={(e) => setNote({ ...note, body: e.target.value })} placeholder="What you covered, how they did, what to work on next" /></Field>
               </div>
-              <button className="btn-primary justify-self-start" disabled={!note.body.trim()}>Add note</button>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-[15px] font-bold">
+                  <input type="checkbox" className="h-5 w-5 accent-sage-dark" checked={note.shared} onChange={(e) => setNote({ ...note, shared: e.target.checked })} />
+                  Show to student
+                </label>
+                <button className="btn-primary" disabled={!note.body.trim()}>Add note</button>
+              </div>
             </form>
             {notes.length === 0 ? <p className="mt-3 text-inksoft">No notes yet. A short note after each lesson builds a useful record over time.</p> : (
               <ol className="mt-4 grid gap-3">
                 {notes.map((n) => (
-                  <li key={n.id} className="grid gap-1 border-l-[3px] border-brand pl-4">
-                    <div className="flex items-center justify-between gap-2">
+                  <li key={n.id} className={`grid gap-1 border-l-[3px] pl-4 ${n.shared ? 'border-sage' : 'border-line'}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-bold text-inksoft">{formatDate(n.date)}</p>
-                      <button className="text-sm font-bold underline" onClick={() => removeNote(n.id)}>Delete</button>
+                      <div className="flex items-center gap-3">
+                        <button className={`rounded-full px-2.5 py-0.5 text-[13px] font-bold ${n.shared ? 'bg-sage-light text-sage-dark' : 'bg-board text-inksoft'}`}
+                          onClick={() => toggleShared(n.id, !n.shared)} aria-pressed={n.shared}
+                          title={n.shared ? 'The student can see this note. Click to make it private.' : 'Only you can see this note. Click to show it to the student.'}>
+                          {n.shared ? 'Student can see' : 'Private'}
+                        </button>
+                        <button className="text-sm font-bold underline" onClick={() => removeNote(n.id)}>Delete</button>
+                      </div>
                     </div>
                     <p className="whitespace-pre-line">{n.body}</p>
                   </li>
@@ -147,6 +162,7 @@ export default function StudentRecord() {
         </div>
 
         <div className="grid content-start gap-8">
+          <SharePanel studentId={student.id} name={student.name} code={student.shareCode} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
           <section className="panel p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-extrabold">Details</h2>
@@ -223,5 +239,66 @@ export default function StudentRecord() {
         </div>
       </div>
     </div>
+  )
+}
+
+function SharePanel({ studentId, name, code, sharedNotes, onChange }: { studentId: string; name: string; code: string | null; sharedNotes: number; onChange: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [confirm, setConfirm] = useState<'new' | 'off' | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const link = code ? `${window.location.origin}${config.hashRouter ? '/#' : ''}/progress/${code}` : ''
+  const set = async (next: string | null) => {
+    setBusy(true); setErr(null)
+    try { await api.setStudentShareCode(studentId, next); setConfirm(null); onChange() } catch (e) { setErr(errorMessage(e)) } finally { setBusy(false) }
+  }
+  const copy = async (text: string, what: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(what); setTimeout(() => setCopied(null), 2000) } catch { /* clipboard blocked: the text is selectable */ }
+  }
+  return (
+    <section className={`rounded-2xl border-2 p-5 ${code ? 'border-sage bg-sage-light/50' : 'border-line bg-white'}`}>
+      <h2 className="text-xl font-extrabold">Share with {name}</h2>
+      {err && <div className="mt-3"><Notice tone="error">{err}</Notice></div>}
+      {!code ? (
+        <>
+          <p className="mt-2 text-[15px] text-inksoft">Give {name} (or a parent) a private code to see their points, homework and the notes you choose to share. They can look but not change anything, and no account is needed.</p>
+          <button className="btn-primary mt-4" disabled={busy} onClick={() => set(newShareCode())}>{busy ? 'Creating' : 'Create a progress code'}</button>
+        </>
+      ) : (
+        <div className="mt-3 grid gap-3">
+          <div>
+            <p className="text-sm text-inksoft">Code</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="select-all rounded-lg bg-white px-3 py-1.5 font-display text-xl font-extrabold tracking-wider">{code}</code>
+              <button className="btn-ghost !py-1.5" onClick={() => copy(code, 'code')}>{copied === 'code' ? 'Copied' : 'Copy code'}</button>
+            </div>
+          </div>
+          <div>
+            <p className="text-sm text-inksoft">Or send this link</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="min-w-0 max-w-full select-all break-all rounded-lg bg-white px-3 py-1.5 text-[14px]">{link}</span>
+              <button className="btn-ghost !py-1.5" onClick={() => copy(link, 'link')}>{copied === 'link' ? 'Copied' : 'Copy link'}</button>
+            </div>
+          </div>
+          <p className="text-[14px] text-inksoft">They see their points, homework and feedback, and {sharedNotes === 1 ? '1 shared note' : `${sharedNotes} shared notes`}. Private notes and contact details stay hidden.</p>
+          <div className="flex flex-wrap gap-3">
+            <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm font-bold underline">See what they see</a>
+            {confirm === null && <>
+              <button className="text-sm font-bold underline" onClick={() => setConfirm('new')}>Make a new code</button>
+              <button className="text-sm font-bold underline" onClick={() => setConfirm('off')}>Turn off</button>
+            </>}
+          </div>
+          {confirm && (
+            <div className="rounded-xl bg-white p-3 text-[15px]">
+              <p>{confirm === 'new' ? 'The old code and link will stop working. Make a new one?' : `${name} will no longer be able to see their progress. Turn it off?`}</p>
+              <div className="mt-2 flex gap-2">
+                <button className={confirm === 'off' ? 'btn-danger !py-1.5' : 'btn-primary !py-1.5'} disabled={busy} onClick={() => set(confirm === 'new' ? newShareCode() : null)}>{confirm === 'new' ? 'Make new code' : 'Turn off'}</button>
+                <button className="btn-ghost !py-1.5" onClick={() => setConfirm(null)}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   )
 }

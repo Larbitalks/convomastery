@@ -19,14 +19,14 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
     'c-tutor': ['Leo', 'Mia', 'Noah'],
   }
   const students: DemoDb['students'] = classes.flatMap((c) =>
-    names[c.id].map((n, i) => ({ id: `s-${c.id}-${i}`, ownerId: c.ownerId, classId: c.id, name: n, notes: '', level: c.level, contact: '', goals: '', createdAt: c.createdAt })),
+    names[c.id].map((n, i) => ({ id: `s-${c.id}-${i}`, ownerId: c.ownerId, classId: c.id, name: n, notes: '', level: c.level, contact: '', goals: '', shareCode: null, createdAt: c.createdAt })),
   )
-  Object.assign(students[0], { contact: "Parent: Mrs Lee, lee.family@example.com", goals: 'Speak more fluently in debates; use linking words', notes: 'Confident speaker, sometimes rushes answers.' })
+  Object.assign(students[0], { shareCode: 'DEMO-AMY2-CODE', contact: "Parent: Mrs Lee, lee.family@example.com", goals: 'Speak more fluently in debates; use linking words', notes: 'Confident speaker, sometimes rushes answers.' })
   Object.assign(students[1], { goals: 'Build confidence speaking in front of the group', notes: 'Quiet at first, warms up in pair work.' })
   const studentNotes: DemoDb['studentNotes'] = [
-    { id: 'n-1', ownerId: 'u-admin', studentId: students[0].id, date: ymd(new Date(now.getTime() - 7 * day)), body: 'Sleep On It: great opinions in the debate. Practise "on the other hand" and "whereas".', createdAt: iso(new Date(now.getTime() - 7 * day)) },
-    { id: 'n-2', ownerId: 'u-admin', studentId: students[0].id, date: ymd(new Date(now.getTime() - 14 * day)), body: 'Lucky Breaks: needed help with past tense when telling stories. Homework handed in on time.', createdAt: iso(new Date(now.getTime() - 14 * day)) },
-    { id: 'n-3', ownerId: 'u-admin', studentId: students[1].id, date: ymd(new Date(now.getTime() - 7 * day)), body: 'Spoke much more in pair work today. Give him a role in the next debate.', createdAt: iso(new Date(now.getTime() - 7 * day)) },
+    { id: 'n-1', ownerId: 'u-admin', studentId: students[0].id, date: ymd(new Date(now.getTime() - 7 * day)), body: 'Sleep On It: great opinions in the debate. Practise "on the other hand" and "whereas".', createdAt: iso(new Date(now.getTime() - 7 * day)), shared: true },
+    { id: 'n-2', ownerId: 'u-admin', studentId: students[0].id, date: ymd(new Date(now.getTime() - 14 * day)), body: 'Lucky Breaks: needed help with past tense when telling stories. Homework handed in on time.', createdAt: iso(new Date(now.getTime() - 14 * day)), shared: false },
+    { id: 'n-3', ownerId: 'u-admin', studentId: students[1].id, date: ymd(new Date(now.getTime() - 7 * day)), body: 'Spoke much more in pair work today. Give him a role in the next debate.', createdAt: iso(new Date(now.getTime() - 7 * day)), shared: false },
   ]
   const awardCategories: DemoDb['awardCategories'] = classes.flatMap((c) =>
     DEFAULT_AWARD_CATEGORIES.map((a, i) => ({ ...a, id: `ac-${c.id}-${i}`, ownerId: c.ownerId, classId: c.id, position: i })),

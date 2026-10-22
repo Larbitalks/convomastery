@@ -66,7 +66,7 @@ const demoTeach: TeachApi = {
       save()
       return strip(s)
     }
-    const s = { notes: '', level: '', contact: '', goals: '', ...input, id: 's-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
+    const s = { notes: '', level: '', contact: '', goals: '', shareCode: null, ...input, id: 's-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
     db.students.push(s)
     save()
     return strip(s)
@@ -86,13 +86,48 @@ const demoTeach: TeachApi = {
     return mine(load().studentNotes).filter((n) => !studentId || n.studentId === studentId).map(strip)
       .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
   },
-  async addStudentNote({ studentId, date, body }) {
+  async addStudentNote({ studentId, date, body, shared = false }) {
     const u = requireUser()
     own(load().students, studentId, 'student')
-    const n = { id: 'n-' + uid(), ownerId: u.id, studentId, date, body, createdAt: new Date().toISOString() }
+    const n = { id: 'n-' + uid(), ownerId: u.id, studentId, date, body, shared, createdAt: new Date().toISOString() }
     load().studentNotes.push(n)
     save()
     return strip(n)
+  },
+  async setNoteShared(id, shared) {
+    own(load().studentNotes, id, 'note').shared = shared
+    save()
+  },
+  async setStudentShareCode(studentId, code) {
+    own(load().students, studentId, 'student').shareCode = code
+    save()
+  },
+  async getStudentProgress(code) {
+    await wait(200)
+    const norm = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '')
+    const key = norm(code)
+    if (key.length < 10) return null
+    const db = load()
+    const s = db.students.find((x) => x.shareCode && norm(x.shareCode) === key)
+    if (!s) return null
+    const cls = db.classes.find((c) => c.id === s.classId)
+    const cats = db.awardCategories.filter((c) => c.classId === s.classId).sort((a, b) => a.position - b.position)
+    const awards = db.awards.filter((a) => a.studentId === s.id)
+    const st = (hid: string) => db.homeworkStatus.find((x) => x.homeworkId === hid && x.studentId === s.id)
+    return {
+      name: s.name,
+      className: cls?.name ?? '',
+      level: s.level || cls?.level || '',
+      totalPoints: awards.reduce((t, a) => t + a.points, 0),
+      categories: cats.map((c) => ({ name: c.name, color: c.color, points: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0) })),
+      recentAwards: [...awards].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10).map((a) => {
+        const c = db.awardCategories.find((x) => x.id === a.categoryId)
+        return { date: a.createdAt, category: c?.name ?? 'Award', color: c?.color ?? '#3D405B', points: a.points, lesson: db.lessons.find((l) => l.id === a.lessonId)?.title ?? null }
+      }),
+      homework: db.homework.filter((h) => h.classId === s.classId).sort((a, b) => b.dueDate.localeCompare(a.dueDate))
+        .map((h) => ({ title: h.title, instructions: h.instructions, dueDate: h.dueDate, status: st(h.id)?.status ?? 'assigned', feedback: st(h.id)?.feedback ?? '' })),
+      notes: db.studentNotes.filter((n) => n.studentId === s.id && n.shared).sort((a, b) => b.date.localeCompare(a.date)).map((n) => ({ date: n.date, body: n.body })),
+    }
   },
   async deleteStudentNote(id) {
     own(load().studentNotes, id, 'note')

@@ -141,6 +141,7 @@ function Footer() {
           <ul className="mt-3 grid gap-2 text-white/80">
             <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
             <li><Link to="/about" className="hover:text-white">About</Link></li>
+            <li><Link to="/progress" className="hover:text-white">Student progress</Link></li>
             {socials.map((s) => <li key={s.label}><a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-white">{s.label}</a></li>)}
           </ul>
         </div>

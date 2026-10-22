@@ -22,6 +22,7 @@ import Lessons from './pages/Lessons'
 import Library from './pages/Library'
 import NotFound from './pages/NotFound'
 import Pricing from './pages/Pricing'
+import { ProgressEntry, ProgressView } from './pages/Progress'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminCategories from './pages/admin/AdminCategories'
 import AdminInquiries from './pages/admin/AdminInquiries'
@@ -40,6 +41,8 @@ export default function App() {
         <Route path="pricing" element={<Pricing />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
+        <Route path="progress" element={<ProgressEntry />} />
+        <Route path="progress/:code" element={<ProgressView />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
         <Route path="forgot-password" element={<ForgotPassword />} />

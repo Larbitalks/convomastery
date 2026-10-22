@@ -3,4 +3,5 @@ Allow: /
 Disallow: /admin
 Disallow: /account
 Disallow: /library
+Disallow: /progress/
 Sitemap: /sitemap.xml
