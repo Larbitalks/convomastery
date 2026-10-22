@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AwardBoard } from '../components/AwardBoard'
+import { PerformanceMini } from '../components/Performance'
+import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { HOMEWORK_STATES } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
@@ -19,7 +20,7 @@ export async function teachableLessons(isAdmin: boolean): Promise<Lesson[]> {
 }
 
 const TABS = [
-  ['scores', 'Scoreboard'],
+  ['scores', 'Overview'],
   ['students', 'Students'],
   ['homework', 'Homework'],
   ['awards', 'Award categories'],
@@ -73,12 +74,60 @@ export default function ClassDetail() {
         ))}
       </nav>
       <div className="mt-6">
-        {tab === 'scores' && <div className="max-w-3xl"><AwardBoard classId={cls.id} /></div>}
+        {tab === 'scores' && <Overview classId={cls.id} />}
         {tab === 'students' && <Students classId={cls.id} />}
         {tab === 'homework' && <HomeworkTab classId={cls.id} lessons={data.lessons} />}
         {tab === 'awards' && <AwardCategories classId={cls.id} />}
         {tab === 'settings' && <Settings cls={cls} onSaved={reload} />}
       </div>
+    </div>
+  )
+}
+
+/** One row per student: performance bar and key numbers. Awards are given during a class, not here. */
+function Overview({ classId }: { classId: string }) {
+  const { data, loading } = useLoad(async () => {
+    const [students, awards, homework, statuses, sessions, options] = await Promise.all([
+      api.listStudents(classId), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listAllClassSessions(), api.getBehaviourOptions(),
+    ])
+    return { students, awards, homework, statuses, sessions, options }
+  }, [classId])
+  if (loading || !data) return <Spinner />
+  if (!data.students.length) return <p className="text-inksoft">No students in this class yet. Add them in the Students tab.</p>
+  const today = new Date().toISOString().slice(0, 10)
+  const rows = data.students.map((s) => {
+    const mine = data.sessions.filter((x) => x.studentId === s.id && x.endedAt).sort((a, b) => b.date.localeCompare(a.date))
+    const awards = data.awards.filter((a) => a.studentId === s.id)
+    const due = data.homework.filter((h) => h.studentId === s.id && h.dueDate <= today)
+    const handed = due.filter((h) => ['done', 'late'].includes(data.statuses.find((x) => x.homeworkId === h.id && x.studentId === s.id)?.status ?? '')).length
+    return {
+      s, classes: mine.length, last: mine[0]?.date,
+      awards: awards.length, points: awards.reduce((t, a) => t + a.points, 0),
+      homework: due.length ? `${handed} of ${due.length}` : 'None due',
+      perf: computePerformance(toScoreClasses(mine, data.awards, data.options), toScoreHomework(s.id, data.homework, data.statuses)),
+    }
+  }).sort((a, b) => (b.perf.score ?? -1) - (a.perf.score ?? -1) || a.s.name.localeCompare(b.s.name))
+
+  return (
+    <div className="grid max-w-4xl gap-3">
+      {rows.map(({ s, classes, last, awards, points, homework, perf }) => (
+        <Link key={s.id} to={`/students/${s.id}`} className="rounded-2xl border-2 border-line bg-white p-4 hover:border-ink/40">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-lg font-bold">{s.name}</span>
+            <span className="flex items-center gap-2">
+              {perf.band && <span className="text-sm font-bold text-inksoft">{perf.band.label}</span>}
+              <PerformanceMini perf={perf} />
+            </span>
+          </div>
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[15px] sm:grid-cols-4">
+            <div><dt className="text-sm text-inksoft">Awards</dt><dd className="font-bold tabular-nums">{awards} ({points} {points === 1 ? 'point' : 'points'})</dd></div>
+            <div><dt className="text-sm text-inksoft">Homework handed in</dt><dd className="font-bold">{homework}</dd></div>
+            <div><dt className="text-sm text-inksoft">Classes</dt><dd className="font-bold tabular-nums">{classes}</dd></div>
+            <div><dt className="text-sm text-inksoft">Last class</dt><dd className="font-bold">{last ? formatDate(last) : 'None yet'}</dd></div>
+          </dl>
+        </Link>
+      ))}
+      <p className="text-sm text-inksoft">Give awards during a class: open a student and click Start class. Click a student to see their full record.</p>
     </div>
   )
 }

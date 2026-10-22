@@ -79,7 +79,7 @@ export function PerformanceCard({ perf, name, title = 'Overall performance' }: {
 
 /** Small bar for tables */
 export function PerformanceMini({ perf }: { perf: Performance }) {
-  if (perf.score === null || !perf.band) return <span className="text-sm text-inksoft">No data</span>
+  if (perf.score === null || !perf.band) return <span className="text-sm text-inksoft">No classes yet</span>
   const arrow = perf.trend === null ? '' : perf.trend >= 3 ? '▲' : perf.trend <= -3 ? '▼' : ''
   return (
     <span className="flex items-center gap-2" title={`${perf.band.label}${perf.trend !== null ? `, ${perf.trend >= 0 ? '+' : ''}${perf.trend} vs previous classes` : ''}`}>
