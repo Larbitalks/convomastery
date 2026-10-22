@@ -5,16 +5,21 @@ import { api } from '../lib/api'
 import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { LEVELS } from '../lib/types'
+import { bandOf, computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
+import { LEVELS, textOn } from '../lib/types'
 
 export const CLASS_COLORS = ['#3D405B', '#46725D', '#7A5C8C', '#9A6A1F', '#2F5D62', '#5B6C8F', '#6B7F3A']
 const today = () => new Date().toISOString().slice(0, 10)
 
 export default function Classes() {
   const { data, loading, error, reload } = useLoad(async () => {
-    const [classes, students, homework] = await Promise.all([api.listClasses(), api.listStudents(), api.listHomework()])
-    const statuses = await Promise.all(classes.map((c) => api.listHomeworkStatus(c.id)))
-    return { classes, students, homework, statuses: statuses.flat() }
+    const [classes, students, homework, statuses, awards, sessions, options] = await Promise.all([
+      api.listClasses(), api.listStudents(), api.listHomework(), api.listAllHomeworkStatus(), api.listAllAwards(), api.listAllClassSessions(), api.getBehaviourOptions(),
+    ])
+    // Each student's overall score, for the class averages
+    const scores = new Map(students.map((s) => [s.id, computePerformance(
+      toScoreClasses(sessions.filter((x) => x.studentId === s.id), awards, options), toScoreHomework(s.id, homework, statuses)).score]))
+    return { classes, students, homework, statuses, scores }
   })
   const [form, setForm] = useState({ name: '', level: 'B1', color: CLASS_COLORS[0] })
   const [open, setOpen] = useState(false)
@@ -67,14 +72,39 @@ export default function Classes() {
       ) : (
         <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {data.classes.map((c) => {
-            const n = data.students.filter((s) => s.classId === c.id).length
+            const members = data.students.filter((s) => s.classId === c.id)
+            const n = members.length
+            const scored = members.map((s) => data.scores.get(s.id)).filter((x): x is number => typeof x === 'number')
+            const avg = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : null
+            const band = avg === null ? null : bandOf(avg)
             return (
               <li key={c.id}>
-                <Link to={`/classes/${c.id}`} className="panel group block overflow-hidden hover:border-ink/30">
-                  <div className="h-3" style={{ backgroundColor: c.color }} />
-                  <div className="p-5">
+                <Link to={`/classes/${c.id}`} className="panel group flex h-full flex-col overflow-hidden hover:border-ink/30">
+                  {c.image ? (
+                    <div className="relative">
+                      <img src={c.image} alt="" className="h-32 w-full object-cover" loading="lazy" />
+                      <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ backgroundColor: c.color }} />
+                    </div>
+                  ) : (
+                    <div className="flex h-32 items-center justify-center font-display text-5xl font-extrabold" style={{ backgroundColor: c.color, color: textOn(c.color) }} aria-hidden="true">
+                      {c.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex flex-1 flex-col p-5">
                     <h2 className="text-xl font-bold group-hover:underline underline-offset-4">{c.name}</h2>
                     <p className="mt-1 text-[15px] text-inksoft">{c.level}, {n} {n === 1 ? 'student' : 'students'}</p>
+                    <div className="mt-auto pt-4">
+                      <div className="flex items-baseline justify-between gap-2 text-sm">
+                        <span className="text-inksoft">Average performance</span>
+                        {avg !== null && band ? <span><span className="font-bold" style={{ color: band.color === '#F2CC8F' ? '#9A6A1F' : band.color }}>{band.label}</span> <span className="font-display text-lg font-extrabold tabular-nums">{avg}</span></span>
+                          : <span className="text-inksoft">No scores yet</span>}
+                      </div>
+                      <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-board" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={avg ?? 0}
+                        aria-label={avg !== null ? `Average performance ${avg} out of 100` : 'No scores yet'}>
+                        {avg !== null && band && <div className="h-full rounded-full" style={{ width: `${Math.max(avg, 2)}%`, backgroundColor: band.color }} />}
+                      </div>
+                      {avg !== null && scored.length < n && <p className="mt-1 text-[12px] text-inksoft">From {scored.length} of {n} students with classes so far</p>}
+                    </div>
                   </div>
                 </Link>
               </li>

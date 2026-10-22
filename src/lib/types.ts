@@ -131,7 +131,7 @@ export interface CoreApi {
 
 // ---------- Teaching tools, booking and messaging ----------
 
-export interface ClassGroup { id: string; name: string; level: string; color: string; createdAt: string }
+export interface ClassGroup { id: string; name: string; level: string; color: string; /** Optional picture (small JPEG data URL) */ image?: string | null; createdAt: string }
 export interface Student {
   id: string; classId: string; name: string; notes: string; createdAt: string
   /** Record details, all optional */

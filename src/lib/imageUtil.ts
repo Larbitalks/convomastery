@@ -27,3 +27,22 @@ export function withTimeout<T>(p: Promise<T>, seconds: number, what: string): Pr
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${what} took too long and was stopped. Check your internet connection and try again.`)), seconds * 1000)),
   ])
 }
+
+/** Small JPEG as a data URL (for class pictures), kept under about 250 KB */
+export async function imageToDataUrl(file: File, maxWidth = 800): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('Please choose an image file (JPG or PNG).')
+  const bmp = await createImageBitmap(file).catch(() => { throw new Error('This image could not be opened. Try a JPG or PNG.') })
+  for (const [w, q] of [[maxWidth, 0.82], [600, 0.75], [420, 0.7]] as const) {
+    const scale = Math.min(1, w / bmp.width)
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bmp.width * scale)
+    canvas.height = Math.round(bmp.height * scale)
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+    const url = canvas.toDataURL('image/jpeg', q)
+    if (url.length < 250_000) return url
+  }
+  throw new Error('This image is too detailed. Try a smaller picture.')
+}

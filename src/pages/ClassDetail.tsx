@@ -10,6 +10,7 @@ import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { LEVELS, type ClassGroup, type HomeworkState, type Lesson } from '../lib/types'
 import { CLASS_COLORS } from './Classes'
+import { imageToDataUrl } from '../lib/imageUtil'
 
 /** Lessons this person can teach: the ones they own, or all of them for the admin. */
 export async function teachableLessons(isAdmin: boolean): Promise<Lesson[]> {
@@ -38,7 +39,7 @@ export default function ClassDetail() {
   const [lessonSlug, setLessonSlug] = useState('')
   const navigate = useNavigate()
 
-  if (loading) return <Spinner />
+  if (loading && !data) return <Spinner />
   if (!data?.cls) return <Notice tone="error">This class no longer exists. <Link to="/classes" className="underline">Back to classes</Link></Notice>
   const cls = data.cls
 
@@ -324,7 +325,8 @@ function AwardCategories({ classId }: { classId: string }) {
 
 function Settings({ cls, onSaved }: { cls: ClassGroup; onSaved: () => void }) {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: cls.name, level: cls.level, color: cls.color })
+  const [form, setForm] = useState({ name: cls.name, level: cls.level, color: cls.color, image: cls.image ?? null })
+  const [picBusy, setPicBusy] = useState(false)
   const [msg, setMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
   const [confirm, setConfirm] = useState(false)
   const save = async (e: FormEvent) => {
@@ -348,7 +350,30 @@ function Settings({ cls, onSaved }: { cls: ClassGroup; onSaved: () => void }) {
             ))}
           </div>
         </div>
-        <button className="btn-primary justify-self-start">Save class</button>
+        <div>
+          <p className="label">Picture (optional)</p>
+          <div className="flex flex-wrap items-center gap-4">
+            {form.image
+              ? <img src={form.image} alt="" className="h-24 w-40 rounded-xl border-2 border-line object-cover" />
+              : <div className="h-24 w-40 rounded-xl" style={{ backgroundColor: form.color }} aria-hidden="true" />}
+            <div className="grid gap-2">
+              <label className="btn-ghost cursor-pointer !py-1.5">
+                {picBusy ? 'Preparing' : form.image ? 'Change picture' : 'Choose a picture'}
+                <input type="file" accept="image/*" className="sr-only" disabled={picBusy} onChange={async (e) => {
+                  const f = e.target.files?.[0]; e.target.value = ''
+                  if (!f) return
+                  setPicBusy(true); setMsg(null)
+                  try { setForm((x) => ({ ...x, image: '' })); const url = await imageToDataUrl(f); setForm((x) => ({ ...x, image: url })) }
+                  catch (x) { setForm((y) => ({ ...y, image: cls.image ?? null })); setMsg({ tone: 'error', text: errorMessage(x) }) }
+                  finally { setPicBusy(false) }
+                }} />
+              </label>
+              {form.image && <button type="button" className="text-sm font-bold underline justify-self-start" onClick={() => setForm({ ...form, image: null })}>Remove picture</button>}
+            </div>
+          </div>
+          <p className="hint">Shown on your Classes page. Without a picture, the class colour is shown. Click Save class after choosing.</p>
+        </div>
+        <button className="btn-primary justify-self-start" disabled={picBusy}>Save class</button>
       </form>
       <div className="panel grid gap-3 p-5">
         {confirm ? (

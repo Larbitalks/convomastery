@@ -10,7 +10,7 @@ function check<T = any>(res: { data: T | null; error: { message: string } | null
 }
 const notify = (fn: string, body: object) => { supabase.functions.invoke(fn, { body }).catch(() => {}) }
 
-const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.level, color: r.color, createdAt: r.created_at })
+const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.level, color: r.color, image: r.image ?? null, createdAt: r.created_at })
 const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showBehaviour: Boolean(r.show_behaviour), createdAt: r.created_at })
 const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
@@ -53,8 +53,8 @@ export const supabaseTeach: TeachApi = {
   async listClasses() {
     return check(await supabase.from('classes').select('*').eq('owner_id', await uid()).order('name')).map(toClass)
   },
-  async saveClass({ id, name, level, color }) {
-    return toClass(await upsert('classes', { name, level, color }, id))
+  async saveClass({ id, name, level, color, image }) {
+    return toClass(await upsert('classes', { name, level, color, ...(image !== undefined ? { image } : {}) }, id))
   },
   async deleteClass(id) { check(await supabase.from('classes').delete().eq('id', id)) },
   async listStudents(classId) {
