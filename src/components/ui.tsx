@@ -18,7 +18,7 @@ export function Notice({ tone = 'info', children }: { tone?: 'info' | 'error' | 
   const styles = {
     info: 'bg-board border-line',
     error: 'bg-[#FDECEC] border-coral/40 text-[#8E1C20]',
-    success: 'bg-teal-light border-teal/30 text-teal-dark',
+    success: 'bg-sage-light border-sage/60 text-sage-dark',
   }[tone]
   return <div role={tone === 'error' ? 'alert' : 'status'} className={`rounded-xl border-2 px-4 py-3 text-[15px] ${styles}`}>{children}</div>
 }
@@ -26,7 +26,7 @@ export function Notice({ tone = 'info', children }: { tone?: 'info' | 'error' | 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 py-16 justify-center text-inksoft" role="status">
-      <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-line border-t-teal" />
+      <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-line border-t-brand" />
       {label}
     </div>
   )

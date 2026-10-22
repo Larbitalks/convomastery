@@ -68,7 +68,7 @@ export default function AdminBookings() {
             {data.slots.map((s) => {
               const bs = data.bookings.filter((b) => b.slotId === s.id && b.status === 'confirmed')
               return (
-                <li key={s.id} className={`panel p-4 ${bs.length ? 'border-teal/40' : ''}`}>
+                <li key={s.id} className={`panel p-4 ${bs.length ? 'border-brand/40' : ''}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-bold">{formatDay(s.startsAt)}, {formatTime(s.startsAt)}</p>

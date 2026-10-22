@@ -39,7 +39,7 @@ const lessons: SeedLesson[] = [
       'Is a successful person lucky, or did they make their own luck?',
       'Would you rather find $100 or have a perfect exam day?',
     ],
-    priceCents: 0, slideCount: 24, durationMinutes: 60, coverColor: '#0E7C7B', featured: true,
+    priceCents: 0, slideCount: 24, durationMinutes: 60, coverColor: '#46725D', featured: true,
   },
   {
     id: 'les-sleep-on-it',
@@ -55,7 +55,7 @@ const lessons: SeedLesson[] = [
       'Should schools start later so students can sleep more?',
       'What is the strangest dream you can remember?',
     ],
-    priceCents: 499, slideCount: 26, durationMinutes: 60, coverColor: '#3D4FA8', featured: true,
+    priceCents: 499, slideCount: 26, durationMinutes: 60, coverColor: '#3D405B', featured: true,
   },
   {
     id: 'les-all-in-the-family',
@@ -71,7 +71,7 @@ const lessons: SeedLesson[] = [
       'Is it better to be the oldest, the middle or the youngest child?',
       'Should teenagers be paid for doing chores?',
     ],
-    priceCents: 499, slideCount: 28, durationMinutes: 60, coverColor: '#7A4FB5', featured: true,
+    priceCents: 499, slideCount: 28, durationMinutes: 60, coverColor: '#7A5C8C', featured: true,
   },
   {
     id: 'les-money-talks',
@@ -87,7 +87,7 @@ const lessons: SeedLesson[] = [
       'Should schools teach students how to manage money?',
       'Would you lend money to a close friend?',
     ],
-    priceCents: 599, slideCount: 30, durationMinutes: 75, coverColor: '#B5651D', featured: true,
+    priceCents: 599, slideCount: 30, durationMinutes: 75, coverColor: '#9A6A1F', featured: true,
   },
   {
     id: 'les-screen-time',
@@ -103,7 +103,7 @@ const lessons: SeedLesson[] = [
       'Should phones be banned in schools?',
       'Is gaming a waste of time or a useful skill?',
     ],
-    priceCents: 499, slideCount: 25, durationMinutes: 60, coverColor: '#C2410C', featured: false,
+    priceCents: 499, slideCount: 25, durationMinutes: 60, coverColor: '#5B6C8F', featured: false,
   },
   {
     id: 'les-the-ai-question',
@@ -119,7 +119,7 @@ const lessons: SeedLesson[] = [
       'Should students be allowed to use AI for homework?',
       'Would you trust a robot doctor?',
     ],
-    priceCents: 699, slideCount: 32, durationMinutes: 75, coverColor: '#1B2A4A', featured: false,
+    priceCents: 699, slideCount: 32, durationMinutes: 75, coverColor: '#3D405B', featured: false,
   },
   {
     id: 'les-food-fights',
@@ -135,7 +135,7 @@ const lessons: SeedLesson[] = [
       'Does pineapple belong on pizza?',
       'What is a food from your country that visitors should try?',
     ],
-    priceCents: 399, slideCount: 22, durationMinutes: 50, coverColor: '#B91C1C', featured: false,
+    priceCents: 399, slideCount: 22, durationMinutes: 50, coverColor: '#6B7F3A', featured: false,
   },
   {
     id: 'les-dream-jobs',
@@ -151,7 +151,7 @@ const lessons: SeedLesson[] = [
       'Would you take a boring job with a high salary?',
       'Is it possible to love your job every day?',
     ],
-    priceCents: 599, slideCount: 27, durationMinutes: 60, coverColor: '#0F766E', featured: false,
+    priceCents: 599, slideCount: 27, durationMinutes: 60, coverColor: '#2F5D62', featured: false,
   },
   {
     id: 'les-travel-tales',
@@ -167,7 +167,7 @@ const lessons: SeedLesson[] = [
       'What is the best trip you have ever taken?',
       'Is it better to travel alone or with friends?',
     ],
-    priceCents: 399, slideCount: 23, durationMinutes: 50, coverColor: '#2563A8', featured: false,
+    priceCents: 399, slideCount: 23, durationMinutes: 50, coverColor: '#5B6C8F', featured: false,
   },
 ]
 

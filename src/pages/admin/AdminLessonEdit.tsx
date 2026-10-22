@@ -8,7 +8,7 @@ import { useLoad } from '../../lib/hooks'
 import { shrinkImage, withTimeout } from '../../lib/imageUtil'
 import { ACTIVITY_TYPES, AGE_GROUPS, LEVELS, type AgeGroup, type LessonInput, type Level } from '../../lib/types'
 
-const COVER_COLORS = ['#0E7C7B', '#3D4FA8', '#7A4FB5', '#B5651D', '#C2410C', '#1B2A4A', '#B91C1C', '#2563A8', '#0F766E']
+const COVER_COLORS = ['#3D405B', '#46725D', '#7A5C8C', '#9A6A1F', '#2F5D62', '#5B6C8F', '#6B7F3A', '#8A5A44']
 
 const blank: LessonInput = {
   slug: '', title: '', summary: '', description: '', level: 'B1', ageGroup: 'Teens', categoryId: null,
@@ -201,7 +201,7 @@ export default function AdminLessonEdit() {
                 const on = form.activityTypes.includes(a)
                 return (
                   <button type="button" key={a} aria-pressed={on} onClick={() => set('activityTypes', on ? form.activityTypes.filter((x) => x !== a) : [...form.activityTypes, a])}
-                    className={`chip ${on ? 'border-teal bg-teal text-white' : 'border-line'}`}>{a}</button>
+                    className={`chip ${on ? 'border-brand bg-brand text-white' : 'border-line'}`}>{a}</button>
                 )
               })}
             </div>
@@ -272,9 +272,9 @@ export default function AdminLessonEdit() {
           </div>
         </div>
         <div className="panel grid gap-3 p-5">
-          <label className="flex items-center gap-3 font-bold"><input type="checkbox" className="h-5 w-5 accent-teal" checked={form.published} onChange={(e) => set('published', e.target.checked)} />Published</label>
+          <label className="flex items-center gap-3 font-bold"><input type="checkbox" className="h-5 w-5 accent-brand" checked={form.published} onChange={(e) => set('published', e.target.checked)} />Published</label>
           <p className="hint -mt-2">Drafts are hidden from the catalogue.</p>
-          <label className="flex items-center gap-3 font-bold"><input type="checkbox" className="h-5 w-5 accent-teal" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} />Show on home page</label>
+          <label className="flex items-center gap-3 font-bold"><input type="checkbox" className="h-5 w-5 accent-brand" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} />Show on home page</label>
           {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
           <button className="btn-primary mt-2 !py-3" disabled={busy !== null}>{busy === 'save' ? 'Saving' : busy ? 'Wait for the upload to finish' : 'Save lesson'}</button>
           <Link to="/admin" className="btn-ghost">Back to lessons</Link>

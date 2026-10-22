@@ -23,7 +23,7 @@ const toLesson = (r: Row): Lesson => ({
   currency: r.currency,
   slideCount: r.slide_count ?? 0,
   durationMinutes: r.duration_minutes ?? 60,
-  coverColor: r.cover_color ?? '#0E7C7B',
+  coverColor: r.cover_color ?? '#46725D',
   coverImageUrl: r.cover_image_url,
   previewImages: r.preview_images ?? [],
   slideImages: r.slide_images ?? [],

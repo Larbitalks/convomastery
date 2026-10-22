@@ -47,7 +47,7 @@ export default function Pricing() {
           {faqs.map(([q, a]) => (
             <details key={q} className="group py-4">
               <summary className="cursor-pointer list-none font-bold text-lg flex justify-between gap-4">
-                {q}<span className="text-teal group-open:rotate-45 transition-transform" aria-hidden="true">+</span>
+                {q}<span className="text-brand group-open:rotate-45 transition-transform" aria-hidden="true">+</span>
               </summary>
               <p className="mt-2 text-inksoft">{a}</p>
             </details>

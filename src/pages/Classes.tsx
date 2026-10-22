@@ -7,7 +7,7 @@ import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { LEVELS } from '../lib/types'
 
-export const CLASS_COLORS = ['#0E7C7B', '#3D4FA8', '#7A4FB5', '#B5651D', '#B91C1C', '#2563A8', '#1B2A4A']
+export const CLASS_COLORS = ['#3D405B', '#46725D', '#7A5C8C', '#9A6A1F', '#2F5D62', '#5B6C8F', '#6B7F3A']
 const today = () => new Date().toISOString().slice(0, 10)
 
 export default function Classes() {
@@ -99,7 +99,7 @@ export default function Classes() {
                     <p className="text-[15px] text-inksoft">{cls?.name}. {overdue ? 'Was due' : 'Due'} {formatDate(h.dueDate)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${done === total && total > 0 ? 'bg-teal-light text-teal-dark' : overdue ? 'bg-[#FDECEC] text-[#8E1C20]' : 'bg-board'}`}>{done} of {total} handed in</span>
+                    <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${done === total && total > 0 ? 'bg-sage-light text-sage-dark' : overdue ? 'bg-[#FDECEC] text-[#8E1C20]' : 'bg-board'}`}>{done} of {total} handed in</span>
                     <Link to={`/classes/${h.classId}?tab=homework`} className="font-bold underline underline-offset-4">Open</Link>
                   </div>
                 </li>

@@ -17,7 +17,7 @@ function ChipGroup({ label, options, value, onChange }: { label: string; options
           const active = value === o
           return (
             <button key={o} type="button" aria-pressed={active} onClick={() => onChange(active ? '' : o)}
-              className={`chip ${active ? 'border-teal bg-teal text-white' : 'border-line hover:border-ink/40'}`}>
+              className={`chip ${active ? 'border-brand bg-brand text-white' : 'border-line hover:border-ink/40'}`}>
               {o}
             </button>
           )

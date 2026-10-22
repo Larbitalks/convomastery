@@ -39,7 +39,7 @@ export default function AdminLessons() {
                 <td className="px-4 py-3">{formatPrice(l.priceCents, l.currency)}</td>
                 <td className="px-4 py-3">{sales(l.id)}</td>
                 <td className="px-4 py-3">
-                  <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${l.published ? 'bg-teal-light text-teal-dark' : 'bg-board text-inksoft'}`}>{l.published ? 'Published' : 'Draft'}</span>
+                  <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${l.published ? 'bg-sage-light text-sage-dark' : 'bg-board text-inksoft'}`}>{l.published ? 'Published' : 'Draft'}</span>
                   {!l.filePath && l.published && <span className="ml-2 rounded-md bg-sun-light px-2 py-0.5 text-sm font-bold">No file</span>}
                 </td>
               </tr>

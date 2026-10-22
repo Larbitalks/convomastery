@@ -157,11 +157,11 @@ export interface Message { id: string; threadUserId: string; fromAdmin: boolean;
 export interface Thread { userId: string; userEmail: string; userName: string; lastMessage: Message; unread: number }
 
 export const DEFAULT_AWARD_CATEGORIES: Pick<AwardCategory, 'name' | 'points' | 'color'>[] = [
-  { name: 'Participation', points: 1, color: '#0E7C7B' },
-  { name: 'Great answer', points: 2, color: '#3D4FA8' },
-  { name: 'New vocabulary', points: 1, color: '#7A4FB5' },
-  { name: 'Teamwork', points: 1, color: '#B5651D' },
-  { name: 'Homework', points: 2, color: '#B91C1C' },
+  { name: 'Participation', points: 1, color: '#46725D' },
+  { name: 'Great answer', points: 2, color: '#5B6C8F' },
+  { name: 'New vocabulary', points: 1, color: '#7A5C8C' },
+  { name: 'Teamwork', points: 1, color: '#9A6A1F' },
+  { name: 'Homework', points: 2, color: '#3D405B' },
 ]
 
 export interface TeachApi {

@@ -12,7 +12,7 @@ export function LessonCard({ lesson, owned }: { lesson: Lesson; owned?: boolean 
           <h3 className="text-xl font-bold group-hover:underline decoration-2 underline-offset-4">{lesson.title}</h3>
           <p className="mt-0.5 text-[15px] text-inksoft">{lesson.summary}</p>
         </div>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${owned ? 'bg-teal-light text-teal-dark' : lesson.priceCents === 0 ? 'bg-sun text-ink' : 'bg-board text-ink'}`}>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${owned ? 'bg-sage-light text-sage-dark' : lesson.priceCents === 0 ? 'bg-sun text-ink' : 'bg-board text-ink'}`}>
           {owned ? 'Owned' : formatPrice(lesson.priceCents, lesson.currency)}
         </span>
       </div>

@@ -75,7 +75,7 @@ export function AwardBoard({ classId, lessonId = null, compact = false }: { clas
               </div>
               {!compact && (
                 <div className="mt-2 ml-9 h-2 overflow-hidden rounded-full bg-board" aria-hidden="true">
-                  <div className="h-full rounded-full bg-teal transition-[width]" style={{ width: `${(pts / top) * 100}%` }} />
+                  <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${(pts / top) * 100}%` }} />
                 </div>
               )}
               <div className="mt-2 ml-9 flex flex-wrap gap-1.5">

@@ -8,7 +8,7 @@ import { Seo } from '../lib/seo'
 import { LEVELS } from '../lib/types'
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
-  done: { text: 'Done', cls: 'bg-teal-light text-teal-dark' },
+  done: { text: 'Done', cls: 'bg-sage-light text-sage-dark' },
   late: { text: 'Late', cls: 'bg-sun-light' },
   missing: { text: 'Missing', cls: 'bg-[#FDECEC] text-[#8E1C20]' },
   assigned: { text: 'Not yet', cls: 'bg-board' },
@@ -110,7 +110,7 @@ export default function StudentRecord() {
             {notes.length === 0 ? <p className="mt-3 text-inksoft">No notes yet. A short note after each lesson builds a useful record over time.</p> : (
               <ol className="mt-4 grid gap-3">
                 {notes.map((n) => (
-                  <li key={n.id} className="grid gap-1 border-l-[3px] border-teal pl-4">
+                  <li key={n.id} className="grid gap-1 border-l-[3px] border-brand pl-4">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-bold text-inksoft">{formatDate(n.date)}</p>
                       <button className="text-sm font-bold underline" onClick={() => removeNote(n.id)}>Delete</button>

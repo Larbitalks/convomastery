@@ -28,7 +28,7 @@ export function Description({ text }: { text: string }) {
               {intro && <p className="mb-2">{first}</p>}
               <ul className="grid gap-1.5">
                 {(intro ? rest : lines).map((l) => (
-                  <li key={l} className="flex gap-3"><span className="mt-2.5 h-2 w-2 shrink-0 rounded-full bg-teal" />{l}</li>
+                  <li key={l} className="flex gap-3"><span className="mt-2.5 h-2 w-2 shrink-0 rounded-full bg-brand" />{l}</li>
                 ))}
               </ul>
             </div>
@@ -197,7 +197,7 @@ export default function LessonDetail() {
             <div className="mt-6">
               <h2 className="text-lg font-bold">Activities in this lesson</h2>
               <ul className="mt-2 flex flex-wrap gap-2">
-                {lesson.activityTypes.map((a) => <li key={a}><Link to={`/lessons?activity=${encodeURIComponent(a)}`} className="chip border-line hover:border-teal">{a}</Link></li>)}
+                {lesson.activityTypes.map((a) => <li key={a}><Link to={`/lessons?activity=${encodeURIComponent(a)}`} className="chip border-line hover:border-brand">{a}</Link></li>)}
               </ul>
             </div>
           )}

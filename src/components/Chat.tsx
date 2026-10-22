@@ -34,7 +34,7 @@ export function Chat({ messages, mine, onSend, otherName, emptyText }: {
               const me = mine(m)
               return (
                 <li key={m.id} className={`flex flex-col ${me ? 'items-end' : 'items-start'}`}>
-                  <div className={`max-w-[80%] whitespace-pre-line rounded-2xl px-4 py-2.5 ${me ? 'rounded-br-sm bg-teal text-white' : 'rounded-bl-sm bg-board'}`}>{m.body}</div>
+                  <div className={`max-w-[80%] whitespace-pre-line rounded-2xl px-4 py-2.5 ${me ? 'rounded-br-sm bg-brand text-white' : 'rounded-bl-sm bg-board'}`}>{m.body}</div>
                   <span className="mt-1 text-[12px] text-inksoft">{me ? 'You' : otherName}, {formatDateTime(m.createdAt)}</span>
                 </li>
               )

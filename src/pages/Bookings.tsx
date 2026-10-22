@@ -69,7 +69,7 @@ export default function Bookings() {
           <h2 className="text-xl font-bold">Your upcoming bookings</h2>
           <ul className="mt-3 grid gap-3">
             {upcomingMine.map((b) => (
-              <li key={b.id} className="panel flex flex-wrap items-center justify-between gap-3 border-teal/40 p-4">
+              <li key={b.id} className="panel flex flex-wrap items-center justify-between gap-3 border-brand/40 p-4">
                 <div>
                   <p className="font-bold">{b.slot?.kind}</p>
                   <p className="text-[15px] text-inksoft">{b.slot && `${formatDay(b.slot.startsAt)}, ${formatTime(b.slot.startsAt)}, ${b.slot.durationMinutes} min`}</p>
@@ -92,7 +92,7 @@ export default function Bookings() {
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Session type">
           {['', ...SLOT_KINDS].map((k) => (
             <button key={k || 'all'} aria-pressed={kind === k} onClick={() => setKind(k)}
-              className={`chip ${kind === k ? 'border-teal bg-teal text-white' : 'border-line hover:border-ink/40'}`}>{k || 'All sessions'}</button>
+              className={`chip ${kind === k ? 'border-brand bg-brand text-white' : 'border-line hover:border-ink/40'}`}>{k || 'All sessions'}</button>
           ))}
         </div>
         {kind && <p className="mt-3 text-inksoft">{KIND_TEXT[kind]}</p>}
@@ -117,7 +117,7 @@ export default function Bookings() {
                       return (
                         <li key={s.id}>
                           <button disabled={full || mineAlready} onClick={() => { setChosen(s); setMsg(null) }} aria-pressed={selected}
-                            className={`rounded-xl border-2 px-4 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50 ${selected ? 'border-teal bg-teal-light' : 'border-line bg-white hover:border-ink/40'}`}>
+                            className={`rounded-xl border-2 px-4 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50 ${selected ? 'border-brand bg-brand-light' : 'border-line bg-white hover:border-ink/40'}`}>
                             <span className="block font-display text-lg font-extrabold tabular-nums">{formatTime(s.startsAt)}</span>
                             <span className="block text-[13px] text-inksoft">{s.kind}, {s.durationMinutes} min</span>
                             <span className="block text-[13px] font-bold">{mineAlready ? 'Booked by you' : full ? 'Full' : s.capacity > 1 ? `${left} places left` : 'Available'}</span>

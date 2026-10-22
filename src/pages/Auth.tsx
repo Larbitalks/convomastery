@@ -45,7 +45,7 @@ export function Login() {
   }
 
   return (
-    <AuthCard title="Sign in" intro={<>New here? <Link className="font-bold text-teal-dark underline underline-offset-2" to={`/signup?next=${encodeURIComponent(next)}`}>Create a free account</Link>.</>}>
+    <AuthCard title="Sign in" intro={<>New here? <Link className="font-bold text-brand-dark underline underline-offset-2" to={`/signup?next=${encodeURIComponent(next)}`}>Create a free account</Link>.</>}>
       <form onSubmit={submit} className="grid gap-5">
         {error && <Notice tone="error">{error}</Notice>}
         <Field label="Email" htmlFor="email"><Input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
@@ -91,7 +91,7 @@ export function Signup() {
   }
 
   return (
-    <AuthCard title="Create your free account" intro={<>Already have one? <Link className="font-bold text-teal-dark underline underline-offset-2" to={`/login?next=${encodeURIComponent(next)}`}>Sign in</Link>.</>}>
+    <AuthCard title="Create your free account" intro={<>Already have one? <Link className="font-bold text-brand-dark underline underline-offset-2" to={`/login?next=${encodeURIComponent(next)}`}>Sign in</Link>.</>}>
       <form onSubmit={submit} className="grid gap-5">
         {error && <Notice tone="error">{error}</Notice>}
         <Field label="Your name" htmlFor="fullName"><Input id="fullName" required autoComplete="name" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></Field>

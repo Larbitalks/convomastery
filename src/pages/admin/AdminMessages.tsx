@@ -28,7 +28,7 @@ export default function AdminMessages() {
         {threads.data.map((t) => (
           <li key={t.userId}>
             <button onClick={() => setActive(t.userId)} aria-current={t.userId === current ? 'true' : undefined}
-              className={`w-full rounded-xl border-2 p-3 text-left ${t.userId === current ? 'border-teal bg-teal-light' : 'border-line bg-white hover:border-ink/30'}`}>
+              className={`w-full rounded-xl border-2 p-3 text-left ${t.userId === current ? 'border-brand bg-brand-light' : 'border-line bg-white hover:border-ink/30'}`}>
               <span className="flex items-center justify-between gap-2">
                 <span className="truncate font-bold">{t.userName || t.userEmail}</span>
                 {t.unread > 0 && <span className="rounded-full bg-coral px-2 text-[13px] text-white">{t.unread}</span>}

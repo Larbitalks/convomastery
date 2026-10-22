@@ -28,7 +28,7 @@ function builtSlides(lesson: Lesson): Slide[] {
     kind: 'built', render: () => (
       <div className="flex h-full flex-col justify-center bg-board p-[8%]">
         <p className="text-[2.4vmin] font-bold text-inksoft">Discuss, question {i + 1} of {lesson.sampleQuestions.length}</p>
-        <div className="mt-4 rounded-[3vmin] border-[0.5vmin] border-ink bg-sun p-[5%] shadow-[1.2vmin_1.2vmin_0_#1B2A4A]">
+        <div className="mt-4 rounded-[3vmin] border-[0.5vmin] border-ink bg-sun p-[5%] shadow-[1.2vmin_1.2vmin_0_#3D405B]">
           <p className="font-display text-[6vmin] font-bold leading-tight">{q}</p>
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function Teach() {
   const btn = (active: boolean) => `rounded-full px-3.5 py-2 text-[14px] font-bold ${active ? 'bg-sun text-ink' : 'bg-white/10 text-white hover:bg-white/20'}`
 
   return (
-    <div className="flex h-screen flex-col bg-[#0F1A30] text-white">
+    <div className="flex h-screen flex-col bg-[#2B2D42] text-white">
       <Seo title={`Teaching ${lesson.title}`} noindex />
       <header className="flex flex-wrap items-center gap-2 px-4 py-2.5">
         <Link to="/" aria-label="ConvoMastery home" className="hidden sm:block [&_span]:!text-white [&_path]:stroke-white"><Logo className="!text-[18px]" /></Link>
@@ -230,7 +230,7 @@ function TimerPanel({ timer }: { timer: ReturnType<typeof useTimer> }) {
       <p className="text-center font-display text-6xl font-extrabold tabular-nums">{mmss(timer.left)}</p>
       {timer.total > 0 && (
         <div className="h-2 overflow-hidden rounded-full bg-board" aria-hidden="true">
-          <div className="h-full bg-teal transition-[width] duration-1000 ease-linear" style={{ width: `${(timer.left / timer.total) * 100}%` }} />
+          <div className="h-full bg-brand transition-[width] duration-1000 ease-linear" style={{ width: `${(timer.left / timer.total) * 100}%` }} />
         </div>
       )}
       <div className="grid grid-cols-3 gap-2">

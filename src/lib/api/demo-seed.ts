@@ -9,9 +9,9 @@ const ymd = (d: Date) => d.toISOString().slice(0, 10)
 export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
   const now = new Date()
   const classes: DemoDb['classes'] = [
-    { id: 'c-teens', ownerId: 'u-admin', name: 'Thursday Teens', level: 'B1', color: '#0E7C7B', createdAt: iso(new Date(now.getTime() - 30 * day)) },
-    { id: 'c-adults', ownerId: 'u-admin', name: 'Adult Conversation Club', level: 'B2', color: '#3D4FA8', createdAt: iso(new Date(now.getTime() - 20 * day)) },
-    { id: 'c-tutor', ownerId: 'u-teacher', name: 'My online students', level: 'B1', color: '#7A4FB5', createdAt: iso(new Date(now.getTime() - 10 * day)) },
+    { id: 'c-teens', ownerId: 'u-admin', name: 'Thursday Teens', level: 'B1', color: '#46725D', createdAt: iso(new Date(now.getTime() - 30 * day)) },
+    { id: 'c-adults', ownerId: 'u-admin', name: 'Adult Conversation Club', level: 'B2', color: '#3D405B', createdAt: iso(new Date(now.getTime() - 20 * day)) },
+    { id: 'c-tutor', ownerId: 'u-teacher', name: 'My online students', level: 'B1', color: '#7A5C8C', createdAt: iso(new Date(now.getTime() - 10 * day)) },
   ]
   const names: Record<string, string[]> = {
     'c-teens': ['Amy', 'Ben', 'Chloe', 'Daniel', 'Emma', 'Felix'],

@@ -68,7 +68,7 @@ export default function ClassDetail() {
       <nav className="mt-8 no-scrollbar flex gap-1 overflow-x-auto border-b-2 border-line" aria-label="Class sections">
         {TABS.map(([k, l]) => (
           <button key={k} onClick={() => setParams(k === 'scores' ? {} : { tab: k }, { replace: true })} aria-current={tab === k ? 'page' : undefined}
-            className={`-mb-[2px] shrink-0 border-b-[3px] px-4 py-2.5 font-bold ${tab === k ? 'border-teal text-ink' : 'border-transparent text-inksoft hover:text-ink'}`}>{l}</button>
+            className={`-mb-[2px] shrink-0 border-b-[3px] px-4 py-2.5 font-bold ${tab === k ? 'border-brand text-ink' : 'border-transparent text-inksoft hover:text-ink'}`}>{l}</button>
         ))}
       </nav>
       <div className="mt-6">
@@ -155,7 +155,7 @@ function Students({ classId }: { classId: string }) {
 
 const STATES: { value: HomeworkState; label: string; cls: string }[] = [
   { value: 'assigned', label: 'Not yet', cls: 'bg-white' },
-  { value: 'done', label: 'Done', cls: 'bg-teal-light' },
+  { value: 'done', label: 'Done', cls: 'bg-sage-light' },
   { value: 'late', label: 'Late', cls: 'bg-sun-light' },
   { value: 'missing', label: 'Missing', cls: 'bg-[#FDECEC]' },
 ]
@@ -228,7 +228,7 @@ function HomeworkTab({ classId, lessons }: { classId: string; lessons: Lesson[] 
                   </span>
                   <span className="flex items-center gap-3">
                     <span className="rounded-md bg-board px-2 py-0.5 text-sm font-bold">{handed} of {data.students.length} handed in</span>
-                    <span className="font-bold text-teal-dark">{isOpen ? 'Close' : 'Track'}</span>
+                    <span className="font-bold text-brand-dark">{isOpen ? 'Close' : 'Track'}</span>
                   </span>
                 </button>
                 {isOpen && (
@@ -271,7 +271,7 @@ function AwardCategories({ classId }: { classId: string }) {
   const { data, loading, reload } = useLoad(() => api.listAwardCategories(classId), [classId])
   const [form, setForm] = useState({ name: '', points: 1 })
   const [err, setErr] = useState<string | null>(null)
-  const colors = ['#0E7C7B', '#3D4FA8', '#7A4FB5', '#B5651D', '#B91C1C', '#2563A8', '#0F766E']
+  const colors = ['#3D405B', '#46725D', '#7A5C8C', '#9A6A1F', '#2F5D62', '#5B6C8F', '#6B7F3A']
 
   const add = async (e: FormEvent) => {
     e.preventDefault(); setErr(null)

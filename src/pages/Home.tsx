@@ -25,7 +25,7 @@ function QuestionBubble({ items }: { items: { q: string; title: string; slug: st
   const item = items[i % items.length]
   return (
     <div className="relative">
-      <div key={i} className="bubble pop rounded-[28px] border-[3px] border-ink bg-sun p-7 sm:p-9 shadow-[8px_8px_0_#1B2A4A]">
+      <div key={i} className="bubble pop rounded-[28px] border-[3px] border-ink bg-sun p-7 sm:p-9 shadow-[8px_8px_0_#3D405B]">
         <p className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.15]">{item.q}</p>
       </div>
       <div className="mt-10 flex flex-wrap items-center justify-between gap-3 pl-1">
@@ -84,13 +84,13 @@ export default function Home() {
           <div>
             <p className="font-bold">By student age</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {AGE_GROUPS.map((a) => <Link key={a} to={`/lessons?age=${encodeURIComponent(a)}`} className="chip border-line hover:border-teal hover:text-teal-dark">{a}</Link>)}
+              {AGE_GROUPS.map((a) => <Link key={a} to={`/lessons?age=${encodeURIComponent(a)}`} className="chip border-line hover:border-brand hover:text-brand-dark">{a}</Link>)}
             </div>
           </div>
           <div>
             <p className="font-bold">By level</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {LEVELS.map((l) => <Link key={l} to={`/lessons?level=${l}`} className="chip border-line hover:border-teal hover:text-teal-dark">{l}</Link>)}
+              {LEVELS.map((l) => <Link key={l} to={`/lessons?level=${l}`} className="chip border-line hover:border-brand hover:text-brand-dark">{l}</Link>)}
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function Home() {
       <section className="wrap">
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-3xl font-extrabold">Popular lessons</h2>
-          <Link to="/lessons" className="font-bold text-teal-dark underline underline-offset-4">See all lessons</Link>
+          <Link to="/lessons" className="font-bold text-brand-dark underline underline-offset-4">See all lessons</Link>
         </div>
         {loading ? <Spinner /> : (
           <div className="mt-6 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -119,7 +119,7 @@ export default function Home() {
         <ol className="grid gap-px overflow-hidden rounded-2xl border-2 border-line bg-line">
           {lessonPath.map(([title, text], i) => (
             <li key={title} className="flex gap-4 bg-white px-5 py-3.5">
-              <span className="w-6 shrink-0 font-display text-lg font-extrabold text-teal">{i + 1}</span>
+              <span className="w-6 shrink-0 font-display text-lg font-extrabold text-brand">{i + 1}</span>
               <span><strong>{title}.</strong> <span className="text-inksoft">{text}</span></span>
             </li>
           ))}
@@ -133,7 +133,7 @@ export default function Home() {
             Stop rebuilding speaking lessons from scratch. Download a complete, communicative lesson, or teach it straight from the website with a built-in timer, a random name picker and class awards. Keep track of your students and their homework in the same place.
           </p>
         </div>
-        <div className="rounded-2xl bg-teal-light p-8">
+        <div className="rounded-2xl bg-sage-light p-8">
           <h2 className="text-2xl font-extrabold">For parents</h2>
           <p className="mt-3 text-inksoft">
             Want your child to use their English, not just study grammar? These lessons give you real conversation topics, question by question, so practice at home feels like a chat instead of homework.
