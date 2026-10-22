@@ -55,9 +55,9 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
   // Two past one-to-one classes for Amy, with attendance and behaviour
   const mark = (label: string, color: string, d: number, min: number) => ({ label, color, at: iso(new Date(now.getTime() - d * day + min * 60000)) })
   const sessions: DemoDb['sessions'] = [
-    { id: 'cs-1', ownerId: 'u-admin', studentId: students[0].id, classId: 'c-teens', date: ymd(new Date(now.getTime() - 14 * day)), startedAt: iso(new Date(now.getTime() - 14 * day)), endedAt: iso(new Date(now.getTime() - 14 * day + 55 * 60000)), attendance: 'present', lessonId: 'les-lucky-breaks',
+    { id: 'cs-1', ownerId: 'u-admin', studentId: students[0].id, classId: 'c-teens', date: ymd(new Date(now.getTime() - 14 * day)), startedAt: iso(new Date(now.getTime() - 14 * day)), endedAt: iso(new Date(now.getTime() - 14 * day + 55 * 60000)), attendance: 'present', review: 'no', lessonId: 'les-lucky-breaks',
       behaviour: [mark('Active', '#46725D', 14, 5), mark('Distracted', '#D99A3D', 14, 20), mark('Active', '#46725D', 14, 35)], covered: 'Warm-up, vocabulary, conversation', newWords: 'superstition, coincidence', corrections: 'I am agree > I agree', notes: '', noteId: null, createdAt: iso(new Date(now.getTime() - 14 * day)) },
-    { id: 'cs-2', ownerId: 'u-admin', studentId: students[0].id, classId: 'c-teens', date: ymd(new Date(now.getTime() - 7 * day)), startedAt: iso(new Date(now.getTime() - 7 * day)), endedAt: iso(new Date(now.getTime() - 7 * day + 60 * 60000)), attendance: 'late', lessonId: 'les-sleep-on-it',
+    { id: 'cs-2', ownerId: 'u-admin', studentId: students[0].id, classId: 'c-teens', date: ymd(new Date(now.getTime() - 7 * day)), startedAt: iso(new Date(now.getTime() - 7 * day)), endedAt: iso(new Date(now.getTime() - 7 * day + 60 * 60000)), attendance: 'late', review: 'yes', lessonId: 'les-sleep-on-it',
       behaviour: [mark('Participating well', '#2F7F7A', 7, 10), mark('Active', '#46725D', 7, 25), mark('Active', '#46725D', 7, 40), mark('Participating well', '#2F7F7A', 7, 50)], covered: 'Dilemmas and debate', newWords: 'night owl, early bird', corrections: '', notes: 'Great debate.', noteId: null, createdAt: iso(new Date(now.getTime() - 7 * day)) },
   ]
 

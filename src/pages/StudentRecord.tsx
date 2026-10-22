@@ -9,6 +9,9 @@ import { Seo } from '../lib/seo'
 import { LEVELS, newShareCode, textOn, type ClassSession, type Lesson } from '../lib/types'
 import { BehaviourBar, tallyOf } from './ClassSession'
 import { config } from '../lib/config'
+import { PerformanceCard } from '../components/Performance'
+import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
+import { reviewLabel } from './ClassSession'
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   done: { text: 'Done', cls: 'bg-sage-light text-sage-dark' },
@@ -21,15 +24,15 @@ export default function StudentRecord() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data, loading, reload } = useLoad(async () => {
-    const [students, classes, awards, homework, statuses, notes, lessons, sessions] = await Promise.all([
+    const [students, classes, awards, homework, statuses, notes, lessons, sessions, options] = await Promise.all([
       api.listStudents(), api.listClasses(), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listStudentNotes(id), api.listLessons({ includeUnpublished: true }),
-      api.listClassSessions(id),
+      api.listClassSessions(id), api.getBehaviourOptions(),
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!student) return null
     const myAwards = awards.filter((a) => a.studentId === id)
     const categories = (await Promise.all([...new Set(myAwards.map((a) => a.classId).concat(student.classId))].map((c) => api.listAwardCategories(c)))).flat()
-    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions }
+    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions, options }
   }, [id])
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
@@ -48,7 +51,8 @@ export default function StudentRecord() {
 
   if (loading && !data) return <Spinner />
   if (!data) return <Notice tone="error">This student no longer exists. <Link to="/students" className="underline">Back to students</Link></Notice>
-  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions } = data
+  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options } = data
+  const perf = computePerformance(toScoreClasses(sessions, awards, options), toScoreHomework(student.id, homework, statuses))
   const running = sessions.find((x) => !x.endedAt)
   const cls = classes.find((c) => c.id === student.classId)
 
@@ -105,6 +109,8 @@ export default function StudentRecord() {
       </div>
 
       {msg && <div className="mt-4"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
+
+      <div className="mt-6"><PerformanceCard perf={perf} name={student.name} /></div>
 
       <dl className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-3">
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Award points</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{totalPoints}</dd></div>
@@ -334,6 +340,7 @@ function ClassHistory({ studentId, sessions, lessons, onChange }: { studentId: s
                     <span className="font-bold">{formatDate(x.date)}{lesson ? <span className="font-normal text-inksoft">, {lesson.title}</span> : null}</span>
                     <span className="flex items-center gap-2 text-sm">
                       <span className={`rounded-md px-2 py-0.5 font-bold ${chip[x.attendance]}`}>{label[x.attendance]}</span>
+                      {x.review && <span className={`rounded-md px-2 py-0.5 font-bold ${{ yes: 'bg-sage-light text-sage-dark', partly: 'bg-sun-light', no: 'bg-[#FDECEC] text-[#8E1C20]' }[x.review]}`}>{reviewLabel(x.review)}</span>}
                       <span className="text-inksoft">{mins} min</span>
                     </span>
                   </span>

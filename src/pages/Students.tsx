@@ -5,16 +5,19 @@ import { api } from '../lib/api'
 import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
+import { PerformanceMini } from '../components/Performance'
+import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 
 export default function Students() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
   const classFilter = params.get('class') ?? ''
   const { data, loading, error, reload } = useLoad(async () => {
-    const [classes, students, awards, homework, statuses, notes] = await Promise.all([
+    const [classes, students, awards, homework, statuses, notes, sessions, options] = await Promise.all([
       api.listClasses(), api.listStudents(), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listStudentNotes(),
+      api.listAllClassSessions(), api.getBehaviourOptions(),
     ])
-    return { classes, students, awards, homework, statuses, notes }
+    return { classes, students, awards, homework, statuses, notes, sessions, options }
   })
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ name: '', classId: '' })
@@ -40,6 +43,7 @@ export default function Students() {
           points: data.awards.filter((a) => a.studentId === s.id).reduce((t, a) => t + a.points, 0),
           homework: due.length ? `${handed} of ${due.length}` : 'None due',
           lastNote: lastNote?.date,
+          perf: computePerformance(toScoreClasses(data.sessions.filter((x) => x.studentId === s.id), data.awards, data.options), toScoreHomework(s.id, data.homework, data.statuses)),
         }
       })
       .sort((a, b) => a.s.name.localeCompare(b.s.name))
@@ -101,14 +105,15 @@ export default function Students() {
             <div className="panel mt-4 overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-[15px]">
                 <thead className="border-b-2 border-line bg-board">
-                  <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Class</th><th className="px-4 py-3">Level</th><th className="px-4 py-3">Award points</th><th className="px-4 py-3">Homework handed in</th><th className="px-4 py-3">Last lesson note</th></tr>
+                  <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Class</th><th className="px-4 py-3">Level</th><th className="px-4 py-3">Performance</th><th className="px-4 py-3">Award points</th><th className="px-4 py-3">Homework handed in</th><th className="px-4 py-3">Last lesson note</th></tr>
                 </thead>
                 <tbody className="divide-y-2 divide-line">
-                  {rows.map(({ s, cls, points, homework, lastNote }) => (
+                  {rows.map(({ s, cls, points, homework, lastNote, perf }) => (
                     <tr key={s.id} className="hover:bg-board/50">
                       <td className="px-4 py-3 font-bold"><Link to={`/students/${s.id}`} className="underline underline-offset-2">{s.name}</Link></td>
                       <td className="px-4 py-3"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls?.color }} aria-hidden="true" />{cls?.name}</td>
                       <td className="px-4 py-3">{s.level || cls?.level}</td>
+                      <td className="px-4 py-3"><PerformanceMini perf={perf} /></td>
                       <td className="px-4 py-3 tabular-nums">{points}</td>
                       <td className="px-4 py-3">{homework}</td>
                       <td className="px-4 py-3 text-inksoft">{lastNote ? formatDate(lastNote) : 'None yet'}</td>

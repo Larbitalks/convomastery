@@ -8,13 +8,23 @@ import { config } from '../lib/config'
 import { errorMessage, formatDate, formatTime } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { DEFAULT_BEHAVIOURS, textOn, type Attendance, type BehaviourMark, type BehaviourOption, type ClassSession } from '../lib/types'
+import { DEFAULT_BEHAVIOURS, textOn, type Attendance, type BehaviourMark, type BehaviourOption, type BehaviourType, type ClassSession, type Review } from '../lib/types'
 import { teachableLessons } from './ClassDetail'
+import { typeOfMark } from '../lib/performance'
 
 const ATTENDANCE: { value: Attendance; label: string; cls: string }[] = [
   { value: 'present', label: 'Present', cls: 'bg-sage-light text-sage-dark border-sage' },
   { value: 'late', label: 'Late', cls: 'bg-sun-light border-sun' },
   { value: 'absent', label: 'Absent', cls: 'bg-[#FDECEC] text-[#8E1C20] border-[#E8A8A8]' },
+]
+export const REVIEW: { value: Review; label: string; cls: string }[] = [
+  { value: 'yes', label: 'Yes', cls: 'bg-sage-light text-sage-dark border-sage' },
+  { value: 'partly', label: 'Partly', cls: 'bg-sun-light border-sun' },
+  { value: 'no', label: 'No', cls: 'bg-[#FDECEC] text-[#8E1C20] border-[#E8A8A8]' },
+]
+export const reviewLabel = (r: Review | null) => (r ? { yes: 'Reviewed', partly: 'Partly reviewed', no: 'Did not review' }[r] : 'Not checked')
+const TYPES: { value: BehaviourType; label: string }[] = [
+  { value: 'positive', label: 'Positive' }, { value: 'neutral', label: 'Neutral' }, { value: 'negative', label: 'Negative' },
 ]
 const PICK_COLOURS = ['#46725D', '#2F7F7A', '#5B6C8F', '#7A5C8C', '#F2CC8F', '#D99A3D', '#9A6A1F', '#B42318', '#8E1C20', '#3D405B']
 
@@ -67,7 +77,7 @@ export default function ClassSessionPage() {
   const [now, setNow] = useState(Date.now())
   const timer = useRef<ReturnType<typeof setTimeout>>()
 
-  useEffect(() => { if (data) { latest.current = data.session; setS(data.session); setOptions(data.options); setAwardsGiven(data.given) } }, [data])
+  useEffect(() => { if (data) { latest.current = data.session; setS(data.session); setOptions(data.options.map((o) => ({ ...o, type: typeOfMark(o, []) }))); setAwardsGiven(data.given) } }, [data])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
 
   // Every change updates the screen at once and is saved; typing is grouped so nothing is lost
@@ -102,7 +112,7 @@ export default function ClassSessionPage() {
   const elapsed = `${Math.floor(elapsedMin / 60) ? `${Math.floor(elapsedMin / 60)} h ` : ''}${elapsedMin % 60} min`
   const lesson = lessons.find((l) => l.id === s.lessonId)
 
-  const mark = (o: BehaviourOption) => patch({ behaviour: [...(latest.current?.behaviour ?? []), { label: o.label, color: o.color, at: new Date().toISOString() }] })
+  const mark = (o: BehaviourOption) => patch({ behaviour: [...(latest.current?.behaviour ?? []), { label: o.label, color: o.color, at: new Date().toISOString(), type: o.type ?? 'neutral' }] })
   const undoMark = () => patch({ behaviour: (latest.current?.behaviour ?? []).slice(0, -1) })
   const give = async (categoryId: string, name: string) => {
     try {
@@ -151,6 +161,17 @@ export default function ClassSessionPage() {
       ) : (
         <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
           <div className="grid content-start gap-8">
+            <section className="rounded-2xl border-2 border-line p-4">
+              <h2 className="text-xl font-extrabold">Review</h2>
+              <p className="mt-1 text-[15px] text-inksoft">Did {student.name} review last lesson? Ask them to tell you what they remember.</p>
+              <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Reviewed last lesson">
+                {REVIEW.map((r) => (
+                  <button key={r.value} aria-pressed={s.review === r.value} onClick={() => patch({ review: s.review === r.value ? null : r.value })}
+                    className={`rounded-full border-2 px-5 py-2 font-bold ${s.review === r.value ? r.cls : 'border-line text-inksoft'}`}>{r.label}</button>
+                ))}
+              </div>
+            </section>
+
             <section>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xl font-extrabold">Behaviour</h2>
@@ -271,16 +292,20 @@ function BehaviourEditor({ options, onSave }: { options: BehaviourOption[]; onSa
                 className={`h-7 w-7 rounded-full border-[3px] ${o.color === c ? 'border-ink' : 'border-white ring-1 ring-line'}`} style={{ backgroundColor: c }} />
             ))}
           </div>
+          <select aria-label={`Type of ${o.label}`} className="rounded-lg border-2 border-line bg-white px-2 py-1.5 text-sm font-bold" value={o.type ?? 'neutral'}
+            onChange={(e) => update(i, { type: e.target.value as BehaviourType })}>
+            {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
           <button type="button" className="text-sm font-bold underline" onClick={() => setList(list.filter((_, j) => j !== i))}>Remove</button>
         </div>
       ))}
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="btn-ghost" onClick={() => setList([...list, { label: 'New behaviour', color: '#5B6C8F' }])}>Add a button</button>
+        <button type="button" className="btn-ghost" onClick={() => setList([...list, { label: 'New behaviour', color: '#5B6C8F', type: 'neutral' }])}>Add a button</button>
         <button type="button" className="btn-ghost" onClick={() => setList(DEFAULT_BEHAVIOURS)}>Back to the default buttons</button>
         <button type="button" className="btn-primary" disabled={busy || list.some((o) => !o.label.trim())}
           onClick={async () => { setBusy(true); await onSave(list.map((o) => ({ ...o, label: o.label.trim() }))); setBusy(false) }}>Save buttons</button>
       </div>
-      <p className="hint !mt-0">These buttons are used for all your students.</p>
+      <p className="hint !mt-0">These buttons are used for all your students. The type decides how a click counts in the overall performance score: positive raises it, negative lowers it, neutral doesn't count.</p>
     </div>
   )
 }
@@ -319,8 +344,8 @@ function EndSummary({ session, studentName, studentId, lessonTitle, elapsed, awa
     <div className="mx-auto grid max-w-3xl gap-6">
       <h2 className="text-3xl font-extrabold">{finished ? 'Class summary' : 'End of class'}</h2>
       {err && <Notice tone="error">{err}</Notice>}
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-4">
-        {[['Date', formatDate(session.date)], ['Length', elapsed], ['Attendance', attendance.label], ['Awards', `${awards.reduce((t, a) => t + a.points, 0)} points`]].map(([k, v]) => (
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-5">
+        {[['Date', formatDate(session.date)], ['Length', elapsed], ['Attendance', attendance.label], ['Review', reviewLabel(session.review)], ['Awards', `${awards.reduce((t, a) => t + a.points, 0)} points`]].map(([k, v]) => (
           <div key={k} className="bg-white px-4 py-3"><dt className="text-sm text-inksoft">{k}</dt><dd className="font-bold">{v}</dd></div>
         ))}
       </dl>

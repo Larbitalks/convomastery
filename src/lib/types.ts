@@ -142,15 +142,17 @@ export interface Student {
   showBehaviour: boolean
 }
 
-export interface BehaviourOption { label: string; color: string }
+export type BehaviourType = 'positive' | 'neutral' | 'negative'
+export interface BehaviourOption { label: string; color: string; type?: BehaviourType }
 export const DEFAULT_BEHAVIOURS: BehaviourOption[] = [
-  { label: 'Active', color: '#46725D' },
-  { label: 'Participating well', color: '#2F7F7A' },
-  { label: 'Quiet', color: '#F2CC8F' },
-  { label: 'Distracted', color: '#D99A3D' },
-  { label: 'Not paying attention', color: '#B42318' },
-  { label: 'Off-task / phone', color: '#8E1C20' },
+  { label: 'Active', color: '#46725D', type: 'positive' },
+  { label: 'Participating well', color: '#2F7F7A', type: 'positive' },
+  { label: 'Quiet', color: '#F2CC8F', type: 'neutral' },
+  { label: 'Distracted', color: '#D99A3D', type: 'negative' },
+  { label: 'Not paying attention', color: '#B42318', type: 'negative' },
+  { label: 'Off-task / phone', color: '#8E1C20', type: 'negative' },
 ]
+export type Review = 'yes' | 'partly' | 'no'
 /** Dark or white text, whichever reads better on the colour */
 export function textOn(hex: string) {
   const n = parseInt(hex.replace('#', ''), 16)
@@ -159,16 +161,18 @@ export function textOn(hex: string) {
 }
 
 export type Attendance = 'present' | 'late' | 'absent'
-export interface BehaviourMark { label: string; color: string; at: string }
+export interface BehaviourMark { label: string; color: string; at: string; type?: BehaviourType }
 export interface ClassSession {
   id: string; studentId: string; classId: string; date: string
   startedAt: string; endedAt: string | null
   attendance: Attendance; lessonId: string | null
+  /** Did the student review the previous lesson? null = not checked */
+  review: Review | null
   behaviour: BehaviourMark[]
   covered: string; newWords: string; corrections: string; notes: string
   noteId: string | null; createdAt: string
 }
-export type SessionPatch = Partial<Pick<ClassSession, 'date' | 'endedAt' | 'attendance' | 'lessonId' | 'behaviour' | 'covered' | 'newWords' | 'corrections' | 'notes' | 'noteId'>>
+export type SessionPatch = Partial<Pick<ClassSession, 'date' | 'endedAt' | 'attendance' | 'review' | 'lessonId' | 'behaviour' | 'covered' | 'newWords' | 'corrections' | 'notes' | 'noteId'>>
 export interface StudentNote { id: string; studentId: string; date: string; body: string; createdAt: string; shared: boolean }
 
 /** What a student or parent sees on their progress page */
@@ -182,7 +186,11 @@ export interface StudentProgress {
   homework: { title: string; instructions: string; dueDate: string; status: HomeworkState; feedback: string }[]
   notes: { date: string; body: string }[]
   /** Only when the teacher has switched behaviour sharing on */
-  classes?: { date: string; attendance: Attendance; behaviour: { label: string; color: string; count: number }[] }[] | null
+  classes?: {
+    date: string; attendance: Attendance; behaviour: { label: string; color: string; count: number }[]
+    /** For the overall score (up to 16 classes are sent: 8 shown, 8 more for the trend) */
+    review?: Review | null; points?: number; positive?: number; negative?: number
+  }[] | null
 }
 
 /** 12 random letters and digits (no look-alikes such as O/0 or I/1), shown as ABCD-EFGH-JKLM */
@@ -244,6 +252,7 @@ export interface TeachApi {
   startClassSession(student: Student): Promise<ClassSession>
   getClassSession(id: string): Promise<ClassSession | null>
   listClassSessions(studentId: string): Promise<ClassSession[]>
+  listAllClassSessions(): Promise<ClassSession[]>
   updateClassSession(id: string, patch: SessionPatch): Promise<void>
   deleteClassSession(id: string): Promise<void>
   // awards

@@ -6,6 +6,8 @@ import { formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { textOn, type HomeworkState } from '../lib/types'
+import { PerformanceCard } from '../components/Performance'
+import { computePerformance } from '../lib/performance'
 
 const STATUS: Record<HomeworkState, { text: string; cls: string }> = {
   done: { text: 'Done', cls: 'bg-sage-light text-sage-dark' },
@@ -62,6 +64,9 @@ export function ProgressView() {
   const top = Math.max(1, ...data.categories.map((c) => c.points))
   const today = new Date().toISOString().slice(0, 10)
   const toDo = data.homework.filter((h) => h.status === 'assigned' && h.dueDate >= today)
+  const perf = data.classes
+    ? computePerformance(data.classes.map((c) => ({ date: c.date, attendance: c.attendance, review: c.review ?? null, points: c.points ?? 0, positive: c.positive ?? 0, negative: c.negative ?? 0 })), data.homework)
+    : null
 
   return (
     <div className="wrap py-10">
@@ -77,6 +82,8 @@ export function ProgressView() {
           <p className="mt-1 font-bold">{data.totalPoints === 1 ? 'point' : 'points'}</p>
         </div>
       </div>
+
+      {perf && perf.score !== null && <div className="mt-10 max-w-3xl"><PerformanceCard perf={perf} name={data.name} title="Your overall performance" /></div>}
 
       <div className="mt-12 grid gap-10 lg:grid-cols-[1fr_1fr]">
         <section>
@@ -142,14 +149,17 @@ export function ProgressView() {
         <section className="mt-12 max-w-3xl">
           <h2 className="text-2xl font-extrabold">Your recent classes</h2>
           <ul className="mt-4 grid gap-3">
-            {data.classes.map((c, i) => {
+            {data.classes.slice(0, 8).map((c, i) => {
               const total = c.behaviour.reduce((t, b) => t + b.count, 0)
               const att = { present: ['Present', 'bg-sage-light text-sage-dark'], late: ['Late', 'bg-sun-light'], absent: ['Absent', 'bg-[#FDECEC] text-[#8E1C20]'] }[c.attendance]
               return (
                 <li key={i} className="panel p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-bold">{formatDate(c.date)}</p>
-                    <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${att[1]}`}>{att[0]}</span>
+                    <span className="flex gap-1.5">
+                      {c.review && <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${{ yes: 'bg-sage-light text-sage-dark', partly: 'bg-sun-light', no: 'bg-[#FDECEC] text-[#8E1C20]' }[c.review]}`}>{{ yes: 'Reviewed', partly: 'Partly reviewed', no: 'Did not review' }[c.review]}</span>}
+                      <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${att[1]}`}>{att[0]}</span>
+                    </span>
                   </div>
                   {total > 0 && (
                     <>

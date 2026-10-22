@@ -26,11 +26,11 @@ const toBooking = (r: Row, slots: Map<string, BookingSlot>): Booking => ({
 
 const toSession = (r: Row): ClassSession => ({
   id: r.id, studentId: r.student_id, classId: r.class_id, date: r.date, startedAt: r.started_at, endedAt: r.ended_at,
-  attendance: r.attendance, lessonId: r.lesson_id, behaviour: r.behaviour ?? [], covered: r.covered ?? '', newWords: r.new_words ?? '',
+  attendance: r.attendance, review: r.review ?? null, lessonId: r.lesson_id, behaviour: r.behaviour ?? [], covered: r.covered ?? '', newWords: r.new_words ?? '',
   corrections: r.corrections ?? '', notes: r.notes ?? '', noteId: r.note_id, createdAt: r.created_at,
 })
 function fromSessionPatch(p: SessionPatch): Row {
-  const map: Record<string, string> = { date: 'date', endedAt: 'ended_at', attendance: 'attendance', lessonId: 'lesson_id', behaviour: 'behaviour', covered: 'covered', newWords: 'new_words', corrections: 'corrections', notes: 'notes', noteId: 'note_id' }
+  const map: Record<string, string> = { date: 'date', endedAt: 'ended_at', attendance: 'attendance', review: 'review', lessonId: 'lesson_id', behaviour: 'behaviour', covered: 'covered', newWords: 'new_words', corrections: 'corrections', notes: 'notes', noteId: 'note_id' }
   const row: Row = {}
   for (const [k, v] of Object.entries(p)) if (v !== undefined) row[map[k]] = v
   return row
@@ -110,6 +110,9 @@ export const supabaseTeach: TeachApi = {
   },
   async listClassSessions(studentId) {
     return check(await supabase.from('class_sessions').select('*').eq('student_id', studentId).order('date', { ascending: false }).order('started_at', { ascending: false })).map(toSession)
+  },
+  async listAllClassSessions() {
+    return check(await supabase.from('class_sessions').select('*').eq('owner_id', await uid())).map(toSession)
   },
   async updateClassSession(id, patch) {
     check(await supabase.from('class_sessions').update(fromSessionPatch(patch)).eq('id', id))

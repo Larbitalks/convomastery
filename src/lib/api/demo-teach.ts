@@ -1,6 +1,7 @@
 // Demo versions of the teaching, booking and messaging functions.
 import { DEFAULT_AWARD_CATEGORIES, DEFAULT_BEHAVIOURS, type Api, type ClassSession, type TeachApi } from '../types'
 import { getBlob, putBlob } from '../idb'
+import { toScoreClasses } from '../performance'
 import { currentUser, demoCore, load, requireAdmin, requireUser, save, uid, wait } from './demo'
 
 const strip = <T extends { ownerId: string }>(x: T) => {
@@ -128,11 +129,17 @@ const demoTeach: TeachApi = {
       homework: db.homework.filter((h) => h.studentId === s.id).sort((a, b) => b.dueDate.localeCompare(a.dueDate))
         .map((h) => ({ title: h.title, instructions: h.instructions, dueDate: h.dueDate, status: st(h.id)?.status ?? 'assigned', feedback: st(h.id)?.feedback ?? '' })),
       notes: db.studentNotes.filter((n) => n.studentId === s.id && n.shared).sort((a, b) => b.date.localeCompare(a.date)).map((n) => ({ date: n.date, body: n.body })),
-      classes: s.showBehaviour ? db.sessions.filter((x) => x.studentId === s.id && x.endedAt).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8).map((x) => {
-        const tally = new Map<string, { label: string; color: string; count: number }>()
-        x.behaviour.forEach((m) => { const t = tally.get(m.label) ?? { label: m.label, color: m.color, count: 0 }; t.count++; tally.set(m.label, t) })
-        return { date: x.date, attendance: x.attendance, behaviour: [...tally.values()].sort((a, b) => b.count - a.count) }
-      }) : null,
+      classes: s.showBehaviour ? (() => {
+        const sessions = db.sessions.filter((x) => x.studentId === s.id && x.endedAt).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 16)
+        const options = db.users.find((u) => u.id === s.ownerId)?.behaviourOptions ?? DEFAULT_BEHAVIOURS
+        const scored = toScoreClasses(sessions, db.awards, options)
+        return sessions.map((x, i) => {
+          const tally = new Map<string, { label: string; color: string; count: number }>()
+          x.behaviour.forEach((m) => { const t = tally.get(m.label) ?? { label: m.label, color: m.color, count: 0 }; t.count++; tally.set(m.label, t) })
+          const { review, points, positive, negative } = scored[i]
+          return { date: x.date, attendance: x.attendance, behaviour: [...tally.values()].sort((a, b) => b.count - a.count), review, points, positive, negative }
+        })
+      })() : null,
     }
   },
   async setStudentShowBehaviour(studentId, show) {
@@ -153,7 +160,7 @@ const demoTeach: TeachApi = {
     const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
     const sess: ClassSession & { ownerId: string } = {
       id: 'cs-' + uid(), ownerId: u.id, studentId: student.id, classId: student.classId, date: local, startedAt: now.toISOString(), endedAt: null,
-      attendance: 'present', lessonId: null, behaviour: [], covered: '', newWords: '', corrections: '', notes: '', noteId: null, createdAt: now.toISOString(),
+      attendance: 'present', review: null, lessonId: null, behaviour: [], covered: '', newWords: '', corrections: '', notes: '', noteId: null, createdAt: now.toISOString(),
     }
     load().sessions.push(sess)
     save()
@@ -166,6 +173,9 @@ const demoTeach: TeachApi = {
   async listClassSessions(studentId) {
     return mine(load().sessions).filter((x) => x.studentId === studentId).map(strip)
       .sort((a, b) => b.date.localeCompare(a.date) || b.startedAt.localeCompare(a.startedAt))
+  },
+  async listAllClassSessions() {
+    return mine(load().sessions).map(strip)
   },
   async updateClassSession(id, patch) {
     Object.assign(own(load().sessions, id, 'class'), patch)
