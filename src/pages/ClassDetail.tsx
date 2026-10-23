@@ -47,7 +47,6 @@ export default function ClassDetail() {
   return (
     <div>
       <Seo title={cls.name} noindex />
-      <Link to="/classes" className="text-[15px] font-bold underline underline-offset-2">All classes</Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="h-10 w-3 rounded-full" style={{ backgroundColor: cls.color }} aria-hidden="true" />

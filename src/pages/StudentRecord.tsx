@@ -102,7 +102,6 @@ export default function StudentRecord() {
   return (
     <div>
       <Seo title={student.name} noindex />
-      <Link to="/students" className="text-[15px] font-bold underline underline-offset-2">All students</Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-4">
           <button className="group relative shrink-0 rounded-full" onClick={() => setPicking(true)} aria-label={student.avatar ? 'Change avatar' : 'Choose an avatar'} title={student.avatar ? 'Change avatar' : 'Choose an avatar'}>

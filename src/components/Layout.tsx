@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { BackButton } from './BackButton'
 import { trackPage } from '../lib/analytics'
 import { api } from '../lib/api'
 import { DEMO_ADMIN, DEMO_TEACHER, resetDemo } from '../lib/api/demo'
@@ -166,7 +167,7 @@ export function Layout() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 btn-sun">Skip to content</a>
       <DemoBanner />
       <Header />
-      <main id="main" className="flex-1"><Outlet /></main>
+      <main id="main" className="flex-1"><BackButton /><Outlet /></main>
       <Footer />
     </div>
   )
