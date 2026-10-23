@@ -11,7 +11,7 @@ function check<T = any>(res: { data: T | null; error: { message: string } | null
 const notify = (fn: string, body: object) => { supabase.functions.invoke(fn, { body }).catch(() => {}) }
 
 const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.level, color: r.color, image: r.image ?? null, createdAt: r.created_at })
-const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showBehaviour: Boolean(r.show_behaviour), createdAt: r.created_at })
+const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showOnMap: r.show_on_map ?? true, showBehaviour: Boolean(r.show_behaviour), createdAt: r.created_at })
 const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
 const toAward = (r: Row): Award => ({ id: r.id, classId: r.class_id, studentId: r.student_id, categoryId: r.category_id, points: r.points, lessonId: r.lesson_id, createdAt: r.created_at })
@@ -89,6 +89,13 @@ export const supabaseTeach: TeachApi = {
   },
   async setNoteShared(id, shared) {
     check(await supabase.from('student_notes').update({ shared }).eq('id', id))
+  },
+  async setStudentShowOnMap(studentId, show) {
+    check(await supabase.from('students').update({ show_on_map: show }).eq('id', studentId))
+  },
+  async getStudentMap(code) {
+    const data = check(await supabase.rpc('student_map', { p_code: code }))
+    return (data as Awaited<ReturnType<TeachApi['getStudentMap']>>) ?? null
   },
   async setStudentShowBehaviour(studentId, show) {
     check(await supabase.from('students').update({ show_behaviour: show }).eq('id', studentId))

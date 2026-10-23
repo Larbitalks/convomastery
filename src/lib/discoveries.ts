@@ -176,3 +176,45 @@ export const ACHIEVEMENTS: AchievementType[] = [
 /** Class moves (class name and level at the time) to camps */
 export const staysOf = (moves: { at: string; className: string; classLevel: string }[]): CampStay[] =>
   moves.map((m) => ({ at: m.at, camp: campOfClass(m.className, m.classLevel) }))
+
+/** How many discoveries a points total has unlocked */
+export function unlockedCount(points: number) {
+  let n = 0, at = costOf(0)
+  while (points >= at) { n++; at += costOf(n) }
+  return n
+}
+
+// ----- The mountain map -----
+/** Trail through each camp on the map picture (1536 x 1024 pixels), from the start of the camp upwards */
+export const MAP_SIZE = { w: 1536, h: 1024 }
+export const TRAIL: Record<Tier, [number, number][]> = {
+  Explorers: [[150, 905], [230, 870], [300, 830], [378, 818], [362, 750]],
+  Trekkers: [[420, 700], [560, 650], [640, 630], [758, 588], [740, 540]],
+  Climbers: [[800, 515], [770, 462], [870, 422], [968, 412], [1027, 375], [980, 336]],
+  Mountaineers: [[1048, 305], [1150, 295], [1235, 283], [1265, 229], [1250, 196]],
+  Alpinists: [[1290, 176], [1300, 148], [1335, 105], [1376, 70]],
+}
+/** Where the camp signs are, for zooming to a camp */
+export const CAMP_SIGN: Record<Tier, [number, number]> = {
+  Explorers: [495, 790], Trekkers: [600, 560], Climbers: [845, 368], Mountaineers: [1080, 235], Alpinists: [1375, 118],
+}
+
+/** A point part of the way along a camp's trail (0 = start of the camp, 1 = top of the camp) */
+export function trailPoint(camp: Tier, t: number): [number, number] {
+  const pts = TRAIL[camp]
+  const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]))
+  let d = Math.max(0, Math.min(1, t)) * lens.reduce((a, b) => a + b, 0)
+  for (let i = 0; i < lens.length; i++) {
+    if (d <= lens[i] || i === lens.length - 1) {
+      const f = lens[i] ? Math.min(1, d / lens[i]) : 0
+      return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f]
+    }
+    d -= lens[i]
+  }
+  return pts[pts.length - 1]
+}
+
+/** How far up their camp a student is: each find moves them up, slowing near the top so there is always room */
+export const campProgress = (findsInCamp: number) => 0.06 + 0.88 * (1 - Math.pow(0.82, findsInCamp))
+
+export interface MapPerson { key: string; name: string; camp: Tier; findsInCamp: number; discoveries: number; me?: boolean }

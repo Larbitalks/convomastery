@@ -72,7 +72,7 @@ const demoTeach: TeachApi = {
       save()
       return strip(s)
     }
-    const s = { notes: '', level: '', contact: '', goals: '', shareCode: null, showBehaviour: false, ...input, id: 's-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
+    const s = { notes: '', level: '', contact: '', goals: '', shareCode: null, showOnMap: true, showBehaviour: false, ...input, id: 's-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
     db.students.push(s)
     move(s.id, s.classId)
     save()
@@ -161,6 +161,27 @@ const demoTeach: TeachApi = {
         })
       })() : null,
     }
+  },
+  async setStudentShowOnMap(studentId, show) {
+    own(load().students, studentId, 'student').showOnMap = show
+    save()
+  },
+  async getStudentMap(code) {
+    await wait(150)
+    const norm = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '')
+    const db = load()
+    const s = norm(code).length >= 10 ? db.students.find((x) => x.shareCode && norm(x.shareCode) === norm(code)) : undefined
+    if (!s) return null
+    return db.students.filter((x) => x.ownerId === s.ownerId && (x.showOnMap !== false || x.id === s.id)).map((x) => {
+      const c = db.classes.find((k) => k.id === x.classId)
+      const mine = db.awards.filter((a) => a.studentId === x.id)
+      const lastMove = db.classMoves.filter((m) => m.studentId === x.id).map((m) => m.at).sort().pop() ?? ''
+      return {
+        name: x.name, me: x.id === s.id, className: c?.name ?? '', classLevel: c?.level ?? '',
+        total: mine.reduce((t, a) => t + a.points, 0),
+        atMove: mine.filter((a) => a.createdAt < lastMove).reduce((t, a) => t + a.points, 0),
+      }
+    }).sort((a, b) => a.name.localeCompare(b.name))
   },
   async setStudentShowBehaviour(studentId, show) {
     own(load().students, studentId, 'student').showBehaviour = show

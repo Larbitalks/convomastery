@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Input, Notice, Spinner } from '../components/ui'
 import { api } from '../lib/api'
@@ -8,6 +8,7 @@ import { Seo } from '../lib/seo'
 import { DEFAULT_EXAM_TOTALS, textOn, type Exam, type HomeworkState } from '../lib/types'
 import { StudentExams } from '../components/StudentExams'
 import { MessageThread } from '../components/MessageThread'
+import { studentMapPeople } from '../lib/mapPeople'
 import { DiscoveryJournal, DiscoveryReveal } from '../components/Discoveries'
 import { campOfClass, journeyOf, staysOf, type Found } from '../lib/discoveries'
 import { PerformanceCard } from '../components/Performance'
@@ -50,6 +51,7 @@ export function ProgressEntry() {
 export function ProgressView() {
   const { code = '' } = useParams()
   const { data, loading, error, reload } = useLoad(() => api.getStudentProgress(code), [code])
+  const loadMap = useCallback(() => studentMapPeople(code), [code])
 
   if (loading && !data) return <Spinner label="Loading your progress" />
   if (error || !data) {
@@ -148,7 +150,7 @@ export function ProgressView() {
             </section>
           )}
 
-          <DiscoveryJournal own journey={journey} name={data.name} />
+          <DiscoveryJournal own journey={journey} name={data.name} loadMap={loadMap} />
 
           <StudentExams readOnly studentId="" name={data.name} exams={exams} totals={DEFAULT_EXAM_TOTALS} onChange={() => {}} />
 

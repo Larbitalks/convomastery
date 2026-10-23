@@ -14,6 +14,7 @@ import { StudentExams } from '../components/StudentExams'
 import { StudentMessages } from '../components/StudentMessages'
 import { DiscoveryJournal } from '../components/Discoveries'
 import { campOfClass, journeyOf, staysOf } from '../lib/discoveries'
+import { teacherMapPeople } from '../lib/mapPeople'
 import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { reviewLabel } from './ClassSession'
 
@@ -162,7 +163,7 @@ export default function StudentRecord() {
 
           <ClassHistory studentId={student.id} sessions={sessions} lessons={lessons} onChange={reload} />
 
-          <DiscoveryJournal journey={journey} name={student.name} />
+          <DiscoveryJournal journey={journey} name={student.name} loadMap={teacherMapPeople} />
 
           <StudentExams studentId={student.id} name={student.name} exams={exams} totals={examTotals} onChange={reload} />
 
@@ -177,7 +178,7 @@ export default function StudentRecord() {
 
         <div className="grid content-start gap-8">
           <StudentMessages studentId={student.id} name={student.name} hasCode={Boolean(student.shareCode)} />
-          <SharePanel studentId={student.id} name={student.name} code={student.shareCode} showBehaviour={student.showBehaviour} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
+          <SharePanel studentId={student.id} name={student.name} code={student.shareCode} showOnMap={student.showOnMap !== false} showBehaviour={student.showBehaviour} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
           <section className="panel p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-extrabold">Details</h2>
@@ -257,7 +258,7 @@ export default function StudentRecord() {
   )
 }
 
-function SharePanel({ studentId, name, code, showBehaviour, sharedNotes, onChange }: { studentId: string; name: string; code: string | null; showBehaviour: boolean; sharedNotes: number; onChange: () => void }) {
+function SharePanel({ studentId, name, code, showOnMap, showBehaviour, sharedNotes, onChange }: { studentId: string; name: string; code: string | null; showOnMap: boolean; showBehaviour: boolean; sharedNotes: number; onChange: () => void }) {
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<'new' | 'off' | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
@@ -301,7 +302,7 @@ function SharePanel({ studentId, name, code, showBehaviour, sharedNotes, onChang
               <span className="block font-bold">Show attendance and behaviour</span>
               <span className="block text-[13px] text-inksoft">{showBehaviour ? `${name} can see attendance and behaviour from recent classes.` : 'Hidden. Switch on to let them see it.'}</span>
             </span>
-            <input type="checkbox" role="switch" className="h-6 w-6 shrink-0 accent-sage-dark" checked={showBehaviour} disabled={busy}
+            <input type="checkbox" role="switch" aria-label="Show attendance and behaviour" className="h-6 w-6 shrink-0 accent-sage-dark" checked={showBehaviour} disabled={busy}
               onChange={async (e) => { setBusy(true); setErr(null); try { await api.setStudentShowBehaviour(studentId, e.target.checked); onChange() } catch (x) { setErr(errorMessage(x)) } finally { setBusy(false) } }} />
           </label>
           <div className="flex flex-wrap gap-3">
@@ -322,6 +323,14 @@ function SharePanel({ studentId, name, code, showBehaviour, sharedNotes, onChang
           )}
         </div>
       )}
+      <label className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+        <span>
+          <span className="block font-bold">Show on the mountain map</span>
+          <span className="block text-[13px] text-inksoft">{showOnMap ? `Other students can see ${name} on the map.` : `Hidden from other students. ${name} still sees themselves.`}</span>
+        </span>
+        <input type="checkbox" role="switch" aria-label="Show on the mountain map" className="h-6 w-6 shrink-0 accent-sage-dark" checked={showOnMap} disabled={busy}
+          onChange={async (e) => { setBusy(true); setErr(null); try { await api.setStudentShowOnMap(studentId, e.target.checked); onChange() } catch (x) { setErr(errorMessage(x)) } finally { setBusy(false) } }} />
+      </label>
     </section>
   )
 }

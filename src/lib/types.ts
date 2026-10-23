@@ -138,6 +138,8 @@ export interface Student {
   level: string; contact: string; goals: string
   /** Code that opens this student's read-only progress page; null when sharing is off */
   shareCode: string | null
+  /** Shown on the mountain map that students can see */
+  showOnMap?: boolean
   /** Whether the progress page shows attendance and behaviour */
   showBehaviour: boolean
 }
@@ -269,6 +271,9 @@ export interface TeachApi {
   setStudentShareCode(studentId: string, code: string | null): Promise<void>
   /** Public: read-only progress for a code, or null if the code is wrong or turned off */
   getStudentProgress(code: string): Promise<StudentProgress | null>
+  setStudentShowOnMap(studentId: string, show: boolean): Promise<void>
+  /** Everyone on the mountain map, seen with a student's progress code */
+  getStudentMap(code: string): Promise<{ name: string; className: string; classLevel: string; total: number; atMove: number; me: boolean }[] | null>
   setStudentShowBehaviour(studentId: string, show: boolean): Promise<void>
   // class sessions
   getBehaviourOptions(): Promise<BehaviourOption[]>
