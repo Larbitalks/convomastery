@@ -153,6 +153,17 @@ export const DEFAULT_BEHAVIOURS: BehaviourOption[] = [
   { label: 'Off-task / phone', color: '#8E1C20', type: 'negative' },
 ]
 export type Review = 'yes' | 'partly' | 'no'
+
+export type ExamType = 'unit' | 'midterm' | 'final'
+export const EXAM_TYPES: { value: ExamType; label: string; short: string; color: string; weight: number }[] = [
+  { value: 'unit', label: 'Unit exam (quiz)', short: 'Unit exam', color: '#5B6C8F', weight: 1 },
+  { value: 'midterm', label: 'Mid-term exam', short: 'Mid-term', color: '#7A5C8C', weight: 2 },
+  { value: 'final', label: 'Final exam', short: 'Final', color: '#3D405B', weight: 3 },
+]
+export type ExamTotals = Record<ExamType, number>
+export const DEFAULT_EXAM_TOTALS: ExamTotals = { unit: 20, midterm: 50, final: 100 }
+export interface Exam { id: string; studentId: string; type: ExamType; title: string; date: string; score: number; outOf: number; feedback: string; createdAt: string }
+export const examPercent = (e: { score: number; outOf: number }) => Math.round((e.score / e.outOf) * 100)
 /** Dark or white text, whichever reads better on the colour */
 export function textOn(hex: string) {
   const n = parseInt(hex.replace('#', ''), 16)
@@ -185,6 +196,7 @@ export interface StudentProgress {
   recentAwards: { date: string; category: string; color: string; points: number; lesson: string | null }[]
   homework: { title: string; instructions: string; dueDate: string; status: HomeworkState; feedback: string }[]
   notes: { date: string; body: string }[]
+  exams?: { type: ExamType; title: string; date: string; score: number; outOf: number; feedback: string }[]
   /** Only when the teacher has switched behaviour sharing on */
   classes?: {
     date: string; attendance: Attendance; behaviour: { label: string; color: string; count: number }[]
@@ -253,6 +265,12 @@ export interface TeachApi {
   getClassSession(id: string): Promise<ClassSession | null>
   listClassSessions(studentId: string): Promise<ClassSession[]>
   listAllClassSessions(): Promise<ClassSession[]>
+  /** All exams of one student, or every exam of this teacher */
+  listExams(studentId?: string): Promise<Exam[]>
+  saveExam(input: Omit<Exam, 'id' | 'createdAt'> & { id?: string }): Promise<Exam>
+  deleteExam(id: string): Promise<void>
+  getExamTotals(): Promise<ExamTotals>
+  saveExamTotals(totals: ExamTotals): Promise<void>
   updateClassSession(id: string, patch: SessionPatch): Promise<void>
   deleteClassSession(id: string): Promise<void>
   // awards

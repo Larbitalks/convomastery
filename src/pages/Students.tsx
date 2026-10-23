@@ -6,18 +6,18 @@ import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { PerformanceMini } from '../components/Performance'
-import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
+import { computePerformance, toScoreClasses, toScoreExams, toScoreHomework } from '../lib/performance'
 
 export default function Students() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
   const classFilter = params.get('class') ?? ''
   const { data, loading, error, reload } = useLoad(async () => {
-    const [classes, students, awards, homework, statuses, notes, sessions, options] = await Promise.all([
+    const [classes, students, awards, homework, statuses, notes, sessions, options, exams] = await Promise.all([
       api.listClasses(), api.listStudents(), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listStudentNotes(),
-      api.listAllClassSessions(), api.getBehaviourOptions(),
+      api.listAllClassSessions(), api.getBehaviourOptions(), api.listExams(),
     ])
-    return { classes, students, awards, homework, statuses, notes, sessions, options }
+    return { classes, students, awards, homework, statuses, notes, sessions, options, exams }
   })
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ name: '', classId: '' })
@@ -43,7 +43,7 @@ export default function Students() {
           points: data.awards.filter((a) => a.studentId === s.id).reduce((t, a) => t + a.points, 0),
           homework: due.length ? `${handed} of ${due.length}` : 'None due',
           lastNote: lastNote?.date,
-          perf: computePerformance(toScoreClasses(data.sessions.filter((x) => x.studentId === s.id), data.awards, data.options), toScoreHomework(s.id, data.homework, data.statuses)),
+          perf: computePerformance(toScoreClasses(data.sessions.filter((x) => x.studentId === s.id), data.awards, data.options), toScoreHomework(s.id, data.homework, data.statuses), toScoreExams(s.id, data.exams)),
         }
       })
       .sort((a, b) => a.s.name.localeCompare(b.s.name))

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
+import { computePerformance, toScoreClasses, toScoreExams, toScoreHomework } from '../lib/performance'
 import { HOMEWORK_STATES } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
@@ -87,10 +87,10 @@ export default function ClassDetail() {
 /** One row per student: performance bar and key numbers. Awards are given during a class, not here. */
 function Overview({ classId }: { classId: string }) {
   const { data, loading } = useLoad(async () => {
-    const [students, awards, homework, statuses, sessions, options] = await Promise.all([
-      api.listStudents(classId), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listAllClassSessions(), api.getBehaviourOptions(),
+    const [students, awards, homework, statuses, sessions, options, exams] = await Promise.all([
+      api.listStudents(classId), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listAllClassSessions(), api.getBehaviourOptions(), api.listExams(),
     ])
-    return { students, awards, homework, statuses, sessions, options }
+    return { students, awards, homework, statuses, sessions, options, exams }
   }, [classId])
   if (loading || !data) return <Spinner />
   if (!data.students.length) return <p className="text-inksoft">No students in this class yet. Add them in the Students tab.</p>
@@ -104,7 +104,7 @@ function Overview({ classId }: { classId: string }) {
       s, classes: mine.length, last: mine[0]?.date,
       awards: awards.length, points: awards.reduce((t, a) => t + a.points, 0),
       homework: due.length ? `${handed} of ${due.length}` : 'None due',
-      perf: computePerformance(toScoreClasses(mine, data.awards, data.options), toScoreHomework(s.id, data.homework, data.statuses)),
+      perf: computePerformance(toScoreClasses(mine, data.awards, data.options), toScoreHomework(s.id, data.homework, data.statuses), toScoreExams(s.id, data.exams)),
     }
   }).sort((a, b) => (b.perf.score ?? -1) - (a.perf.score ?? -1) || a.s.name.localeCompare(b.s.name))
 

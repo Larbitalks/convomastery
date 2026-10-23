@@ -1,5 +1,5 @@
 // Demo versions of the teaching, booking and messaging functions.
-import { DEFAULT_AWARD_CATEGORIES, DEFAULT_BEHAVIOURS, type Api, type ClassSession, type TeachApi } from '../types'
+import { DEFAULT_AWARD_CATEGORIES, DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS, type Api, type ClassSession, type TeachApi } from '../types'
 import { getBlob, putBlob } from '../idb'
 import { toScoreClasses } from '../performance'
 import { currentUser, demoCore, load, requireAdmin, requireUser, save, uid, wait } from './demo'
@@ -80,6 +80,7 @@ const demoTeach: TeachApi = {
     db.homeworkStatus = db.homeworkStatus.filter((s) => s.studentId !== id)
     db.studentNotes = db.studentNotes.filter((n) => n.studentId !== id)
     db.sessions = db.sessions.filter((x) => x.studentId !== id)
+    db.exams = db.exams.filter((x) => x.studentId !== id)
     save()
   },
   async listAllAwards() { return mine(load().awards).map(strip) },
@@ -128,6 +129,8 @@ const demoTeach: TeachApi = {
       }),
       homework: db.homework.filter((h) => h.studentId === s.id).sort((a, b) => b.dueDate.localeCompare(a.dueDate))
         .map((h) => ({ title: h.title, instructions: h.instructions, dueDate: h.dueDate, status: st(h.id)?.status ?? 'assigned', feedback: st(h.id)?.feedback ?? '' })),
+      exams: db.exams.filter((e) => e.studentId === s.id).sort((a, b) => b.date.localeCompare(a.date))
+        .map((e) => ({ type: e.type, title: e.title, date: e.date, score: e.score, outOf: e.outOf, feedback: e.feedback })),
       notes: db.studentNotes.filter((n) => n.studentId === s.id && n.shared).sort((a, b) => b.date.localeCompare(a.date)).map((n) => ({ date: n.date, body: n.body })),
       classes: s.showBehaviour ? (() => {
         const sessions = db.sessions.filter((x) => x.studentId === s.id && x.endedAt).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 16)
@@ -173,6 +176,39 @@ const demoTeach: TeachApi = {
   async listClassSessions(studentId) {
     return mine(load().sessions).filter((x) => x.studentId === studentId).map(strip)
       .sort((a, b) => b.date.localeCompare(a.date) || b.startedAt.localeCompare(a.startedAt))
+  },
+  async listExams(studentId) {
+    return mine(load().exams).filter((e) => !studentId || e.studentId === studentId)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).map(strip)
+  },
+  async saveExam(input) {
+    const u = requireUser()
+    if (!(input.outOf > 0)) throw new Error('"Out of" must be more than 0.')
+    if (input.score < 0 || input.score > input.outOf) throw new Error(`The score must be between 0 and ${input.outOf}.`)
+    own(load().students, input.studentId, 'student')
+    if (input.id) {
+      const e = own(load().exams, input.id, 'exam')
+      Object.assign(e, input)
+      save()
+      return strip(e)
+    }
+    const e = { ...input, id: 'ex-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
+    load().exams.push(e)
+    save()
+    return strip(e)
+  },
+  async deleteExam(id) {
+    own(load().exams, id, 'exam')
+    const db = load()
+    db.exams = db.exams.filter((e) => e.id !== id)
+    save()
+  },
+  async getExamTotals() {
+    return { ...DEFAULT_EXAM_TOTALS, ...(currentUser()?.examTotals ?? {}) }
+  },
+  async saveExamTotals(totals) {
+    requireUser().examTotals = totals
+    save()
   },
   async listAllClassSessions() {
     return mine(load().sessions).map(strip)

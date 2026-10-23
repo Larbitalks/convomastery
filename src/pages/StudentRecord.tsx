@@ -10,6 +10,7 @@ import { LEVELS, newShareCode, textOn, type ClassSession, type Lesson } from '..
 import { BehaviourBar, tallyOf } from './ClassSession'
 import { config } from '../lib/config'
 import { PerformanceCard } from '../components/Performance'
+import { StudentExams } from '../components/StudentExams'
 import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { reviewLabel } from './ClassSession'
 
@@ -24,15 +25,15 @@ export default function StudentRecord() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data, loading, reload } = useLoad(async () => {
-    const [students, classes, awards, homework, statuses, notes, lessons, sessions, options] = await Promise.all([
+    const [students, classes, awards, homework, statuses, notes, lessons, sessions, options, exams, examTotals] = await Promise.all([
       api.listStudents(), api.listClasses(), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listStudentNotes(id), api.listLessons({ includeUnpublished: true }),
-      api.listClassSessions(id), api.getBehaviourOptions(),
+      api.listClassSessions(id), api.getBehaviourOptions(), api.listExams(id), api.getExamTotals(),
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!student) return null
     const myAwards = awards.filter((a) => a.studentId === id)
     const categories = (await Promise.all([...new Set(myAwards.map((a) => a.classId).concat(student.classId))].map((c) => api.listAwardCategories(c)))).flat()
-    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions, options }
+    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions, options, exams, examTotals }
   }, [id])
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
@@ -51,8 +52,8 @@ export default function StudentRecord() {
 
   if (loading && !data) return <Spinner />
   if (!data) return <Notice tone="error">This student no longer exists. <Link to="/students" className="underline">Back to students</Link></Notice>
-  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options } = data
-  const perf = computePerformance(toScoreClasses(sessions, awards, options), toScoreHomework(student.id, homework, statuses))
+  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options, exams, examTotals } = data
+  const perf = computePerformance(toScoreClasses(sessions, awards, options), toScoreHomework(student.id, homework, statuses), exams)
   const running = sessions.find((x) => !x.endedAt)
   const cls = classes.find((c) => c.id === student.classId)
 
@@ -155,6 +156,8 @@ export default function StudentRecord() {
           </section>
 
           <ClassHistory studentId={student.id} sessions={sessions} lessons={lessons} onChange={reload} />
+
+          <StudentExams studentId={student.id} name={student.name} exams={exams} totals={examTotals} onChange={reload} />
 
           <section>
             <h2 className="text-2xl font-extrabold">Homework</h2>
@@ -284,7 +287,7 @@ function SharePanel({ studentId, name, code, showBehaviour, sharedNotes, onChang
               <button className="btn-ghost !py-1.5" onClick={() => copy(link, 'link')}>{copied === 'link' ? 'Copied' : 'Copy link'}</button>
             </div>
           </div>
-          <p className="text-[14px] text-inksoft">They see their points, homework and feedback, and {sharedNotes === 1 ? '1 shared note' : `${sharedNotes} shared notes`}. Private notes and contact details stay hidden.</p>
+          <p className="text-[14px] text-inksoft">They see their points, homework, exam results and feedback, and {sharedNotes === 1 ? '1 shared note' : `${sharedNotes} shared notes`}. Private notes and contact details stay hidden.</p>
           <label className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
             <span>
               <span className="block font-bold">Show attendance and behaviour</span>

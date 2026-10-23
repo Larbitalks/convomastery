@@ -5,7 +5,8 @@ import { api } from '../lib/api'
 import { formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { textOn, type HomeworkState } from '../lib/types'
+import { EXAM_TYPES, examPercent, textOn, type HomeworkState } from '../lib/types'
+import { bandOf } from '../lib/performance'
 import { PerformanceCard } from '../components/Performance'
 import { computePerformance } from '../lib/performance'
 
@@ -65,7 +66,7 @@ export function ProgressView() {
   const today = new Date().toISOString().slice(0, 10)
   const toDo = data.homework.filter((h) => h.status === 'assigned' && h.dueDate >= today)
   const perf = data.classes
-    ? computePerformance(data.classes.map((c) => ({ date: c.date, attendance: c.attendance, review: c.review ?? null, points: c.points ?? 0, positive: c.positive ?? 0, negative: c.negative ?? 0 })), data.homework)
+    ? computePerformance(data.classes.map((c) => ({ date: c.date, attendance: c.attendance, review: c.review ?? null, points: c.points ?? 0, positive: c.positive ?? 0, negative: c.negative ?? 0 })), data.homework, data.exams ?? [])
     : null
 
   return (
@@ -144,6 +145,37 @@ export function ProgressView() {
           )}
         </section>
       </div>
+
+      {data.exams && data.exams.length > 0 && (
+        <section className="mt-12 max-w-3xl">
+          <h2 className="text-2xl font-extrabold">Your exam results</h2>
+          <ul className="mt-4 grid gap-3">
+            {data.exams.map((e, i) => {
+              const t = EXAM_TYPES.find((x) => x.value === e.type) ?? EXAM_TYPES[0]
+              const p = examPercent(e)
+              return (
+                <li key={i} className="panel p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <span className="rounded-full px-2.5 py-0.5 text-[13px] font-bold text-white" style={{ backgroundColor: t.color }}>{t.short}</span>
+                      <p className="mt-1.5 font-bold">{e.title || t.label}</p>
+                      <p className="text-[14px] text-inksoft">{formatDate(e.date)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-display text-2xl font-extrabold tabular-nums">{p}%</p>
+                      <p className="text-[14px] tabular-nums text-inksoft">{e.score} / {e.outOf}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-board" aria-hidden="true">
+                    <div className="h-full rounded-full" style={{ width: `${Math.max(p, 2)}%`, backgroundColor: bandOf(p).color }} />
+                  </div>
+                  {e.feedback && <p className="mt-2 rounded-lg bg-board px-3 py-2 text-[15px]"><strong>Teacher:</strong> {e.feedback}</p>}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       {data.classes && data.classes.length > 0 && (
         <section className="mt-12 max-w-3xl">

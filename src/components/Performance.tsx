@@ -64,12 +64,13 @@ export function PerformanceCard({ perf, name, title = 'Overall performance' }: {
       <button className="mt-4 text-sm font-bold underline" onClick={() => setHow(!how)} aria-expanded={how}>How is this worked out?</button>
       {how && (
         <div className="mt-2 grid gap-1.5 text-[14px] text-inksoft">
-          <p>The score uses the last {WINDOW} classes and the homework due in that time.</p>
+          <p>The score uses the last {WINDOW} classes and the homework and exams in that time.</p>
           <p><strong className="text-ink">Behaviour:</strong> positive clicks out of all positive and negative clicks. Neutral clicks don't count. Set each button's type under Edit buttons in a class.</p>
           <p><strong className="text-ink">Homework:</strong> done 100, late 50, missing 0. Homework not marked yet isn't counted.</p>
           <p><strong className="text-ink">Attendance:</strong> present 100, late 50, absent 0.</p>
           <p><strong className="text-ink">Awards:</strong> points given during classes. {POINTS_FOR_FULL} points a class is full marks.</p>
           <p><strong className="text-ink">Review:</strong> reviewed last lesson 100, partly 50, no 0.</p>
+          <p><strong className="text-ink">Exams:</strong> the percentage of each exam. A mid-term counts twice as much as a unit exam, and a final three times as much.</p>
           <p>Parts with nothing recorded yet are left out, and the others count for more. The arrow compares with the {WINDOW} classes before.</p>
         </div>
       )}

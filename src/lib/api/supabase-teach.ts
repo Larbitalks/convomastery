@@ -1,6 +1,6 @@
 // Live versions of the teaching, booking and messaging functions (Supabase).
-import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch } from '../types'
-import { DEFAULT_BEHAVIOURS } from '../types'
+import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam } from '../types'
+import { DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS } from '../types'
 import { supabase } from './supabase'
 
 type Row = Record<string, any>
@@ -29,6 +29,7 @@ const toSession = (r: Row): ClassSession => ({
   attendance: r.attendance, review: r.review ?? null, lessonId: r.lesson_id, behaviour: r.behaviour ?? [], covered: r.covered ?? '', newWords: r.new_words ?? '',
   corrections: r.corrections ?? '', notes: r.notes ?? '', noteId: r.note_id, createdAt: r.created_at,
 })
+const toExam = (r: Row): Exam => ({ id: r.id, studentId: r.student_id, type: r.type, title: r.title ?? '', date: r.date, score: Number(r.score), outOf: Number(r.out_of), feedback: r.feedback ?? '', createdAt: r.created_at })
 function fromSessionPatch(p: SessionPatch): Row {
   const map: Record<string, string> = { date: 'date', endedAt: 'ended_at', attendance: 'attendance', review: 'review', lessonId: 'lesson_id', behaviour: 'behaviour', covered: 'covered', newWords: 'new_words', corrections: 'corrections', notes: 'notes', noteId: 'note_id' }
   const row: Row = {}
@@ -110,6 +111,22 @@ export const supabaseTeach: TeachApi = {
   },
   async listClassSessions(studentId) {
     return check(await supabase.from('class_sessions').select('*').eq('student_id', studentId).order('date', { ascending: false }).order('started_at', { ascending: false })).map(toSession)
+  },
+  async listExams(studentId) {
+    let q = supabase.from('exams').select('*').eq('owner_id', await uid()).order('date', { ascending: false }).order('created_at', { ascending: false })
+    if (studentId) q = q.eq('student_id', studentId)
+    return check(await q).map(toExam)
+  },
+  async saveExam({ id, studentId, type, title, date, score, outOf, feedback }) {
+    return toExam(await upsert('exams', { student_id: studentId, type, title, date, score, out_of: outOf, feedback }, id))
+  },
+  async deleteExam(id) { check(await supabase.from('exams').delete().eq('id', id)) },
+  async getExamTotals() {
+    const r = check(await supabase.from('profiles').select('exam_totals').eq('id', await uid()).maybeSingle()) as Row | null
+    return { ...DEFAULT_EXAM_TOTALS, ...(r?.exam_totals ?? {}) }
+  },
+  async saveExamTotals(totals) {
+    check(await supabase.from('profiles').update({ exam_totals: totals }).eq('id', await uid()))
   },
   async listAllClassSessions() {
     return check(await supabase.from('class_sessions').select('*').eq('owner_id', await uid())).map(toSession)

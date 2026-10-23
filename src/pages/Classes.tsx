@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { bandOf, computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
+import { bandOf, computePerformance, toScoreClasses, toScoreExams, toScoreHomework } from '../lib/performance'
 import { LEVELS, textOn } from '../lib/types'
 
 export const CLASS_COLORS = ['#3D405B', '#46725D', '#7A5C8C', '#9A6A1F', '#2F5D62', '#5B6C8F', '#6B7F3A']
@@ -13,12 +13,12 @@ const today = () => new Date().toISOString().slice(0, 10)
 
 export default function Classes() {
   const { data, loading, error, reload } = useLoad(async () => {
-    const [classes, students, homework, statuses, awards, sessions, options] = await Promise.all([
-      api.listClasses(), api.listStudents(), api.listHomework(), api.listAllHomeworkStatus(), api.listAllAwards(), api.listAllClassSessions(), api.getBehaviourOptions(),
+    const [classes, students, homework, statuses, awards, sessions, options, exams] = await Promise.all([
+      api.listClasses(), api.listStudents(), api.listHomework(), api.listAllHomeworkStatus(), api.listAllAwards(), api.listAllClassSessions(), api.getBehaviourOptions(), api.listExams(),
     ])
     // Each student's overall score, for the class averages
     const scores = new Map(students.map((s) => [s.id, computePerformance(
-      toScoreClasses(sessions.filter((x) => x.studentId === s.id), awards, options), toScoreHomework(s.id, homework, statuses)).score]))
+      toScoreClasses(sessions.filter((x) => x.studentId === s.id), awards, options), toScoreHomework(s.id, homework, statuses), toScoreExams(s.id, exams)).score]))
     return { classes, students, homework, statuses, scores }
   })
   const [form, setForm] = useState({ name: '', level: 'B1', color: CLASS_COLORS[0] })
