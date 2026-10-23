@@ -234,7 +234,7 @@ export default function ClassSessionPage() {
                 ))}
               </div>
               {(() => { const j = journeyOf(life, camps.current.stays, camps.current.camp); return (
-                <p className="mt-2 text-[15px] text-inksoft">Next discovery for {student.name}: <strong className="text-ink">{j.next.discovery.name}{j.next.edition ? ` (${j.next.edition})` : ''}</strong>, {j.current} / {j.needed} points</p>
+                <p className="mt-2 text-[15px] text-inksoft">Next discovery for {student.name}: <strong className="text-ink">{j.current} / {j.needed} points</strong></p>
               ) })()}
               {awardsGiven.length > 0 && <p className="mt-2 text-[15px]">This class: {awardsGiven.reduce((t, a) => t + a.points, 0)} points ({awardsGiven.map((a) => a.name).join(', ')})</p>}
             </section>

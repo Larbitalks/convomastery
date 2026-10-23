@@ -16,7 +16,6 @@ export function DiscoveryJournal({ journey, name, own = false, loadMap }: { jour
   const set = CAMP_ITEMS[camp]
   const inCamp = unlocked.filter((u) => u.discovery.tier === camp)
   const earlier = TIERS.filter((t) => t.tier !== camp).map((t) => ({ t, finds: unlocked.filter((u) => u.discovery.tier === t.tier) })).filter((x) => x.finds.length)
-  const nextLabel = `${next.discovery.name}${next.edition ? ` (${next.edition})` : ''}`
 
   return (
     <section aria-labelledby="disc-h">
@@ -36,11 +35,11 @@ export function DiscoveryJournal({ journey, name, own = false, loadMap }: { jour
       <div className="mt-4 overflow-hidden rounded-2xl border-2 border-line bg-white">
         <div className="flex flex-wrap items-center gap-5 p-5" style={{ background: `linear-gradient(135deg, ${tint(tier.color)}, #FFFFFF 60%)` }}>
           <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full bg-white ring-2 ring-line">
-            <DiscoveryArt id={next.discovery.id} locked className="h-14 w-14" />
+            <MysteryChest className="h-14 w-14" />
           </div>
           <div className="min-w-[12rem] flex-1">
             <p className="text-sm font-bold text-inksoft">Next discovery at {tier.camp}</p>
-            <p className="text-lg font-extrabold">{nextLabel}</p>
+            <p className="text-lg font-extrabold">A mystery discovery</p>
             <div className="mt-2 h-4 overflow-hidden rounded-full bg-board" role="progressbar" aria-valuemin={0} aria-valuemax={needed} aria-valuenow={current}
               aria-label={`${current} of ${needed} points to the next discovery`}>
               <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(pct, 3)}%`, background: `linear-gradient(90deg, #F2CC8F, #E9B949)` }} />
@@ -119,9 +118,9 @@ function Card({ d, finds, isNext, nextEdition, toGo }: { d: Discovery; finds: Fo
   if (!finds.length) {
     return (
       <li className={`flex flex-col items-center rounded-2xl border-2 border-dashed p-3 text-center ${isNext ? 'border-[#E9B949] bg-[#FFF8E6]' : 'border-line bg-board/40'}`}>
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-white/70"><DiscoveryArt id={d.id} locked className="h-14 w-14" /></div>
-        <p className="mt-2 font-bold text-inksoft">{isNext ? d.name : '???'}</p>
-        <p className="text-[12px] text-inksoft">{isNext ? `${toGo} ${toGo === 1 ? 'point' : 'points'} to go` : 'Keep climbing'}</p>
+        <div className="grid h-20 w-20 place-items-center rounded-full bg-white/70"><MysteryChest className="h-14 w-14" faded={!isNext} /></div>
+        <p className="mt-2 font-bold text-inksoft">???</p>
+        <p className="text-[12px] text-inksoft">{isNext ? `Next find: ${toGo} ${toGo === 1 ? 'point' : 'points'} to go` : 'Keep climbing'}</p>
       </li>
     )
   }
@@ -129,7 +128,7 @@ function Card({ d, finds, isNext, nextEdition, toGo }: { d: Discovery; finds: Fo
   const ed = editionOf(best.round)
   const last = finds[finds.length - 1]
   return (
-    <li className={`relative flex flex-col items-center rounded-2xl border-2 bg-white p-3 text-center shadow-sm ${isNext ? 'ring-2 ring-[#E9B949] ring-offset-2' : ''}`} style={{ borderColor: ed.ring || t.color }}>
+    <li className="relative flex flex-col items-center rounded-2xl border-2 bg-white p-3 text-center shadow-sm" style={{ borderColor: ed.ring || t.color }}>
       {finds.length > 1 && <span className="absolute right-2 top-2 rounded-full bg-ink px-2 text-[12px] font-bold text-white">x{finds.length}</span>}
       <div className="grid h-20 w-20 place-items-center rounded-full" style={{ backgroundColor: tint(t.color), boxShadow: ed.ring ? `0 0 0 4px ${ed.ring}` : undefined }}><DiscoveryArt id={d.id} className="h-16 w-16" /></div>
       <p className="mt-2 font-extrabold leading-tight">{d.name}</p>
@@ -138,8 +137,21 @@ function Card({ d, finds, isNext, nextEdition, toGo }: { d: Discovery; finds: Fo
         {ed.label && <span className="rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: ed.ring, color: '#3D405B' }}>{ed.label}</span>}
       </span>
       <p className="mt-1.5 text-[13px] leading-snug text-inksoft">{d.story}</p>
-      <p className="mt-auto pt-1.5 text-[12px] font-bold text-inksoft">{isNext ? `Next: ${nextEdition} edition, ${toGo} to go` : `Found ${formatDate(last.date)}`}</p>
+      <p className="mt-auto pt-1.5 text-[12px] font-bold text-inksoft">Found {formatDate(last.date)}</p>
     </li>
+  )
+}
+
+/** A closed treasure chest with a question mark: every locked discovery looks the same, so nothing is given away */
+function MysteryChest({ className = '', faded = false }: { className?: string; faded?: boolean }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true" style={faded ? { opacity: 0.35, filter: 'grayscale(1)' } : undefined}>
+      <rect x="16" y="46" width="68" height="36" rx="4" fill="#9A6A3F" stroke="#3D405B" strokeWidth="3" />
+      <path d="M16 50 L16 38 Q16 24 50 24 Q84 24 84 38 L84 50 Z" fill="#B47A48" stroke="#3D405B" strokeWidth="3" strokeLinejoin="round" />
+      <rect x="16" y="48" width="68" height="6" fill="#E9B949" stroke="#3D405B" strokeWidth="2" />
+      <rect x="42" y="46" width="16" height="20" rx="3" fill="#E9B949" stroke="#3D405B" strokeWidth="2" />
+      <text x="50" y="62" textAnchor="middle" fontSize="14" fontWeight="800" fill="#3D405B" fontFamily="system-ui, sans-serif">?</text>
+    </svg>
   )
 }
 
