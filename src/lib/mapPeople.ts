@@ -9,7 +9,7 @@ export async function teacherMapPeople(): Promise<(MapPerson & { hidden?: boolea
     const c = classes.find((x) => x.id === s.classId)
     const camp = campOfClass(c?.name, c?.level)
     const j = journeyOf(awards.filter((a) => a.studentId === s.id).map((a) => ({ points: a.points, at: a.createdAt })), staysOf(moves.filter((m) => m.studentId === s.id)), camp)
-    return { key: s.id, name: s.name, avatar: s.avatar ?? null, camp, findsInCamp: j.unlocked.filter((u) => u.discovery.tier === camp).length, discoveries: j.unlocked.length, hidden: s.showOnMap === false }
+    return { key: s.id, name: s.name, avatar: s.avatar ?? null, camp, findsInCamp: j.unlocked.filter((u) => u.discovery.tier === camp).length, discoveries: j.unlocked.length, finds: j.unlocked, hidden: s.showOnMap === false }
   })
 }
 
@@ -17,8 +17,13 @@ export async function teacherMapPeople(): Promise<(MapPerson & { hidden?: boolea
 export async function studentMapPeople(code: string): Promise<MapPerson[]> {
   const list = await api.getStudentMap(code)
   if (!list) throw new Error('This code does not work.')
-  return list.map((p, i) => ({
-    key: `p${i}`, name: p.name, avatar: cleanAvatar(p.avatar), me: p.me, camp: campOfClass(p.className, p.classLevel),
-    findsInCamp: Math.max(0, unlockedCount(p.total) - unlockedCount(p.atMove)), discoveries: unlockedCount(p.total),
-  }))
+  return list.map((p, i) => {
+    const camp = campOfClass(p.className, p.classLevel)
+    // Newer servers send the award history, so the exact collection can be shown
+    if (p.log) {
+      const j = journeyOf(p.log, staysOf(p.moves ?? []), camp)
+      return { key: `p${i}`, name: p.name, avatar: cleanAvatar(p.avatar), me: p.me, camp, findsInCamp: j.unlocked.filter((u) => u.discovery.tier === camp).length, discoveries: j.unlocked.length, finds: j.unlocked }
+    }
+    return { key: `p${i}`, name: p.name, avatar: cleanAvatar(p.avatar), me: p.me, camp, findsInCamp: Math.max(0, unlockedCount(p.total) - unlockedCount(p.atMove)), discoveries: unlockedCount(p.total) }
+  })
 }

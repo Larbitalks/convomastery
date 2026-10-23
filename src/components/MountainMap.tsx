@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Spinner } from './ui'
 import { Avatar } from './Avatar'
+import { DiscoveryArt } from './DiscoveryArt'
+import { editionOf, RARITY_COLOR, type Found } from '../lib/discoveries'
 import { errorMessage } from '../lib/format'
 import { CAMP_MAPS, OVERVIEW, OVERVIEW_STOP, TIERS, campProgress, tierOf, trailPoint, type MapPerson, type Tier } from '../lib/discoveries'
 
@@ -241,9 +243,16 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
           </div>
 
           {sel && camp && (
-            <div className="absolute bottom-4 left-4 max-w-[calc(100%-6rem)] rounded-2xl bg-white p-4 text-ink shadow-xl">
-              <p className="text-lg font-extrabold">{sel.me ? `${sel.name} (you)` : sel.name}</p>
-              <p className="text-[15px]"><span className="font-bold" style={{ color: camp.color }}>{camp.camp}</span>, {sel.discoveries} {sel.discoveries === 1 ? 'discovery' : 'discoveries'}</p>
+            <div className="absolute bottom-4 left-4 flex max-h-[calc(100%-2rem)] w-[26rem] max-w-[calc(100%-5rem)] flex-col rounded-2xl bg-white p-4 text-ink shadow-xl" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3">
+                <Avatar avatar={sel.avatar} name={sel.name} size={48} color={camp.color} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-lg font-extrabold">{sel.me ? `${sel.name} (you)` : sel.name}</p>
+                  <p className="text-[14px]"><span className="font-bold" style={{ color: camp.color }}>{camp.camp}</span>, {sel.discoveries} {sel.discoveries === 1 ? 'discovery' : 'discoveries'}</p>
+                </div>
+                <button className="shrink-0 text-sm font-bold underline" onClick={() => setSelected(null)}>Close</button>
+              </div>
+              {sel.finds && <Collection finds={sel.finds} name={sel.me ? 'You' : sel.name} />}
               {sel.hidden && <p className="mt-1 text-[13px] text-inksoft">Hidden from students. Only you can see this marker.</p>}
             </div>
           )}
@@ -281,5 +290,28 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
         )}
       </div>
     </div>
+  )
+}
+
+/** Someone's collection: each item once, with how many times it was found and the best edition */
+function Collection({ finds, name }: { finds: Found[]; name: string }) {
+  if (!finds.length) return <p className="mt-3 text-[14px] text-inksoft">{name === 'You' ? 'You have' : `${name} has`} not found anything yet. The first discovery comes after 5 points!</p>
+  const items = [...new Map(finds.map((f) => [f.discovery.id, f])).values()].reverse()
+  return (
+    <ul className="mt-3 grid min-h-0 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4" aria-label={`${name}'s discoveries`}>
+      {items.map((f) => {
+        const all = finds.filter((x) => x.discovery.id === f.discovery.id)
+        const best = all.reduce((a, b) => (b.round > a.round ? b : a))
+        const ed = editionOf(best.round)
+        return (
+          <li key={f.discovery.id} className="relative flex flex-col items-center rounded-xl border-2 p-1.5 text-center" style={{ borderColor: ed.ring || '#E6E1CB' }} title={f.discovery.story}>
+            {all.length > 1 && <span className="absolute right-1 top-1 rounded-full bg-ink px-1.5 text-[10px] font-bold text-white">x{all.length}</span>}
+            <DiscoveryArt id={f.discovery.id} className="h-14 w-14" />
+            <span className="mt-0.5 text-[11px] font-bold leading-tight">{f.discovery.name.replace(/^The /, '')}</span>
+            <span className="mt-0.5 rounded-full px-1.5 text-[9px] font-bold text-white" style={{ backgroundColor: RARITY_COLOR[f.discovery.rarity] }}>{ed.label || f.discovery.rarity}</span>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

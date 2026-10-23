@@ -181,6 +181,8 @@ const demoTeach: TeachApi = {
         name: x.name, avatar: x.avatar ?? null, me: x.id === s.id, className: c?.name ?? '', classLevel: c?.level ?? '',
         total: mine.reduce((t, a) => t + a.points, 0),
         atMove: mine.filter((a) => a.createdAt < lastMove).reduce((t, a) => t + a.points, 0),
+        log: mine.map((a) => ({ points: a.points, at: a.createdAt })),
+        moves: db.classMoves.filter((m) => m.studentId === x.id).map((m) => ({ at: m.at, className: m.className, classLevel: m.classLevel })),
       }
     }).sort((a, b) => a.name.localeCompare(b.name))
   },
