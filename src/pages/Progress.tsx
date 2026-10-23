@@ -9,7 +9,7 @@ import { DEFAULT_EXAM_TOTALS, textOn, type Exam, type HomeworkState } from '../l
 import { StudentExams } from '../components/StudentExams'
 import { MessageThread } from '../components/MessageThread'
 import { DiscoveryJournal, DiscoveryReveal } from '../components/Discoveries'
-import { journeyOf } from '../lib/discoveries'
+import { campOfClass, journeyOf, staysOf, type Found } from '../lib/discoveries'
 import { PerformanceCard } from '../components/Performance'
 import { computePerformance } from '../lib/performance'
 
@@ -65,7 +65,7 @@ export function ProgressView() {
     )
   }
 
-  const journey = journeyOf(data.awardLog ?? [])
+  const journey = journeyOf(data.awardLog ?? [], staysOf(data.moves ?? []), campOfClass(data.className, data.classLevel ?? data.level))
   const teacher = data.teacherName || 'your teacher'
   const first = teacher.split(/[\s(]/)[0] || 'your teacher'
   const perf = data.classes
@@ -230,13 +230,14 @@ export function ProgressView() {
       </div>
 
       <p className="mt-16 text-sm text-inksoft">This page is just for you. Keep your code private.</p>
-      <Celebrate code={code} name={data.name} count={journey.unlocked.length} />
+      <Celebrate code={code} name={data.name} found={journey.unlocked} />
     </div>
   )
 }
 
 /** Shows each discovery unlocked since this browser last opened the page, one after another */
-function Celebrate({ code, name, count }: { code: string; name: string; count: number }) {
+function Celebrate({ code, name, found }: { code: string; name: string; found: Found[] }) {
+  const count = found.length
   const key = `cm-discoveries-seen-${code.toUpperCase().replace(/[^A-Z0-9]/g, '')}`
   const [queue, setQueue] = useState<number[]>([])
   useEffect(() => {
@@ -247,7 +248,7 @@ function Celebrate({ code, name, count }: { code: string; name: string; count: n
     if (count > from) setQueue(Array.from({ length: count - from }, (_, i) => from + i + 1))
   }, [key, count])
   if (!queue.length) return null
-  return <DiscoveryReveal number={queue[0]} name={name} more={queue.length - 1} onClose={() => {
+  return <DiscoveryReveal found={found[queue[0] - 1]} name={name} more={queue.length - 1} onClose={() => {
     try { localStorage.setItem(key, String(queue[0])) } catch { /* private window: show again next time */ }
     setQueue(queue.slice(1))
   }} />

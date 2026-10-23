@@ -1,5 +1,5 @@
 // Live versions of the teaching, booking and messaging functions (Supabase).
-import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam, StudentMessage } from '../types'
+import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam, StudentMessage, ClassMove } from '../types'
 import { DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS } from '../types'
 import { supabase } from './supabase'
 
@@ -122,6 +122,14 @@ export const supabaseTeach: TeachApi = {
     return toExam(await upsert('exams', { student_id: studentId, type, title, date, score, out_of: outOf, feedback }, id))
   },
   async deleteExam(id) { check(await supabase.from('exams').delete().eq('id', id)) },
+  async listClassMoves(studentId) {
+    let q = supabase.from('student_class_moves').select('*').eq('owner_id', await uid()).order('moved_at')
+    if (studentId) q = q.eq('student_id', studentId)
+    // Before the database update is run, there is no history yet: the current class is used
+    const res = await q
+    if (res.error) return []
+    return (res.data as Row[]).map((r): ClassMove => ({ studentId: r.student_id, className: r.class_name, classLevel: r.class_level, at: r.moved_at }))
+  },
   async getExamTotals() {
     const r = check(await supabase.from('profiles').select('exam_totals').eq('id', await uid()).maybeSingle()) as Row | null
     return { ...DEFAULT_EXAM_TOTALS, ...(r?.exam_totals ?? {}) }

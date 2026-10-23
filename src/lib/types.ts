@@ -163,6 +163,8 @@ export const EXAM_TYPES: { value: ExamType; label: string; short: string; color:
 export type ExamTotals = Record<ExamType, number>
 export const DEFAULT_EXAM_TOTALS: ExamTotals = { unit: 20, midterm: 50, final: 100 }
 export interface Exam { id: string; studentId: string; type: ExamType; title: string; date: string; score: number; outOf: number; feedback: string; createdAt: string }
+/** A student joined or moved to a class (name and level as they were then) */
+export interface ClassMove { studentId: string; className: string; classLevel: string; at: string }
 export interface StudentMessage { id: string; studentId: string; fromTeacher: boolean; body: string; read: boolean; createdAt: string }
 export const examPercent = (e: { score: number; outOf: number }) => Math.round((e.score / e.outOf) * 100)
 /** Dark or white text, whichever reads better on the colour */
@@ -191,6 +193,8 @@ export interface StudentNote { id: string; studentId: string; date: string; body
 export interface StudentProgress {
   name: string
   goals?: string
+  classLevel?: string
+  moves?: { at: string; className: string; classLevel: string }[]
   teacherName?: string
   classesTaken?: number
   messages?: { fromTeacher: boolean; body: string; createdAt: string }[]
@@ -278,6 +282,8 @@ export interface TeachApi {
   saveExam(input: Omit<Exam, 'id' | 'createdAt'> & { id?: string }): Promise<Exam>
   deleteExam(id: string): Promise<void>
   getExamTotals(): Promise<ExamTotals>
+  /** Class joins and moves, oldest first */
+  listClassMoves(studentId?: string): Promise<ClassMove[]>
   /** Messages with one student (teacher side) */
   listStudentMessages(studentId: string): Promise<StudentMessage[]>
   replyToStudent(studentId: string, body: string): Promise<StudentMessage>

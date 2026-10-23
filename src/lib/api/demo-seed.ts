@@ -6,7 +6,7 @@ const day = 24 * 60 * 60 * 1000
 const iso = (d: Date) => d.toISOString()
 const ymd = (d: Date) => d.toISOString().slice(0, 10)
 
-export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'sessions' | 'exams' | 'studentMessages' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
+export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'sessions' | 'exams' | 'studentMessages' | 'classMoves' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
   const now = new Date()
   const classes: DemoDb['classes'] = [
     { id: 'c-teens', ownerId: 'u-admin', name: 'Thursday Teens', level: 'B1', color: '#46725D', createdAt: iso(new Date(now.getTime() - 30 * day)) },
@@ -92,5 +92,9 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
   const studentMessages: DemoDb['studentMessages'] = [
     { id: 'sm-1', ownerId: 'u-admin', studentId: 's-c-teens-0', fromTeacher: false, body: 'Hi teacher, is the family interview homework for Monday or Thursday?', read: false, createdAt: iso(new Date(now.getTime() - 3 * 3600_000)) },
   ]
-  return { classes, students, studentNotes, sessions, exams, studentMessages, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
+  const classMoves: DemoDb['classMoves'] = students.map((s) => {
+    const c = classes.find((x) => x.id === s.classId)!
+    return { ownerId: s.ownerId, studentId: s.id, className: c.name, classLevel: c.level, at: s.createdAt }
+  })
+  return { classes, students, studentNotes, sessions, exams, studentMessages, classMoves, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
 }

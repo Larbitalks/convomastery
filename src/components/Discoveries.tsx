@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { DiscoveryArt } from './DiscoveryArt'
 import { formatDate } from '../lib/format'
-import { DISCOVERIES, RARITY_COLOR, TIERS, discoveryAt, tierOf, type Discovery, type Journey } from '../lib/discoveries'
+import { CAMP_ITEMS, RARITY_COLOR, TIERS, editionOf, tierOf, type Discovery, type Found, type Journey } from '../lib/discoveries'
 
 const tint = (hex: string) => `${hex}22`
 
-/** The adventure journal: progress to the next discovery, then every camp with collected and locked items */
+/** The adventure journal: progress to the next discovery, the current camp's set, and a shelf for earlier camps */
 export function DiscoveryJournal({ journey, name, own = false }: { journey: Journey; name: string; own?: boolean }) {
-  const { unlocked, current, needed, next, lifetime } = journey
-  const got = new Map(unlocked.map((u) => [u.discovery.number, u]))
-  const stars = unlocked.filter((u) => u.discovery.number > DISCOVERIES.length)
+  const { unlocked, current, needed, next, lifetime, camp } = journey
   const pct = Math.min(100, Math.round((current / needed) * 100))
-  const nextTier = tierOf(next.tier)
+  const tier = tierOf(camp)
   const [open, setOpen] = useState(false)
+  const set = CAMP_ITEMS[camp]
+  const inCamp = unlocked.filter((u) => u.discovery.tier === camp)
+  const earlier = TIERS.filter((t) => t.tier !== camp).map((t) => ({ t, finds: unlocked.filter((u) => u.discovery.tier === t.tier) })).filter((x) => x.finds.length)
+  const nextLabel = `${next.discovery.name}${next.edition ? ` (${next.edition})` : ''}`
 
   return (
     <section aria-labelledby="disc-h">
@@ -21,7 +23,7 @@ export function DiscoveryJournal({ journey, name, own = false }: { journey: Jour
         <DiscoveriesLogo className="h-16 w-16 shrink-0 drop-shadow-sm transition-transform group-hover:-rotate-6 group-hover:scale-105" />
         <span className="min-w-0 flex-1">
           <span id="disc-h" className="block text-2xl font-extrabold group-hover:underline group-hover:underline-offset-4">{own ? 'My Discoveries' : 'Discoveries'}</span>
-          <span className="block text-[15px] text-inksoft">{own ? 'Every award point moves you up the mountain. Collect them all!' : `Award points unlock collectibles for ${name}. Every one is kept forever.`}</span>
+          <span className="block text-[15px] text-inksoft">{own ? `You are exploring ${tier.camp}. Every award point brings a new find!` : `${name} is collecting at ${tier.camp}. Every find is kept forever.`}</span>
         </span>
         <span className="hidden shrink-0 items-center gap-1 rounded-full border-2 border-line px-3 py-1.5 text-sm font-bold sm:flex">
           {open ? 'Hide collection' : 'See collection'}
@@ -30,13 +32,13 @@ export function DiscoveryJournal({ journey, name, own = false }: { journey: Jour
       </button>
 
       <div className="mt-4 overflow-hidden rounded-2xl border-2 border-line bg-white">
-        <div className="flex flex-wrap items-center gap-5 p-5" style={{ background: `linear-gradient(135deg, ${tint(nextTier.color)}, #FFFFFF 60%)` }}>
+        <div className="flex flex-wrap items-center gap-5 p-5" style={{ background: `linear-gradient(135deg, ${tint(tier.color)}, #FFFFFF 60%)` }}>
           <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full bg-white ring-2 ring-line">
-            <DiscoveryArt id={next.id} locked className="h-14 w-14" />
+            <DiscoveryArt id={next.discovery.id} locked className="h-14 w-14" />
           </div>
           <div className="min-w-[12rem] flex-1">
-            <p className="text-sm font-bold text-inksoft">Next discovery</p>
-            <p className="text-lg font-extrabold">{next.name}</p>
+            <p className="text-sm font-bold text-inksoft">Next discovery at {tier.camp}</p>
+            <p className="text-lg font-extrabold">{nextLabel}</p>
             <div className="mt-2 h-4 overflow-hidden rounded-full bg-board" role="progressbar" aria-valuemin={0} aria-valuemax={needed} aria-valuenow={current}
               aria-label={`${current} of ${needed} points to the next discovery`}>
               <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(pct, 3)}%`, background: `linear-gradient(90deg, #F2CC8F, #E9B949)` }} />
@@ -52,35 +54,77 @@ export function DiscoveryJournal({ journey, name, own = false }: { journey: Jour
 
       {!open && (
         <button type="button" className="mt-3 w-full rounded-xl border-2 border-dashed border-line py-2.5 text-[15px] font-bold hover:border-ink/40" onClick={() => setOpen(true)} aria-controls="disc-camps" aria-expanded={false}>
-          See all {DISCOVERIES.length} discoveries ({unlocked.length} collected)
+          See the {tier.camp} collection ({inCamp.length} {inCamp.length === 1 ? 'find' : 'finds'})
         </button>
       )}
 
       {open && <div id="disc-camps" className="mt-6 grid gap-6">
-        {TIERS.map((t) => {
-          const items = DISCOVERIES.map((d, i) => ({ d, n: i + 1 })).filter((x) => x.d.tier === t.tier)
-          const have = items.filter((x) => got.has(x.n)).length
-          return (
-            <div key={t.tier}>
-              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 pb-1" style={{ borderColor: t.color }}>
-                <h3 className="font-extrabold">{t.camp} <span className="text-sm font-normal text-inksoft">{t.level}</span></h3>
-                <span className="text-sm text-inksoft">{have} of {items.length}</span>
-              </div>
-              <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {items.map(({ d, n }) => <Card key={d.id} d={d} n={n} unlockedAt={got.get(n)?.date} isNext={n === next.number} needed={needed - current} />)}
-              </ul>
+        <div>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 pb-1" style={{ borderColor: tier.color }}>
+            <h3 className="font-extrabold">{tier.camp} <span className="text-sm font-normal text-inksoft">{tier.level}</span></h3>
+            <span className="text-sm text-inksoft">{new Set(inCamp.map((u) => u.discovery.id)).size} of {set.length} found</span>
+          </div>
+          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {set.map((d) => <Card key={d.id} d={d} finds={inCamp.filter((u) => u.discovery.id === d.id)} isNext={d.id === next.discovery.id} nextEdition={next.edition} toGo={needed - current} />)}
+          </ul>
+          <p className="mt-2 text-[13px] text-inksoft">After all {set.length}, the set starts again in Silver, then Gold, then Diamond.</p>
+        </div>
+
+        {earlier.length > 0 && (
+          <div>
+            <h3 className="border-b-2 border-line pb-1 font-extrabold">Earlier camps</h3>
+            <div className="mt-3 grid gap-3">
+              {earlier.map(({ t, finds }) => (
+                <div key={t.tier} className="rounded-2xl border-2 border-line p-3">
+                  <p className="text-sm font-bold">{t.camp} <span className="font-normal text-inksoft">{finds.length} {finds.length === 1 ? 'find' : 'finds'}</span></p>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {[...new Map(finds.map((f) => [f.discovery.id, f])).values()].map((f) => {
+                      const n = finds.filter((x) => x.discovery.id === f.discovery.id).length
+                      return (
+                        <li key={f.discovery.id} className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3" style={{ backgroundColor: tint(t.color) }} title={f.discovery.name}>
+                          <span className="grid h-8 w-8 place-items-center rounded-full bg-white"><DiscoveryArt id={f.discovery.id} className="h-6 w-6" /></span>
+                          <span className="text-[13px] font-bold">{f.discovery.name.replace(/^The /, '')}{n > 1 ? ` x${n}` : ''}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ))}
             </div>
-          )
-        })}
-        {stars.length > 0 && (
-          <div className="flex items-center gap-4 rounded-2xl border-2 border-[#E9B949] bg-[#FFF8E6] p-4">
-            <DiscoveryArt id="summit-star" className="h-14 w-14 shrink-0" />
-            <div><p className="font-extrabold">Summit Stars x {stars.length}</p><p className="text-[14px] text-inksoft">Extra stars for climbing past the whole journey. Latest {formatDate(stars[stars.length - 1].date)}.</p></div>
           </div>
         )}
         <button type="button" className="justify-self-start text-sm font-bold underline" onClick={() => setOpen(false)}>Hide collection</button>
       </div>}
     </section>
+  )
+}
+
+function Card({ d, finds, isNext, nextEdition, toGo }: { d: Discovery; finds: Found[]; isNext: boolean; nextEdition: string; toGo: number }) {
+  const t = tierOf(d.tier)
+  if (!finds.length) {
+    return (
+      <li className={`flex flex-col items-center rounded-2xl border-2 border-dashed p-3 text-center ${isNext ? 'border-[#E9B949] bg-[#FFF8E6]' : 'border-line bg-board/40'}`}>
+        <div className="grid h-20 w-20 place-items-center rounded-full bg-white/70"><DiscoveryArt id={d.id} locked className="h-14 w-14" /></div>
+        <p className="mt-2 font-bold text-inksoft">{isNext ? d.name : '???'}</p>
+        <p className="text-[12px] text-inksoft">{isNext ? `${toGo} ${toGo === 1 ? 'point' : 'points'} to go` : 'Keep climbing'}</p>
+      </li>
+    )
+  }
+  const best = finds.reduce((a, b) => (b.round > a.round ? b : a))
+  const ed = editionOf(best.round)
+  const last = finds[finds.length - 1]
+  return (
+    <li className={`relative flex flex-col items-center rounded-2xl border-2 bg-white p-3 text-center shadow-sm ${isNext ? 'ring-2 ring-[#E9B949] ring-offset-2' : ''}`} style={{ borderColor: ed.ring || t.color }}>
+      {finds.length > 1 && <span className="absolute right-2 top-2 rounded-full bg-ink px-2 text-[12px] font-bold text-white">x{finds.length}</span>}
+      <div className="grid h-20 w-20 place-items-center rounded-full" style={{ backgroundColor: tint(t.color), boxShadow: ed.ring ? `0 0 0 4px ${ed.ring}` : undefined }}><DiscoveryArt id={d.id} className="h-16 w-16" /></div>
+      <p className="mt-2 font-extrabold leading-tight">{d.name}</p>
+      <span className="mt-1 flex flex-wrap justify-center gap-1">
+        <span className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: RARITY_COLOR[d.rarity] }}>{d.rarity}</span>
+        {ed.label && <span className="rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: ed.ring, color: '#3D405B' }}>{ed.label}</span>}
+      </span>
+      <p className="mt-1.5 text-[13px] leading-snug text-inksoft">{d.story}</p>
+      <p className="mt-auto pt-1.5 text-[12px] font-bold text-inksoft">{isNext ? `Next: ${nextEdition} edition, ${toGo} to go` : `Found ${formatDate(last.date)}`}</p>
+    </li>
   )
 }
 
@@ -101,32 +145,11 @@ export function DiscoveriesLogo({ className = '' }: { className?: string }) {
   )
 }
 
-function Card({ d, n, unlockedAt, isNext, needed }: { d: Discovery; n: number; unlockedAt?: string; isNext: boolean; needed: number }) {
-  const t = tierOf(d.tier)
-  if (!unlockedAt) {
-    return (
-      <li className={`flex flex-col items-center rounded-2xl border-2 border-dashed p-3 text-center ${isNext ? 'border-[#E9B949] bg-[#FFF8E6]' : 'border-line bg-board/40'}`}>
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-white/70"><DiscoveryArt id={d.id} locked className="h-14 w-14" /></div>
-        <p className="mt-2 font-bold text-inksoft">{isNext ? d.name : '???'}</p>
-        <p className="text-[12px] text-inksoft">{isNext ? `${needed} ${needed === 1 ? 'point' : 'points'} to go` : `Discovery ${n}`}</p>
-      </li>
-    )
-  }
-  return (
-    <li className="flex flex-col items-center rounded-2xl border-2 bg-white p-3 text-center shadow-sm" style={{ borderColor: t.color }}>
-      <div className="grid h-20 w-20 place-items-center rounded-full" style={{ backgroundColor: tint(t.color) }}><DiscoveryArt id={d.id} className="h-16 w-16" /></div>
-      <p className="mt-2 font-extrabold leading-tight">{d.name}</p>
-      <span className="mt-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: RARITY_COLOR[d.rarity] }}>{d.rarity}</span>
-      <p className="mt-1.5 text-[13px] leading-snug text-inksoft">{d.story}</p>
-      <p className="mt-auto pt-1.5 text-[12px] font-bold text-inksoft">Found {formatDate(unlockedAt)}</p>
-    </li>
-  )
-}
-
 /** The unlock moment: a chest opens and the new discovery rises out of it */
-export function DiscoveryReveal({ number, name, more = 0, onClose }: { number: number; name: string; more?: number; onClose: () => void }) {
-  const d = discoveryAt(number - 1)
+export function DiscoveryReveal({ found, name, more = 0, onClose }: { found: { discovery: Discovery; round: number; edition: string }; name: string; more?: number; onClose: () => void }) {
+  const d = found.discovery
   const t = tierOf(d.tier)
+  const ed = editionOf(found.round)
   const btn = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     btn.current?.focus()
@@ -155,7 +178,7 @@ export function DiscoveryReveal({ number, name, more = 0, onClose }: { number: n
           <svg viewBox="0 0 200 200" className="cm-rays absolute inset-0" aria-hidden="true">
             {Array.from({ length: 12 }, (_, i) => <path key={i} d="M100 100 L92 0 L108 0 Z" fill="#F2CC8F" opacity=".45" transform={`rotate(${i * 30} 100 100)`} />)}
           </svg>
-          <div className="cm-rise absolute inset-x-0 top-2 mx-auto grid h-28 w-28 place-items-center rounded-full bg-white shadow-lg" style={{ boxShadow: `0 0 0 6px ${tint(t.color)}` }}>
+          <div className="cm-rise absolute inset-x-0 top-2 mx-auto grid h-28 w-28 place-items-center rounded-full bg-white shadow-lg" style={{ boxShadow: `0 0 0 6px ${ed.ring || tint(t.color)}` }}>
             <DiscoveryArt id={d.id} className="h-24 w-24" />
           </div>
           <svg viewBox="0 0 120 90" className="absolute bottom-0 left-1/2 w-32 -translate-x-1/2" aria-hidden="true">
@@ -170,6 +193,7 @@ export function DiscoveryReveal({ number, name, more = 0, onClose }: { number: n
         </div>
         <div className="cm-pop">
           <h2 id="reveal-title" className="mt-3 text-2xl font-extrabold">{d.name}</h2>
+          {ed.label && <p className="font-extrabold" style={{ color: ed.ring === '#E9B949' ? '#9A6A1F' : '#5B6C8F' }}>{ed.label} edition</p>}
           <span className="mt-1 inline-block rounded-full px-2.5 py-0.5 text-[12px] font-bold text-white" style={{ backgroundColor: RARITY_COLOR[d.rarity] }}>{d.rarity}, {t.camp}</span>
           <p className="mt-3 text-[15px] text-inksoft">{d.story}</p>
           <p className="mt-3 font-bold">Well done, {name}! Keep climbing.</p>

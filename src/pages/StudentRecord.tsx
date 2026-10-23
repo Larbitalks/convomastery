@@ -13,7 +13,7 @@ import { PerformanceCard } from '../components/Performance'
 import { StudentExams } from '../components/StudentExams'
 import { StudentMessages } from '../components/StudentMessages'
 import { DiscoveryJournal } from '../components/Discoveries'
-import { journeyOf } from '../lib/discoveries'
+import { campOfClass, journeyOf, staysOf } from '../lib/discoveries'
 import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { reviewLabel } from './ClassSession'
 
@@ -28,15 +28,15 @@ export default function StudentRecord() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data, loading, reload } = useLoad(async () => {
-    const [students, classes, awards, homework, statuses, notes, lessons, sessions, options, exams, examTotals] = await Promise.all([
+    const [students, classes, awards, homework, statuses, notes, lessons, sessions, options, exams, examTotals, moves] = await Promise.all([
       api.listStudents(), api.listClasses(), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listStudentNotes(id), api.listLessons({ includeUnpublished: true }),
-      api.listClassSessions(id), api.getBehaviourOptions(), api.listExams(id), api.getExamTotals(),
+      api.listClassSessions(id), api.getBehaviourOptions(), api.listExams(id), api.getExamTotals(), api.listClassMoves(id),
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!student) return null
     const myAwards = awards.filter((a) => a.studentId === id)
     const categories = (await Promise.all([...new Set(myAwards.map((a) => a.classId).concat(student.classId))].map((c) => api.listAwardCategories(c)))).flat()
-    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions, options, exams, examTotals }
+    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions, options, exams, examTotals, moves }
   }, [id])
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
@@ -55,11 +55,12 @@ export default function StudentRecord() {
 
   if (loading && !data) return <Spinner />
   if (!data) return <Notice tone="error">This student no longer exists. <Link to="/students" className="underline">Back to students</Link></Notice>
-  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options, exams, examTotals } = data
-  const journey = journeyOf(awards.map((a) => ({ points: a.points, at: a.createdAt })))
+  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options, exams, examTotals, moves } = data
+
   const perf = computePerformance(toScoreClasses(sessions, awards, options), toScoreHomework(student.id, homework, statuses), exams)
   const running = sessions.find((x) => !x.endedAt)
   const cls = classes.find((c) => c.id === student.classId)
+  const journey = journeyOf(awards.map((a) => ({ points: a.points, at: a.createdAt })), staysOf(moves), campOfClass(cls?.name, cls?.level))
 
   const totalPoints = awards.reduce((t, a) => t + a.points, 0)
   const byCategory = categories

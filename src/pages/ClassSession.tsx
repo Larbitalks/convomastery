@@ -11,7 +11,7 @@ import { Seo } from '../lib/seo'
 import { DEFAULT_BEHAVIOURS, textOn, type Attendance, type BehaviourMark, type BehaviourOption, type BehaviourType, type ClassSession, type Review } from '../lib/types'
 import { teachableLessons } from './ClassDetail'
 import { typeOfMark } from '../lib/performance'
-import { journeyOf } from '../lib/discoveries'
+import { campOfClass, journeyOf, staysOf, type CampStay, type Found, type Tier } from '../lib/discoveries'
 import { DiscoveryReveal } from '../components/Discoveries'
 
 const ATTENDANCE: { value: Attendance; label: string; cls: string }[] = [
@@ -60,7 +60,9 @@ export default function ClassSessionPage() {
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!session || !student) return null
-    const [categories, classAwards, allAwards] = await Promise.all([api.listAwardCategories(student.classId), api.listAwards(student.classId), api.listAllAwards()])
+    const [categories, classAwards, allAwards, classes, moves] = await Promise.all([api.listAwardCategories(student.classId), api.listAwards(student.classId), api.listAllAwards(), api.listClasses(), api.listClassMoves(student.id)])
+    const cls = classes.find((c) => c.id === student.classId)
+    const stays = staysOf(moves), camp = campOfClass(cls?.name, cls?.level)
     // Every award this student has had, in any class, for the discovery journey
     const life = allAwards.filter((a) => a.studentId === student.id).map((a) => ({ id: a.id, points: a.points, at: a.createdAt }))
     const previous = sessions.find((x) => x.id !== session.id && x.endedAt) ?? null
@@ -68,12 +70,13 @@ export default function ClassSessionPage() {
     const given = classAwards
       .filter((a) => a.studentId === student.id && a.createdAt >= session.startedAt && (!session.endedAt || a.createdAt <= session.endedAt))
       .map((a) => ({ id: a.id, name: categories.find((c) => c.id === a.categoryId)?.name ?? 'Award', points: a.points }))
-    return { session, student, notes, previous, options, lessons, categories, given, life }
+    return { session, student, notes, previous, options, lessons, categories, given, life, stays, camp }
   }, [id, sessionId, isAdmin])
 
   const [s, setS] = useState<ClassSession | null>(null)
   const [life, setLife] = useState<{ id: string; points: number; at: string }[]>([])
-  const [reveal, setReveal] = useState<number[]>([])
+  const [reveal, setReveal] = useState<Found[]>([])
+  const camps = useRef<{ stays: CampStay[]; camp: Tier }>({ stays: [], camp: 'Explorers' })
   const [options, setOptions] = useState<BehaviourOption[]>(DEFAULT_BEHAVIOURS)
   const [awardsGiven, setAwardsGiven] = useState<{ id: string; name: string; points: number }[]>([])
   const [ending, setEnding] = useState(false)
@@ -83,7 +86,7 @@ export default function ClassSessionPage() {
   const [now, setNow] = useState(Date.now())
   const timer = useRef<ReturnType<typeof setTimeout>>()
 
-  useEffect(() => { if (data) { latest.current = data.session; setS(data.session); setOptions(data.options.map((o) => ({ ...o, type: typeOfMark(o, []) }))); setAwardsGiven(data.given); setLife(data.life) } }, [data])
+  useEffect(() => { if (data) { latest.current = data.session; setS(data.session); setOptions(data.options.map((o) => ({ ...o, type: typeOfMark(o, []) }))); setAwardsGiven(data.given); setLife(data.life); camps.current = { stays: data.stays, camp: data.camp } } }, [data])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
 
   // Every change updates the screen at once and is saved; typing is grouped so nothing is lost
@@ -127,8 +130,9 @@ export default function ClassSessionPage() {
       // Celebrate any discovery this award unlocks
       setLife((prev) => {
         const next = [...prev, { id: a.id, points: a.points, at: a.createdAt }]
-        const before = journeyOf(prev).unlocked.length, after = journeyOf(next).unlocked.length
-        if (after > before) setReveal((r) => [...r.filter((n) => n <= before), ...Array.from({ length: after - before }, (_, i) => before + i + 1)])
+        const { stays, camp } = camps.current
+        const before = journeyOf(prev, stays, camp).unlocked.length, j = journeyOf(next, stays, camp)
+        if (j.unlocked.length > before) setReveal((r) => [...r.filter((f) => f.number <= before), ...j.unlocked.slice(before)])
         return next
       })
     } catch (e) { setErr(errorMessage(e)) }
@@ -227,8 +231,8 @@ export default function ClassSessionPage() {
                   </button>
                 ))}
               </div>
-              {(() => { const j = journeyOf(life); return (
-                <p className="mt-2 text-[15px] text-inksoft">Next discovery for {student.name}: <strong className="text-ink">{j.next.name}</strong>, {j.current} / {j.needed} points</p>
+              {(() => { const j = journeyOf(life, camps.current.stays, camps.current.camp); return (
+                <p className="mt-2 text-[15px] text-inksoft">Next discovery for {student.name}: <strong className="text-ink">{j.next.discovery.name}{j.next.edition ? ` (${j.next.edition})` : ''}</strong>, {j.current} / {j.needed} points</p>
               ) })()}
               {awardsGiven.length > 0 && <p className="mt-2 text-[15px]">This class: {awardsGiven.reduce((t, a) => t + a.points, 0)} points ({awardsGiven.map((a) => a.name).join(', ')})</p>}
             </section>
@@ -289,7 +293,7 @@ export default function ClassSessionPage() {
           </aside>
         </div>
       )}
-      {reveal.length > 0 && <DiscoveryReveal number={reveal[0]} name={student.name} more={reveal.length - 1} onClose={() => setReveal((r) => r.slice(1))} />}
+      {reveal.length > 0 && <DiscoveryReveal found={reveal[0]} name={student.name} more={reveal.length - 1} onClose={() => setReveal((r) => r.slice(1))} />}
     </div>
   )
 }

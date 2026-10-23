@@ -167,6 +167,181 @@ const ART: Record<string, JSX.Element> = {
       <path d="M40 40 l10 -14 l10 14 Z" fill={WHITE} strokeWidth={2} />
     </g>
   ),
+  magnifier: (
+    <g {...S}>
+      <circle cx="42" cy="42" r="24" fill={ICE} />
+      <circle cx="42" cy="42" r="24" fill="none" stroke={GOLD} strokeWidth={7} />
+      <circle cx="42" cy="42" r="24" fill="none" />
+      <path d="M60 60 L84 84" stroke={BROWN} strokeWidth={10} />
+      <path d="M60 60 L84 84" fill="none" />
+      <path d="M32 34 Q36 28 44 28" fill="none" stroke={WHITE} />
+    </g>
+  ),
+  binoculars: (
+    <g {...S}>
+      <rect x="16" y="30" width="28" height="46" rx="10" fill={INK} />
+      <rect x="56" y="30" width="28" height="46" rx="10" fill={INK} />
+      <rect x="40" y="38" width="20" height="16" rx="3" fill={SAND} />
+      <circle cx="30" cy="66" r="9" fill={ICE} />
+      <circle cx="70" cy="66" r="9" fill={ICE} />
+      <rect x="20" y="22" width="20" height="10" rx="3" fill={SAGE} />
+      <rect x="60" y="22" width="20" height="10" rx="3" fill={SAGE} />
+    </g>
+  ),
+  'field-journal': (
+    <g {...S}>
+      <rect x="22" y="14" width="56" height="72" rx="5" fill={SAGE} />
+      <path d="M32 14 L32 86" />
+      <rect x="40" y="28" width="30" height="18" rx="2" fill={CREAM} />
+      <path d="M46 37 l18 0" strokeWidth={2} />
+      <path d="M78 52 L86 52 L86 64 L78 64" fill={CORAL} />
+    </g>
+  ),
+  spyglass: (
+    <g {...S}>
+      <path d="M14 70 L70 26 L80 38 L24 82 Z" fill={BROWN} />
+      <path d="M44 48 L54 60 M58 36 L68 48" stroke={GOLD} strokeWidth={5} />
+      <path d="M70 26 L80 38 L88 32 L78 20 Z" fill={GOLD} />
+      <circle cx="19" cy="76" r="5" fill={ICE} />
+    </g>
+  ),
+  'walking-stick': (
+    <g {...S}>
+      <path d="M42 90 L60 18" stroke={BROWN} strokeWidth={8} />
+      <path d="M42 90 L60 18" fill="none" />
+      <path d="M54 30 Q40 26 38 36" fill="none" stroke={GREEN} strokeWidth={4} />
+      <ellipse cx="36" cy="38" rx="6" ry="4" fill={SAGE} />
+      <path d="M50 52 l10 3 M48 60 l10 3" stroke={CORAL} strokeWidth={3} />
+    </g>
+  ),
+  'camp-mug': (
+    <g {...S}>
+      <path d="M24 34 L66 34 L62 82 Q62 86 58 86 L32 86 Q28 86 28 82 Z" fill={CORAL} />
+      <path d="M66 44 Q84 44 82 58 Q80 70 64 70" fill="none" strokeWidth={4} />
+      <path d="M36 24 Q40 18 36 12 M46 24 Q50 18 46 12 M56 24 Q60 18 56 12" fill="none" stroke={SAGE} />
+      <path d="M36 56 l20 0" stroke={CREAM} strokeWidth={4} />
+    </g>
+  ),
+  campfire: (
+    <g {...S}>
+      <path d="M50 18 Q70 40 64 60 Q60 72 50 72 Q40 72 36 60 Q30 40 50 18 Z" fill={CORAL} />
+      <path d="M50 40 Q60 54 56 64 Q52 70 50 70 Q46 70 44 64 Q40 54 50 40 Z" fill={GOLD} strokeWidth={2} />
+      <path d="M20 84 L80 70 M20 70 L80 84" stroke={BROWN} strokeWidth={8} />
+      <path d="M20 84 L80 70 M20 70 L80 84" fill="none" />
+    </g>
+  ),
+  'trail-sign': (
+    <g {...S}>
+      <path d="M48 20 L48 90" stroke={BROWN} strokeWidth={7} />
+      <path d="M48 20 L48 90" fill="none" />
+      <path d="M22 28 L70 28 L80 37 L70 46 L22 46 Z" fill={SAND} />
+      <path d="M78 54 L30 54 L20 63 L30 72 L78 72 Z" fill={SAGE} />
+      <path d="M32 37 l26 0 M38 63 l26 0" strokeWidth={2.5} />
+    </g>
+  ),
+  helmet: (
+    <g {...S}>
+      <path d="M14 64 Q14 22 50 22 Q86 22 86 64 Z" fill={CORAL} />
+      <path d="M10 64 L90 64 L90 72 L10 72 Z" fill={INK} />
+      <path d="M36 26 L36 62 M64 26 L64 62" fill="none" strokeWidth={2.5} />
+      <rect x="42" y="36" width="16" height="12" rx="3" fill={GOLD} />
+    </g>
+  ),
+  'chalk-bag': (
+    <g {...S}>
+      <path d="M28 30 L72 30 L68 82 Q66 88 60 88 L40 88 Q34 88 32 82 Z" fill={SAGE} />
+      <ellipse cx="50" cy="30" rx="22" ry="7" fill={WHITE} />
+      <path d="M30 40 Q50 48 70 40" fill="none" stroke={CREAM} strokeWidth={4} />
+      <path d="M50 22 l0 -8" />
+      <circle cx="50" cy="12" r="4" fill={GOLD} strokeWidth={2} />
+    </g>
+  ),
+  headlamp: (
+    <g {...S}>
+      <ellipse cx="50" cy="56" rx="36" ry="22" fill="none" stroke={CORAL} strokeWidth={8} />
+      <ellipse cx="50" cy="56" rx="36" ry="22" fill="none" strokeWidth={2} />
+      <rect x="34" y="22" width="32" height="24" rx="6" fill={INK} />
+      <circle cx="50" cy="34" r="8" fill={GOLD} />
+      <path d="M50 10 l0 -6 M30 14 l-4 -4 M70 14 l4 -4" stroke={GOLD} />
+    </g>
+  ),
+  'mountain-gem': (
+    <g {...S}>
+      <path d="M30 22 L70 22 L86 42 L50 86 L14 42 Z" fill="#B49AD6" />
+      <path d="M14 42 L86 42 M30 22 L40 42 L50 86 L60 42 L70 22 M40 42 L50 22 L60 42" fill="none" strokeWidth={2} />
+      <path d="M78 14 l0 8 M74 18 l8 0" stroke={WHITE} strokeWidth={2.5} />
+    </g>
+  ),
+  crampons: (
+    <g {...S}>
+      <rect x="16" y="34" width="68" height="22" rx="8" fill="#C9CED6" />
+      <path d="M22 56 l-4 14 M36 56 l-2 14 M50 56 l0 14 M64 56 l2 14 M78 56 l4 14" />
+      <path d="M26 34 Q50 16 74 34" fill="none" stroke={CORAL} strokeWidth={5} />
+      <path d="M26 34 Q50 16 74 34" fill="none" strokeWidth={2} />
+    </g>
+  ),
+  radio: (
+    <g {...S}>
+      <path d="M62 10 L62 28" />
+      <circle cx="62" cy="10" r="3" fill={CORAL} />
+      <rect x="28" y="28" width="44" height="60" rx="8" fill={SAND} />
+      <rect x="36" y="36" width="28" height="16" rx="3" fill={SAGE} />
+      <circle cx="42" cy="68" r="6" fill={INK} />
+      <path d="M54 62 l10 0 M54 70 l10 0 M54 78 l10 0" strokeWidth={2.5} />
+    </g>
+  ),
+  'snowflake-medal': (
+    <g {...S}>
+      <path d="M38 10 L50 34 L62 10" fill="none" stroke={CORAL} strokeWidth={8} />
+      <circle cx="50" cy="60" r="28" fill={ICE} />
+      <path d="M50 40 L50 80 M33 50 L67 70 M33 70 L67 50" stroke={WHITE} strokeWidth={4} />
+      <path d="M50 40 L50 80 M33 50 L67 70 M33 70 L67 50" fill="none" strokeWidth={1.5} />
+    </g>
+  ),
+  'yak-bell': (
+    <g {...S}>
+      <path d="M40 22 Q50 10 60 22" fill="none" />
+      <path d="M36 24 L64 24 L74 72 L26 72 Z" fill={GOLD} />
+      <path d="M22 72 L78 72 L78 78 L22 78 Z" fill={DGOLD} />
+      <circle cx="50" cy="84" r="5" fill={INK} />
+      <path d="M38 40 Q50 46 62 40" fill="none" stroke={CORAL} strokeWidth={4} />
+    </g>
+  ),
+  'golden-key': (
+    <g {...S}>
+      <circle cx="32" cy="34" r="18" fill={GOLD} />
+      <circle cx="32" cy="34" r="8" fill={CREAM} />
+      <path d="M44 46 L82 84" stroke={GOLD} strokeWidth={9} />
+      <path d="M44 46 L82 84" fill="none" />
+      <path d="M66 68 L74 60 M74 76 L82 68" stroke={DGOLD} strokeWidth={6} />
+    </g>
+  ),
+  'ancient-scroll': (
+    <g {...S}>
+      <rect x="22" y="22" width="56" height="56" fill={CREAM} />
+      <rect x="16" y="14" width="68" height="12" rx="6" fill={BROWN} />
+      <rect x="16" y="74" width="68" height="12" rx="6" fill={BROWN} />
+      <path d="M32 38 l36 0 M32 48 l28 0 M32 58 l34 0" strokeWidth={2.5} stroke={INK} />
+      <circle cx="66" cy="64" r="6" fill={CORAL} strokeWidth={2} />
+    </g>
+  ),
+  'crystal-crown': (
+    <g {...S}>
+      <path d="M16 74 L20 34 L36 52 L50 24 L64 52 L80 34 L84 74 Z" fill={GOLD} />
+      <path d="M16 74 L84 74 L84 84 L16 84 Z" fill={DGOLD} />
+      <path d="M44 56 L50 46 L56 56 L50 66 Z" fill={ICE} strokeWidth={2} />
+      <circle cx="20" cy="32" r="4" fill={ICE} strokeWidth={2} />
+      <circle cx="80" cy="32" r="4" fill={ICE} strokeWidth={2} />
+    </g>
+  ),
+  'sun-medallion': (
+    <g {...S}>
+      {Array.from({ length: 12 }, (_, i) => <path key={i} d="M50 8 L55 22 L45 22 Z" fill={GOLD} strokeWidth={2} transform={`rotate(${i * 30} 50 50)`} />)}
+      <circle cx="50" cy="50" r="26" fill={GOLD} />
+      <circle cx="50" cy="50" r="17" fill={CREAM} />
+      <path d="M38 56 L46 44 L52 52 L56 46 L64 56 Z" fill={SAGE} strokeWidth={2} />
+    </g>
+  ),
   'summit-star': (
     <g {...S}>
       <path d="M50 10 L61 37 L90 39 L68 58 L75 87 L50 71 L25 87 L32 58 L10 39 L39 37 Z" fill={GOLD} />

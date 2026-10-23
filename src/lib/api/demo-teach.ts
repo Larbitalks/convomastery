@@ -61,14 +61,20 @@ const demoTeach: TeachApi = {
     const u = requireUser()
     const db = load()
     own(db.classes, input.classId, 'class')
+    const move = (studentId: string, classId: string) => {
+      const c = db.classes.find((x) => x.id === classId)!
+      db.classMoves.push({ ownerId: u.id, studentId, className: c.name, classLevel: c.level, at: new Date().toISOString() })
+    }
     if (input.id) {
       const s = own(db.students, input.id, 'student')
+      if (input.classId && input.classId !== s.classId) move(s.id, input.classId)
       Object.assign(s, input)
       save()
       return strip(s)
     }
     const s = { notes: '', level: '', contact: '', goals: '', shareCode: null, showBehaviour: false, ...input, id: 's-' + uid(), ownerId: u.id, createdAt: new Date().toISOString() }
     db.students.push(s)
+    move(s.id, s.classId)
     save()
     return strip(s)
   },
@@ -82,6 +88,7 @@ const demoTeach: TeachApi = {
     db.sessions = db.sessions.filter((x) => x.studentId !== id)
     db.exams = db.exams.filter((x) => x.studentId !== id)
     db.studentMessages = db.studentMessages.filter((x) => x.studentId !== id)
+    db.classMoves = db.classMoves.filter((x) => x.studentId !== id)
     save()
   },
   async listAllAwards() { return mine(load().awards).map(strip) },
@@ -121,6 +128,8 @@ const demoTeach: TeachApi = {
     return {
       name: s.name,
       goals: s.goals ?? '',
+      classLevel: cls?.level ?? '',
+      moves: db.classMoves.filter((m) => m.studentId === s.id).sort((a, b) => a.at.localeCompare(b.at)).map((m) => ({ at: m.at, className: m.className, classLevel: m.classLevel })),
       teacherName: db.users.find((u) => u.id === s.ownerId)?.fullName || 'your teacher',
       classesTaken: db.sessions.filter((x) => x.studentId === s.id && x.endedAt).length,
       messages: db.studentMessages.filter((m) => m.studentId === s.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-100)
@@ -210,6 +219,9 @@ const demoTeach: TeachApi = {
     const db = load()
     db.exams = db.exams.filter((e) => e.id !== id)
     save()
+  },
+  async listClassMoves(studentId) {
+    return mine(load().classMoves).filter((m) => !studentId || m.studentId === studentId).sort((a, b) => a.at.localeCompare(b.at)).map(strip)
   },
   async getExamTotals() {
     return { ...DEFAULT_EXAM_TOTALS, ...(currentUser()?.examTotals ?? {}) }
