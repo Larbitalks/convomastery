@@ -6,7 +6,7 @@ import { api } from '../../lib/api'
 import { errorMessage, slugify } from '../../lib/format'
 import { useLoad } from '../../lib/hooks'
 import { shrinkImage, withTimeout } from '../../lib/imageUtil'
-import { ACTIVITY_TYPES, AGE_GROUPS, LEVELS, type AgeGroup, type LessonInput, type Level } from '../../lib/types'
+import { ACTIVITY_TYPES, AGE_GROUPS, LESSON_LEVELS, activitiesIn, type AgeGroup, type LessonInput, type Level } from '../../lib/types'
 
 const COVER_COLORS = ['#3D405B', '#46725D', '#7A5C8C', '#9A6A1F', '#2F5D62', '#5B6C8F', '#6B7F3A', '#8A5A44']
 
@@ -23,8 +23,11 @@ export default function AdminLessonEdit() {
   const isNew = !id
   const { data, loading } = useLoad(async () => {
     const [lessons, categories] = await Promise.all([api.listLessons({ includeUnpublished: true }), api.listCategories()])
-    return { lesson: lessons.find((l) => l.id === id) ?? null, categories }
+    return { lesson: lessons.find((l) => l.id === id) ?? null, categories, lessons }
   }, [id])
+  const [extraCats, setExtraCats] = useState<{ id: string; name: string }[]>([])
+  const [newCat, setNewCat] = useState<string | null>(null)
+  const [newActivity, setNewActivity] = useState('')
 
   const [form, setForm] = useState<LessonInput>(blank)
   const [slugTouched, setSlugTouched] = useState(false)
@@ -179,16 +182,31 @@ export default function AdminLessonEdit() {
           <h3 className="text-lg font-bold">Filters</h3>
           <div className="grid gap-5 sm:grid-cols-3">
             <Field label="Level" htmlFor="level">
-              <Select id="level" value={form.level} onChange={(e) => set('level', e.target.value as Level)}>{LEVELS.map((l) => <option key={l}>{l}</option>)}</Select>
+              <Select id="level" value={form.level} onChange={(e) => set('level', e.target.value as Level)}>{LESSON_LEVELS.map((l) => <option key={l}>{l}</option>)}</Select>
             </Field>
             <Field label="Students" htmlFor="age">
               <Select id="age" value={form.ageGroup} onChange={(e) => set('ageGroup', e.target.value as AgeGroup)}>{AGE_GROUPS.map((a) => <option key={a}>{a}</option>)}</Select>
             </Field>
             <Field label="Topic area" htmlFor="category">
-              <Select id="category" value={form.categoryId ?? ''} onChange={(e) => set('categoryId', e.target.value || null)}>
-                <option value="">None</option>
-                {data?.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </Select>
+              {newCat === null ? (
+                <Select id="category" value={form.categoryId ?? ''} onChange={(e) => { if (e.target.value === '__new') setNewCat(''); else set('categoryId', e.target.value || null) }}>
+                  <option value="">None</option>
+                  {[...(data?.categories ?? []), ...extraCats].sort((a, b) => a.name.localeCompare(b.name)).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="__new">+ Add a new topic area</option>
+                </Select>
+              ) : (
+                <div className="flex gap-2">
+                  <Input id="category" autoFocus placeholder="New topic area" value={newCat} onChange={(e) => setNewCat(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setNewCat(null) }} />
+                  <button type="button" className="btn-primary !px-3" disabled={!newCat.trim()} onClick={async () => {
+                    try {
+                      const c = await api.saveCategory({ name: newCat.trim(), slug: slugify(newCat.trim()), description: '' })
+                      setExtraCats((x) => [...x, c]); set('categoryId', c.id); setNewCat(null)
+                    } catch (e) { setMsg({ tone: 'error', text: errorMessage(e) }) }
+                  }}>Add</button>
+                  <button type="button" className="text-sm font-bold underline" onClick={() => setNewCat(null)}>Cancel</button>
+                </div>
+              )}
             </Field>
           </div>
           <Field label="Topics" htmlFor="topics" hint="Comma separated, for example: Sleep, Health, Habits. Used in search.">
@@ -197,7 +215,7 @@ export default function AdminLessonEdit() {
           <fieldset>
             <legend className="label">Activities included</legend>
             <div className="flex flex-wrap gap-2">
-              {ACTIVITY_TYPES.map((a) => {
+              {[...ACTIVITY_TYPES, ...activitiesIn(data?.lessons ?? []).filter((a) => !(ACTIVITY_TYPES as readonly string[]).includes(a)), ...form.activityTypes.filter((a) => !(ACTIVITY_TYPES as readonly string[]).includes(a) && !activitiesIn(data?.lessons ?? []).includes(a))].map((a) => {
                 const on = form.activityTypes.includes(a)
                 return (
                   <button type="button" key={a} aria-pressed={on} onClick={() => set('activityTypes', on ? form.activityTypes.filter((x) => x !== a) : [...form.activityTypes, a])}
@@ -205,6 +223,14 @@ export default function AdminLessonEdit() {
                 )
               })}
             </div>
+            <div className="mt-3 flex max-w-md gap-2">
+              <Input aria-label="Add your own activity" placeholder="Add your own activity, e.g. Tongue twisters" value={newActivity} maxLength={40}
+                onChange={(e) => setNewActivity(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const a = newActivity.trim(); if (a && !form.activityTypes.includes(a)) set('activityTypes', [...form.activityTypes, a]); setNewActivity('') } }} />
+              <button type="button" className="btn-ghost shrink-0" disabled={!newActivity.trim()}
+                onClick={() => { const a = newActivity.trim(); if (a && !form.activityTypes.includes(a)) set('activityTypes', [...form.activityTypes, a]); setNewActivity('') }}>Add</button>
+            </div>
+            <p className="hint">Your own activities appear in the catalogue filter once a published lesson uses them.</p>
           </fieldset>
           <div className="grid gap-5 sm:grid-cols-3">
             <Field label="Price (USD)" htmlFor="price" hint="0 makes it free.">

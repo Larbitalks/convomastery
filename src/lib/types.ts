@@ -1,18 +1,26 @@
-export type Level = 'A2' | 'B1' | 'B2' | 'C1'
-export type AgeGroup = 'Teens' | 'Adults' | 'Young learners'
+/** CEFR levels, from complete beginners to proficient */
+export const LEVELS = ['Pre-A1', 'A1', 'A2', 'B1', 'B1+', 'B2', 'B2+', 'C1', 'C2'] as const
+/** A lesson can also suit every level or every age; those match any filter in the catalogue */
+export const ALL_LEVELS = 'All levels'
+export const ALL_AGES = 'All ages'
+export const LESSON_LEVELS = [...LEVELS, ALL_LEVELS] as const
+export type Level = (typeof LESSON_LEVELS)[number]
+export const AGE_GROUPS = ['Young learners', 'Kids', 'Teens', 'Young adults', 'Adults', 'Business English', 'Exam preparation', ALL_AGES] as const
+export type AgeGroup = (typeof AGE_GROUPS)[number]
 export type UserType = 'ESL teacher' | 'Online tutor' | 'Parent' | 'School or academy' | 'Other'
 
-export const LEVELS: Level[] = ['A2', 'B1', 'B2', 'C1']
-export const AGE_GROUPS: AgeGroup[] = ['Teens', 'Adults', 'Young learners']
 export const USER_TYPES: UserType[] = ['ESL teacher', 'Online tutor', 'Parent', 'School or academy', 'Other']
+/** Suggested activities. Lessons can also have activities of your own, typed in the lesson editor. */
 export const ACTIVITY_TYPES = [
-  'Discussion questions',
-  'Debate',
-  'Situations and dilemmas',
-  'Role-play',
-  'Vocabulary',
-  'Project',
+  'Discussion questions', 'Debate', 'Situations and dilemmas', 'Role-play', 'Vocabulary', 'Project',
+  'Reading', 'Listening', 'Writing', 'Grammar', 'Pronunciation', 'Games', 'Quiz', 'Video',
+  'Storytelling', 'Picture description', 'Presentation', 'Interview', 'Survey', 'Problem solving',
 ] as const
+/** Every activity used by these lessons, suggested ones first */
+export function activitiesIn(lessons: { activityTypes: string[] }[]): string[] {
+  const used = new Set(lessons.flatMap((l) => l.activityTypes))
+  return [...ACTIVITY_TYPES.filter((a) => used.has(a)), ...[...used].filter((a) => !(ACTIVITY_TYPES as readonly string[]).includes(a)).sort()]
+}
 
 export interface Category {
   id: string

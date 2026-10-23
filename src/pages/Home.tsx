@@ -5,7 +5,7 @@ import { Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { AGE_GROUPS, LEVELS } from '../lib/types'
+import { AGE_GROUPS, ALL_AGES, LEVELS } from '../lib/types'
 
 const lessonPath = [
   ['Warm-up', 'Three visuals and an open prompt to get students curious.'],
@@ -84,13 +84,13 @@ export default function Home() {
           <div>
             <p className="font-bold">By student age</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {AGE_GROUPS.map((a) => <Link key={a} to={`/lessons?age=${encodeURIComponent(a)}`} className="chip border-line hover:border-brand hover:text-brand-dark">{a}</Link>)}
+              {AGE_GROUPS.filter((a) => a !== ALL_AGES && (!lessons || lessons.some((x) => x.ageGroup === a))).map((a) => <Link key={a} to={`/lessons?age=${encodeURIComponent(a)}`} className="chip border-line hover:border-brand hover:text-brand-dark">{a}</Link>)}
             </div>
           </div>
           <div>
             <p className="font-bold">By level</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {LEVELS.map((l) => <Link key={l} to={`/lessons?level=${l}`} className="chip border-line hover:border-brand hover:text-brand-dark">{l}</Link>)}
+              {LEVELS.filter((l) => !lessons || lessons.some((x) => x.level === l)).map((l) => <Link key={l} to={`/lessons?level=${l}`} className="chip border-line hover:border-brand hover:text-brand-dark">{l}</Link>)}
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
-import { ACTIVITY_TYPES, AGE_GROUPS, LEVELS } from '../lib/types'
+import { AGE_GROUPS, ALL_AGES, ALL_LEVELS, LEVELS, activitiesIn } from '../lib/types'
 
 function ChipGroup({ label, options, value, onChange }: { label: string; options: readonly string[]; value: string; onChange: (v: string) => void }) {
   return (
@@ -56,8 +56,8 @@ export default function Lessons() {
     const q = f.q.trim().toLowerCase()
     const list = data.lessons.filter((l) =>
       (!q || [l.title, l.summary, ...l.topics, ...l.sampleQuestions].join(' ').toLowerCase().includes(q)) &&
-      (!f.level || l.level === f.level) &&
-      (!f.age || l.ageGroup === f.age) &&
+      (!f.level || l.level === f.level || l.level === ALL_LEVELS) &&
+      (!f.age || l.ageGroup === f.age || l.ageGroup === ALL_AGES) &&
       (!f.category || data.categories.find((c) => c.id === l.categoryId)?.slug === f.category) &&
       (!f.activity || l.activityTypes.includes(f.activity)) &&
       (!f.price || (f.price === 'Free' ? l.priceCents === 0 : l.priceCents > 0)),
@@ -82,9 +82,10 @@ export default function Lessons() {
             <label htmlFor="search" className="label">Search</label>
             <Input id="search" type="search" placeholder="Topic, word or question" value={f.q} onChange={(e) => set('q', e.target.value)} />
           </div>
-          <ChipGroup label="Level" options={LEVELS} value={f.level} onChange={(v) => set('level', v)} />
-          <ChipGroup label="Students" options={AGE_GROUPS} value={f.age} onChange={(v) => set('age', v)} />
-          <ChipGroup label="Activity" options={ACTIVITY_TYPES} value={f.activity} onChange={(v) => set('activity', v)} />
+          {/* Only the options some lesson actually uses (plus the one picked, so it can be cleared) */}
+          <ChipGroup label="Level" options={LEVELS.filter((l) => l === f.level || data?.lessons.some((x) => x.level === l))} value={f.level} onChange={(v) => set('level', v)} />
+          <ChipGroup label="Students" options={AGE_GROUPS.filter((a) => a !== ALL_AGES && (a === f.age || data?.lessons.some((x) => x.ageGroup === a)))} value={f.age} onChange={(v) => set('age', v)} />
+          <ChipGroup label="Activity" options={[...new Set([...activitiesIn(data?.lessons ?? []), ...(f.activity ? [f.activity] : [])])]} value={f.activity} onChange={(v) => set('activity', v)} />
           {data && data.categories.length > 0 && (
             <div>
               <label htmlFor="category" className="label">Topic area</label>

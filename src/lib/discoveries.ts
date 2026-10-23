@@ -97,7 +97,7 @@ export function campOfClass(name = '', level = ''): Tier {
   const n = name.toLowerCase()
   for (const t of TIERS) if (n.includes(t.tier.toLowerCase().replace(/s$/, ''))) return t.tier
   const l = level.toUpperCase()
-  if (l.startsWith('C')) return 'Alpinists'
+  if (l.startsWith('C') || l === 'B2+') return 'Alpinists'
   if (l === 'B2' || l === 'B1+') return 'Mountaineers'
   if (l === 'A2' || l === 'B1') return 'Climbers'
   if (l === 'A1') return 'Trekkers'

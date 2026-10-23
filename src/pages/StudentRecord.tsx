@@ -212,7 +212,7 @@ export default function StudentRecord() {
                   <Field label="Level" htmlFor="dLevel">
                     <Select id="dLevel" value={details.level} onChange={(e) => setDetails({ ...details, level: e.target.value })}>
                       <option value="">Same as class</option>
-                      {['A1', ...LEVELS].map((l) => <option key={l}>{l}</option>)}
+                      {LEVELS.map((l) => <option key={l}>{l}</option>)}
                     </Select>
                   </Field>
                 </div>
