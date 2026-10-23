@@ -1,3 +1,4 @@
+import { CREATURE_ART } from '../lib/creatureArt'
 // Original flat illustrations for each discovery, drawn in the site's colours (viewBox 100 x 100).
 const INK = '#3D405B', CORAL = '#E07A5F', SAGE = '#81B29A', SAND = '#F2CC8F', CREAM = '#F4F1DE', GOLD = '#E9B949', DGOLD = '#C08A1E', ICE = '#BFE3F0', WHITE = '#FFFFFF', BROWN = '#9A6A3F', GREEN = '#46725D'
 const S = { stroke: INK, strokeWidth: 3, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const }
@@ -354,7 +355,7 @@ const ART: Record<string, JSX.Element> = {
 export function DiscoveryArt({ id, locked = false, className = '' }: { id: string; locked?: boolean; className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true" style={locked ? { filter: 'brightness(0)', opacity: 0.22 } : undefined}>
-      {ART[id] ?? ART['summit-star']}
+      {CREATURE_ART[id] ? <g dangerouslySetInnerHTML={{ __html: CREATURE_ART[id] }} /> : (ART[id] ?? ART['summit-star'])}
     </svg>
   )
 }
