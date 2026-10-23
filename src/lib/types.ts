@@ -2,6 +2,11 @@
 export const LEVELS = ['Pre-A1', 'A1', 'A2', 'B1', 'B1+', 'B2', 'B2+', 'C1', 'C2'] as const
 /** A lesson can also suit every level or every age; those match any filter in the catalogue */
 export const ALL_LEVELS = 'All levels'
+/** Sort classes from the lowest level to the highest; Mixed and unknown levels go last, then by name */
+export function byLevel<T extends { level: string; name: string }>(a: T, b: T) {
+  const rank = (l: string) => { const i = (LEVELS as readonly string[]).indexOf(l); return i < 0 ? LEVELS.length : i }
+  return rank(a.level) - rank(b.level) || a.name.localeCompare(b.name)
+}
 export const ALL_AGES = 'All ages'
 export const LESSON_LEVELS = [...LEVELS, ALL_LEVELS] as const
 export type Level = (typeof LESSON_LEVELS)[number]

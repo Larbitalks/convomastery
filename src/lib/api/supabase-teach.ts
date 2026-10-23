@@ -1,6 +1,6 @@
 // Live versions of the teaching, booking and messaging functions (Supabase).
 import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam, StudentMessage, ClassMove } from '../types'
-import { DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS } from '../types'
+import { byLevel, DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS } from '../types'
 import { supabase } from './supabase'
 import { cleanAvatar } from '../avatar'
 
@@ -54,7 +54,7 @@ const safeName = (n: string) => n.replace(/[^\w.\-]+/g, '_')
 
 export const supabaseTeach: TeachApi = {
   async listClasses() {
-    return check(await supabase.from('classes').select('*').eq('owner_id', await uid()).order('name')).map(toClass)
+    return check(await supabase.from('classes').select('*').eq('owner_id', await uid()).order('name')).map(toClass).sort(byLevel)
   },
   async saveClass({ id, name, level, color, image }) {
     return toClass(await upsert('classes', { name, level, color, ...(image !== undefined ? { image } : {}) }, id))

@@ -1,5 +1,5 @@
 // Demo versions of the teaching, booking and messaging functions.
-import { DEFAULT_AWARD_CATEGORIES, DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS, type Api, type ClassSession, type TeachApi } from '../types'
+import { byLevel, DEFAULT_AWARD_CATEGORIES, DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS, type Api, type ClassSession, type TeachApi } from '../types'
 import { getBlob, putBlob } from '../idb'
 import { toScoreClasses } from '../performance'
 import { currentUser, demoCore, load, requireAdmin, requireUser, save, uid, wait } from './demo'
@@ -25,7 +25,7 @@ const slotWithCount = (slotId: string) => {
 
 const demoTeach: TeachApi = {
   async listClasses() {
-    return mine(load().classes).map(strip).sort((a, b) => a.name.localeCompare(b.name))
+    return mine(load().classes).map(strip).sort(byLevel)
   },
   async saveClass(input) {
     const u = requireUser()
