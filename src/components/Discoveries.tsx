@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DiscoveryArt } from './DiscoveryArt'
 import { formatDate } from '../lib/format'
 import { DISCOVERIES, RARITY_COLOR, TIERS, discoveryAt, tierOf, type Discovery, type Journey } from '../lib/discoveries'
@@ -12,11 +12,22 @@ export function DiscoveryJournal({ journey, name, own = false }: { journey: Jour
   const stars = unlocked.filter((u) => u.discovery.number > DISCOVERIES.length)
   const pct = Math.min(100, Math.round((current / needed) * 100))
   const nextTier = tierOf(next.tier)
+  const [open, setOpen] = useState(false)
 
   return (
     <section aria-labelledby="disc-h">
-      <h2 id="disc-h" className="text-2xl font-extrabold">{own ? 'My Discoveries' : 'Discoveries'}</h2>
-      <p className="mt-1 text-[15px] text-inksoft">{own ? 'Every award point moves you up the mountain. Collect them all!' : `Award points unlock collectibles for ${name}. Every one is kept forever.`}</p>
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="disc-camps"
+        className="group flex w-full items-center gap-4 rounded-2xl text-left">
+        <DiscoveriesLogo className="h-16 w-16 shrink-0 drop-shadow-sm transition-transform group-hover:-rotate-6 group-hover:scale-105" />
+        <span className="min-w-0 flex-1">
+          <span id="disc-h" className="block text-2xl font-extrabold group-hover:underline group-hover:underline-offset-4">{own ? 'My Discoveries' : 'Discoveries'}</span>
+          <span className="block text-[15px] text-inksoft">{own ? 'Every award point moves you up the mountain. Collect them all!' : `Award points unlock collectibles for ${name}. Every one is kept forever.`}</span>
+        </span>
+        <span className="hidden shrink-0 items-center gap-1 rounded-full border-2 border-line px-3 py-1.5 text-sm font-bold sm:flex">
+          {open ? 'Hide collection' : 'See collection'}
+          <svg viewBox="0 0 20 20" className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true"><path d="M5 8 L10 13 L15 8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </span>
+      </button>
 
       <div className="mt-4 overflow-hidden rounded-2xl border-2 border-line bg-white">
         <div className="flex flex-wrap items-center gap-5 p-5" style={{ background: `linear-gradient(135deg, ${tint(nextTier.color)}, #FFFFFF 60%)` }}>
@@ -39,7 +50,13 @@ export function DiscoveryJournal({ journey, name, own = false }: { journey: Jour
         </dl>
       </div>
 
-      <div className="mt-6 grid gap-6">
+      {!open && (
+        <button type="button" className="mt-3 w-full rounded-xl border-2 border-dashed border-line py-2.5 text-[15px] font-bold hover:border-ink/40" onClick={() => setOpen(true)} aria-controls="disc-camps" aria-expanded={false}>
+          See all {DISCOVERIES.length} discoveries ({unlocked.length} collected)
+        </button>
+      )}
+
+      {open && <div id="disc-camps" className="mt-6 grid gap-6">
         {TIERS.map((t) => {
           const items = DISCOVERIES.map((d, i) => ({ d, n: i + 1 })).filter((x) => x.d.tier === t.tier)
           const have = items.filter((x) => got.has(x.n)).length
@@ -61,8 +78,26 @@ export function DiscoveryJournal({ journey, name, own = false }: { journey: Jour
             <div><p className="font-extrabold">Summit Stars x {stars.length}</p><p className="text-[14px] text-inksoft">Extra stars for climbing past the whole journey. Latest {formatDate(stars[stars.length - 1].date)}.</p></div>
           </div>
         )}
-      </div>
+        <button type="button" className="justify-self-start text-sm font-bold underline" onClick={() => setOpen(false)}>Hide collection</button>
+      </div>}
     </section>
+  )
+}
+
+/** The Discoveries badge: a summit with a flag on a sunny disc */
+export function DiscoveriesLogo({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+      <circle cx="32" cy="32" r="30" fill="#F2CC8F" stroke="#3D405B" strokeWidth="3" />
+      <circle cx="32" cy="32" r="23" fill="#FFF8E6" />
+      <path d="M10 46 L25 26 L32 34 L40 22 L54 46 Z" fill="#81B29A" stroke="#3D405B" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M36 28 L40 22 L44 28 L41 27 L40 29 L38 27 Z" fill="#FFFFFF" stroke="#3D405B" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M40 22 L40 9" stroke="#3D405B" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M40 10 L50 13.5 L40 17 Z" fill="#E07A5F" stroke="#3D405B" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M16 50 L48 50" stroke="#3D405B" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="18" cy="17" r="2" fill="#E9B949" />
+      <circle cx="25" cy="12" r="1.5" fill="#E9B949" />
+    </svg>
   )
 }
 
