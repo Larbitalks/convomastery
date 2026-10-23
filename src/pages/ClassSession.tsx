@@ -13,6 +13,7 @@ import { teachableLessons } from './ClassDetail'
 import { typeOfMark } from '../lib/performance'
 import { campOfClass, journeyOf, staysOf, type CampStay, type Found, type Tier } from '../lib/discoveries'
 import { DiscoveryReveal } from '../components/Discoveries'
+import { Avatar } from '../components/Avatar'
 
 const ATTENDANCE: { value: Attendance; label: string; cls: string }[] = [
   { value: 'present', label: 'Present', cls: 'bg-sage-light text-sage-dark border-sage' },
@@ -148,6 +149,7 @@ export default function ClassSessionPage() {
       <Seo title={`Class with ${student.name}`} noindex />
       <div className="sticky top-0 z-10 -mx-4 mb-6 border-b-2 border-line bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <Avatar avatar={student.avatar} name={student.name} size={48} />
           <div className="min-w-0">
             <Link to={`/students/${student.id}`} className="text-sm font-bold underline underline-offset-2">{student.name}'s profile</Link>
             <h1 className="text-2xl font-extrabold">Class with {student.name}</h1>

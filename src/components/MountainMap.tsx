@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Spinner } from './ui'
+import { Avatar } from './Avatar'
 import { errorMessage } from '../lib/format'
 import { CAMP_MAPS, OVERVIEW, OVERVIEW_STOP, TIERS, campProgress, tierOf, trailPoint, type MapPerson, type Tier } from '../lib/discoveries'
 
 const url = (src: string) => `${import.meta.env.BASE_URL}${src}`
-const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')
 type Person = MapPerson & { hidden?: boolean }
 type Placed = Person & { x: number; y: number }
 type View = 'overview' | Tier
@@ -202,7 +202,7 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
                     {mine && <span className="absolute bottom-full left-0 mb-1 whitespace-nowrap rounded-full bg-[#E07A5F] px-2.5 py-0.5 text-[12px] font-bold text-white shadow">You are here</span>}
                     <span className={`flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white py-1 pl-1 pr-3 text-[13px] font-extrabold text-ink shadow-lg transition-transform hover:scale-110 ${mine ? 'ring-4 ring-[#E07A5F]' : 'ring-2 ring-white/70'}`}>
                       <span className="flex -space-x-2">
-                        {here.slice(0, 3).map((p) => <span key={p.key} className="grid h-7 w-7 place-items-center rounded-full border-2 border-white text-[10px] text-white" style={{ backgroundColor: c.color }}>{initials(p.name)}</span>)}
+                        {here.slice(0, 3).map((p) => <Avatar key={p.key} avatar={p.avatar} name={p.name} size={28} color={c.color} className="border-2 border-white text-[10px]" />)}
                         {here.length === 0 && <span className="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-board text-[10px] text-inksoft">0</span>}
                       </span>
                       {here.length} <span className="font-bold text-inksoft">›</span>
@@ -217,9 +217,9 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
                   <button key={p.key} type="button" aria-label={`${p.name}${p.me ? ' (you)' : ''}, ${p.discoveries} discoveries`}
                     className="absolute left-0 top-0" style={{ transform: `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${k})`, zIndex: p.me ? 30 : isSel ? 20 : 10 }}
                     onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setSelected(p.key) }}>
-                    <span className={`grid place-items-center rounded-full font-extrabold text-white shadow-lg ${p.me ? 'h-12 w-12 border-4 border-[#E07A5F] text-base' : 'h-10 w-10 border-[3px] border-white text-[13px]'} ${p.hidden ? 'opacity-50' : ''}`}
-                      style={{ backgroundColor: camp.color, outline: isSel ? '3px solid #F2CC8F' : undefined }}>
-                      {initials(p.name)}
+                    <span className={`block rounded-full shadow-lg ${p.me ? 'border-4 border-[#E07A5F]' : 'border-[3px] border-white'} ${p.hidden ? 'opacity-50' : ''}`}
+                      style={{ outline: isSel ? '3px solid #F2CC8F' : undefined }}>
+                      <Avatar avatar={p.avatar} name={p.name} size={p.me ? 60 : 48} color={camp.color} />
                     </span>
                     <span className={`absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-bold shadow ${p.me ? 'bg-[#E07A5F] text-white' : 'bg-white text-ink'}`}>
                       {p.me ? `${p.name} (you)` : p.name}
@@ -266,7 +266,7 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
                       <li key={p.key}>
                         <button className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-[15px] hover:bg-board ${p.key === selected ? 'bg-board' : ''}`}
                           onClick={() => { enter(c.tier, p.key); if (window.innerWidth < 640) setPanel(false) }}>
-                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-extrabold text-white" style={{ backgroundColor: c.color }}>{initials(p.name)}</span>
+                          <Avatar avatar={p.avatar} name={p.name} size={24} color={c.color} />
                           <span className={`min-w-0 flex-1 truncate ${p.me ? 'font-extrabold' : ''} ${p.hidden ? 'text-inksoft' : ''}`}>{p.name}{p.me ? ' (you)' : ''}{p.hidden ? ' (hidden)' : ''}</span>
                           <span className="text-[12px] text-inksoft">{p.discoveries}</span>
                         </button>

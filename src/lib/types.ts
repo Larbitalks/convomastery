@@ -140,6 +140,8 @@ export interface Student {
   shareCode: string | null
   /** Shown on the mountain map that students can see */
   showOnMap?: boolean
+  /** Avatar chosen by the teacher (see lib/avatar.ts) */
+  avatar?: import('./avatar').AvatarConfig | null
   /** Whether the progress page shows attendance and behaviour */
   showBehaviour: boolean
 }
@@ -194,6 +196,7 @@ export interface StudentNote { id: string; studentId: string; date: string; body
 /** What a student or parent sees on their progress page */
 export interface StudentProgress {
   name: string
+  avatar?: unknown
   goals?: string
   classLevel?: string
   moves?: { at: string; className: string; classLevel: string }[]
@@ -259,7 +262,7 @@ export interface TeachApi {
   saveClass(input: Omit<ClassGroup, 'id' | 'createdAt'> & { id?: string }): Promise<ClassGroup>
   deleteClass(id: string): Promise<void>
   listStudents(classId?: string): Promise<Student[]>
-  saveStudent(input: Pick<Student, 'classId' | 'name'> & Partial<Pick<Student, 'notes' | 'level' | 'contact' | 'goals'>> & { id?: string }): Promise<Student>
+  saveStudent(input: Pick<Student, 'classId' | 'name'> & Partial<Pick<Student, 'notes' | 'level' | 'contact' | 'goals' | 'avatar'>> & { id?: string }): Promise<Student>
   deleteStudent(id: string): Promise<void>
   listAllAwards(): Promise<Award[]>
   listAllHomeworkStatus(): Promise<HomeworkStatus[]>
@@ -273,7 +276,7 @@ export interface TeachApi {
   getStudentProgress(code: string): Promise<StudentProgress | null>
   setStudentShowOnMap(studentId: string, show: boolean): Promise<void>
   /** Everyone on the mountain map, seen with a student's progress code */
-  getStudentMap(code: string): Promise<{ name: string; className: string; classLevel: string; total: number; atMove: number; me: boolean }[] | null>
+  getStudentMap(code: string): Promise<{ name: string; avatar?: unknown; className: string; classLevel: string; total: number; atMove: number; me: boolean }[] | null>
   setStudentShowBehaviour(studentId: string, show: boolean): Promise<void>
   // class sessions
   getBehaviourOptions(): Promise<BehaviourOption[]>

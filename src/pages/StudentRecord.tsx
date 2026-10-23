@@ -11,6 +11,8 @@ import { BehaviourBar, tallyOf } from './ClassSession'
 import { config } from '../lib/config'
 import { PerformanceCard } from '../components/Performance'
 import { StudentExams } from '../components/StudentExams'
+import { Avatar, AvatarPicker } from '../components/Avatar'
+import type { AvatarConfig } from '../lib/avatar'
 import { StudentMessages } from '../components/StudentMessages'
 import { DiscoveryJournal } from '../components/Discoveries'
 import { campOfClass, journeyOf, staysOf } from '../lib/discoveries'
@@ -46,6 +48,7 @@ export default function StudentRecord() {
   const [msg, setMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [picking, setPicking] = useState(false)
 
   useEffect(() => {
     if (data?.student) {
@@ -101,9 +104,15 @@ export default function StudentRecord() {
       <Seo title={student.name} noindex />
       <Link to="/students" className="text-[15px] font-bold underline underline-offset-2">All students</Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-4">
+          <button className="group relative shrink-0 rounded-full" onClick={() => setPicking(true)} aria-label={student.avatar ? 'Change avatar' : 'Choose an avatar'} title={student.avatar ? 'Change avatar' : 'Choose an avatar'}>
+            <Avatar avatar={student.avatar} name={student.name} size={80} color={cls?.color} className="ring-4 ring-line transition group-hover:ring-ink/40" />
+            <span className="absolute -bottom-1 -right-1 rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-white">{student.avatar ? 'Edit' : 'Add'}</span>
+          </button>
+          <div>
           <h1 className="text-4xl font-extrabold">{student.name}</h1>
           <p className="mt-1 text-inksoft">{cls && <Link to={`/classes/${cls.id}`} className="underline underline-offset-2">{cls.name}</Link>}{(student.level || cls?.level) && `, level ${student.level || cls?.level}`}</p>
+          </div>
         </div>
         {running ? (
           <Link to={`/students/${student.id}/class/${running.id}`} className="btn-sun !px-6 !py-3 text-base">Continue class (started {formatTime(running.startedAt)})</Link>
@@ -113,6 +122,9 @@ export default function StudentRecord() {
       </div>
 
       {msg && <div className="mt-4"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
+      {picking && <AvatarPicker value={student.avatar} name={student.name} onClose={() => setPicking(false)} onSave={async (a: AvatarConfig | null) => {
+        try { await api.saveStudent({ id: student.id, classId: student.classId, name: student.name, avatar: a }); setPicking(false); reload() } catch (e) { setMsg({ tone: 'error', text: errorMessage(e) }); setPicking(false) }
+      }} />}
 
       <div className="mt-6"><PerformanceCard perf={perf} name={student.name} /></div>
 
@@ -186,6 +198,10 @@ export default function StudentRecord() {
             </div>
             {editing ? (
               <form onSubmit={saveDetails} className="mt-4 grid gap-4">
+                <div className="flex items-center gap-3">
+                  <Avatar avatar={student.avatar} name={student.name} size={48} color={cls?.color} />
+                  <button type="button" className="btn-ghost !py-1.5" onClick={() => setPicking(true)}>{student.avatar ? 'Change avatar' : 'Choose avatar'}</button>
+                </div>
                 <Field label="Name" htmlFor="dName"><Input id="dName" required value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} /></Field>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Class" htmlFor="dClass" hint="Moving a student keeps their past awards.">

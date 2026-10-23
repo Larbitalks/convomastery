@@ -6,6 +6,8 @@ import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { PerformanceMini } from '../components/Performance'
+import { Avatar, AvatarPicker } from '../components/Avatar'
+import type { AvatarConfig } from '../lib/avatar'
 import { useStudentUnread } from '../lib/useUnread'
 import { computePerformance, toScoreClasses, toScoreExams, toScoreHomework } from '../lib/performance'
 
@@ -22,6 +24,8 @@ export default function Students() {
   })
   const unread = useStudentUnread()
   const [adding, setAdding] = useState(false)
+  const [newAvatar, setNewAvatar] = useState<AvatarConfig | null>(null)
+  const [picking, setPicking] = useState(false)
   const [form, setForm] = useState({ name: '', classId: '' })
   const [err, setErr] = useState<string | null>(null)
   const set = (k: string, v: string) => {
@@ -53,7 +57,7 @@ export default function Students() {
 
   const add = async (e: FormEvent) => {
     e.preventDefault(); setErr(null)
-    try { await api.saveStudent({ name: form.name.trim(), classId: form.classId }); setForm({ name: '', classId: form.classId }); setAdding(false); reload() }
+    try { await api.saveStudent({ name: form.name.trim(), classId: form.classId, avatar: newAvatar }); setForm({ name: '', classId: form.classId }); setNewAvatar(null); setAdding(false); reload() }
     catch (e2) { setErr(errorMessage(e2)) }
   }
 
@@ -70,8 +74,12 @@ export default function Students() {
       <p className="mt-2 max-w-2xl text-inksoft">Every student across your classes. Open a student to see their full record: details, lesson notes, awards and homework.</p>
 
       {adding && (
-        <form onSubmit={add} className="panel mt-6 grid gap-4 p-5 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
-          {err && <div className="sm:col-span-3"><Notice tone="error">{err}</Notice></div>}
+        <form onSubmit={add} className="panel mt-6 grid gap-4 p-5 sm:grid-cols-[auto_2fr_1fr_auto] sm:items-end">
+          {err && <div className="sm:col-span-4"><Notice tone="error">{err}</Notice></div>}
+          <button type="button" className="flex items-center gap-2 text-left text-sm font-bold" onClick={() => setPicking(true)} aria-label="Choose an avatar">
+            <Avatar avatar={newAvatar} name={form.name || '?'} size={48} />
+            <span className="underline">{newAvatar ? 'Change avatar' : 'Choose avatar'}</span>
+          </button>
           <Field label="Name" htmlFor="newStudentName"><Input id="newStudentName" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
           <Field label="Class" htmlFor="newStudentClass">
             <Select id="newStudentClass" value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })}>
@@ -81,6 +89,7 @@ export default function Students() {
           <button className="btn-primary">Add student</button>
         </form>
       )}
+      {picking && <AvatarPicker value={newAvatar} name={form.name.trim() || 'the new student'} onClose={() => setPicking(false)} onSave={(a) => { setNewAvatar(a); setPicking(false) }} />}
 
       {data.classes.length === 0 ? (
         <div className="panel mt-8 p-8">
@@ -112,7 +121,7 @@ export default function Students() {
                 <tbody className="divide-y-2 divide-line">
                   {rows.map(({ s, cls, points, homework, lastNote, perf }) => (
                     <tr key={s.id} className="hover:bg-board/50">
-                      <td className="px-4 py-3 font-bold"><Link to={`/students/${s.id}`} className="underline underline-offset-2">{s.name}</Link>{unread[s.id] > 0 && <span className="ml-2 rounded-full bg-coral px-1.5 text-[12px] text-white" title="New messages">{unread[s.id]} new</span>}</td>
+                      <td className="px-4 py-3 font-bold"><span className="flex items-center gap-2.5"><Avatar avatar={s.avatar} name={s.name} size={34} color={cls?.color} /><Link to={`/students/${s.id}`} className="underline underline-offset-2">{s.name}</Link>{unread[s.id] > 0 && <span className="ml-2 rounded-full bg-coral px-1.5 text-[12px] text-white" title="New messages">{unread[s.id]} new</span>}</span></td>
                       <td className="px-4 py-3"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls?.color }} aria-hidden="true" />{cls?.name}</td>
                       <td className="px-4 py-3">{s.level || cls?.level}</td>
                       <td className="px-4 py-3"><PerformanceMini perf={perf} /></td>

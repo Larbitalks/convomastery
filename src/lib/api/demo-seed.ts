@@ -1,3 +1,4 @@
+import { presetAvatar } from '../avatar'
 // Sample classes, students, homework, bookings and messages for demo mode.
 import { DEFAULT_AWARD_CATEGORIES } from '../types'
 import type { DemoDb } from './demo'
@@ -21,6 +22,8 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
   const students: DemoDb['students'] = classes.flatMap((c) =>
     names[c.id].map((n, i) => ({ id: `s-${c.id}-${i}`, ownerId: c.ownerId, classId: c.id, name: n, notes: '', level: c.level, contact: '', goals: '', shareCode: null, showBehaviour: false, createdAt: c.createdAt })),
   )
+  // Most demo students have an avatar; a couple don't, to show the initials
+  students.forEach((s, i) => { if (i % 5 !== 4) s.avatar = presetAvatar(i * 3 + 1) })
   Object.assign(students[0], { shareCode: 'DEMO-AMY2-CODE', contact: "Parent: Mrs Lee, lee.family@example.com", goals: 'Speak more fluently in debates; use linking words', notes: 'Confident speaker, sometimes rushes answers.' })
   Object.assign(students[1], { goals: 'Build confidence speaking in front of the group', notes: 'Quiet at first, warms up in pair work.' })
   const studentNotes: DemoDb['studentNotes'] = [

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { computePerformance, toScoreClasses, toScoreExams, toScoreHomework } from '../lib/performance'
 import { HOMEWORK_STATES } from '../components/StudentHomework'
+import { Avatar } from '../components/Avatar'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -113,7 +114,7 @@ function Overview({ classId }: { classId: string }) {
       {rows.map(({ s, classes, last, awards, points, homework, perf }) => (
         <Link key={s.id} to={`/students/${s.id}`} className="rounded-2xl border-2 border-line bg-white p-4 hover:border-ink/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-lg font-bold">{s.name}</span>
+            <span className="flex items-center gap-2.5"><Avatar avatar={s.avatar} name={s.name} size={40} /><span className="text-lg font-bold">{s.name}</span></span>
             {perf.score !== null && perf.band ? (
               <span className="flex items-center gap-2">
                 {perf.trend !== null && Math.abs(perf.trend) >= 3 && (

@@ -8,6 +8,8 @@ import { Seo } from '../lib/seo'
 import { DEFAULT_EXAM_TOTALS, textOn, type Exam, type HomeworkState } from '../lib/types'
 import { StudentExams } from '../components/StudentExams'
 import { MessageThread } from '../components/MessageThread'
+import { Avatar } from '../components/Avatar'
+import { cleanAvatar } from '../lib/avatar'
 import { studentMapPeople } from '../lib/mapPeople'
 import { DiscoveryJournal, DiscoveryReveal } from '../components/Discoveries'
 import { campOfClass, journeyOf, staysOf, type Found } from '../lib/discoveries'
@@ -83,9 +85,12 @@ export function ProgressView() {
       <Seo title={`${data.name}'s progress`} noindex />
       <p className="text-[15px] text-inksoft">Your progress page</p>
       <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-extrabold">{data.name}</h1>
-          <p className="mt-1 text-inksoft">{data.className}{data.level ? `, level ${data.level}` : ''}</p>
+        <div className="flex items-center gap-4">
+          <Avatar avatar={cleanAvatar(data.avatar)} name={data.name} size={80} className="ring-4 ring-line" />
+          <div>
+            <h1 className="text-4xl font-extrabold">{data.name}</h1>
+            <p className="mt-1 text-inksoft">{data.className}{data.level ? `, level ${data.level}` : ''}</p>
+          </div>
         </div>
         <a href="#messages" className="btn-primary !px-6 !py-3 text-base">Message {first}</a>
       </div>

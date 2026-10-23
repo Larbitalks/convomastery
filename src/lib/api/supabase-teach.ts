@@ -2,6 +2,7 @@
 import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam, StudentMessage, ClassMove } from '../types'
 import { DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS } from '../types'
 import { supabase } from './supabase'
+import { cleanAvatar } from '../avatar'
 
 type Row = Record<string, any>
 function check<T = any>(res: { data: T | null; error: { message: string } | null }): T {
@@ -11,7 +12,7 @@ function check<T = any>(res: { data: T | null; error: { message: string } | null
 const notify = (fn: string, body: object) => { supabase.functions.invoke(fn, { body }).catch(() => {}) }
 
 const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.level, color: r.color, image: r.image ?? null, createdAt: r.created_at })
-const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showOnMap: r.show_on_map ?? true, showBehaviour: Boolean(r.show_behaviour), createdAt: r.created_at })
+const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showOnMap: r.show_on_map ?? true, avatar: cleanAvatar(r.avatar), showBehaviour: Boolean(r.show_behaviour), createdAt: r.created_at })
 const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
 const toAward = (r: Row): Award => ({ id: r.id, classId: r.class_id, studentId: r.student_id, categoryId: r.category_id, points: r.points, lessonId: r.lesson_id, createdAt: r.created_at })
@@ -64,12 +65,13 @@ export const supabaseTeach: TeachApi = {
     if (classId) q = q.eq('class_id', classId)
     return check(await q).map(toStudent)
   },
-  async saveStudent({ id, classId, name, notes, level, contact, goals }) {
+  async saveStudent({ id, classId, name, notes, level, contact, goals, avatar }) {
     const row: Row = { class_id: classId, name }
     if (notes !== undefined) row.notes = notes
     if (level !== undefined) row.level = level
     if (contact !== undefined) row.contact = contact
     if (goals !== undefined) row.goals = goals
+    if (avatar !== undefined) row.avatar = avatar
     return toStudent(await upsert('students', row, id))
   },
   async deleteStudent(id) { check(await supabase.from('students').delete().eq('id', id)) },
