@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Input, Notice, Spinner } from '../components/ui'
 import { api } from '../lib/api'
@@ -8,6 +8,8 @@ import { Seo } from '../lib/seo'
 import { DEFAULT_EXAM_TOTALS, textOn, type Exam, type HomeworkState } from '../lib/types'
 import { StudentExams } from '../components/StudentExams'
 import { MessageThread } from '../components/MessageThread'
+import { DiscoveryJournal, DiscoveryReveal } from '../components/Discoveries'
+import { journeyOf } from '../lib/discoveries'
 import { PerformanceCard } from '../components/Performance'
 import { computePerformance } from '../lib/performance'
 
@@ -63,6 +65,7 @@ export function ProgressView() {
     )
   }
 
+  const journey = journeyOf(data.awardLog ?? [])
   const teacher = data.teacherName || 'your teacher'
   const first = teacher.split(/[\s(]/)[0] || 'your teacher'
   const perf = data.classes
@@ -88,7 +91,7 @@ export function ProgressView() {
       {perf && perf.score !== null && <div className="mt-6"><PerformanceCard perf={perf} name={data.name} /></div>}
 
       <dl className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-3">
-        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Award points</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{data.totalPoints}</dd></div>
+        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Points to next discovery</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{journey.current} / {journey.needed}</dd><dd className="text-sm text-inksoft">Lifetime {journey.lifetime}, {journey.unlocked.length} {journey.unlocked.length === 1 ? 'discovery' : 'discoveries'}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Classes taken</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{data.classesTaken ?? 0}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Lesson notes</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{data.notes.length}</dd></div>
       </dl>
@@ -144,6 +147,8 @@ export function ProgressView() {
               )}
             </section>
           )}
+
+          <DiscoveryJournal own journey={journey} name={data.name} />
 
           <StudentExams readOnly studentId="" name={data.name} exams={exams} totals={DEFAULT_EXAM_TOTALS} onChange={() => {}} />
 
@@ -225,6 +230,25 @@ export function ProgressView() {
       </div>
 
       <p className="mt-16 text-sm text-inksoft">This page is just for you. Keep your code private.</p>
+      <Celebrate code={code} name={data.name} count={journey.unlocked.length} />
     </div>
   )
+}
+
+/** Shows each discovery unlocked since this browser last opened the page, one after another */
+function Celebrate({ code, name, count }: { code: string; name: string; count: number }) {
+  const key = `cm-discoveries-seen-${code.toUpperCase().replace(/[^A-Z0-9]/g, '')}`
+  const [queue, setQueue] = useState<number[]>([])
+  useEffect(() => {
+    let seen = 0
+    try { seen = Number(localStorage.getItem(key) ?? '-1') } catch { seen = count }
+    // First visit on this device: celebrate only the newest one
+    const from = seen < 0 ? Math.max(0, count - 1) : seen
+    if (count > from) setQueue(Array.from({ length: count - from }, (_, i) => from + i + 1))
+  }, [key, count])
+  if (!queue.length) return null
+  return <DiscoveryReveal number={queue[0]} name={name} more={queue.length - 1} onClose={() => {
+    try { localStorage.setItem(key, String(queue[0])) } catch { /* private window: show again next time */ }
+    setQueue(queue.slice(1))
+  }} />
 }

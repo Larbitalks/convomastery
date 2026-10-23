@@ -128,6 +128,7 @@ const demoTeach: TeachApi = {
       className: cls?.name ?? '',
       level: s.level || cls?.level || '',
       totalPoints: awards.reduce((t, a) => t + a.points, 0),
+      awardLog: awards.map((a) => ({ points: a.points, at: a.createdAt })),
       categories: cats.map((c) => ({ name: c.name, color: c.color, points: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0), count: awards.filter((a) => a.categoryId === c.id).length })),
       recentAwards: [...awards].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10).map((a) => {
         const c = db.awardCategories.find((x) => x.id === a.categoryId)

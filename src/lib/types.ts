@@ -197,6 +197,8 @@ export interface StudentProgress {
   className: string
   level: string
   totalPoints: number
+  /** Every award, for the discovery journey */
+  awardLog?: { points: number; at: string }[]
   categories: { name: string; color: string; points: number; count?: number }[]
   recentAwards: { date: string; category: string; color: string; points: number; lesson: string | null }[]
   homework: { title: string; instructions: string; dueDate: string; status: HomeworkState; feedback: string }[]

@@ -12,6 +12,8 @@ import { config } from '../lib/config'
 import { PerformanceCard } from '../components/Performance'
 import { StudentExams } from '../components/StudentExams'
 import { StudentMessages } from '../components/StudentMessages'
+import { DiscoveryJournal } from '../components/Discoveries'
+import { journeyOf } from '../lib/discoveries'
 import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { reviewLabel } from './ClassSession'
 
@@ -54,6 +56,7 @@ export default function StudentRecord() {
   if (loading && !data) return <Spinner />
   if (!data) return <Notice tone="error">This student no longer exists. <Link to="/students" className="underline">Back to students</Link></Notice>
   const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options, exams, examTotals } = data
+  const journey = journeyOf(awards.map((a) => ({ points: a.points, at: a.createdAt })))
   const perf = computePerformance(toScoreClasses(sessions, awards, options), toScoreHomework(student.id, homework, statuses), exams)
   const running = sessions.find((x) => !x.endedAt)
   const cls = classes.find((c) => c.id === student.classId)
@@ -112,7 +115,7 @@ export default function StudentRecord() {
       <div className="mt-6"><PerformanceCard perf={perf} name={student.name} /></div>
 
       <dl className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-3">
-        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Award points</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{totalPoints}</dd></div>
+        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Points to next discovery</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{journey.current} / {journey.needed}</dd><dd className="text-sm text-inksoft">Lifetime {totalPoints}, {journey.unlocked.length} {journey.unlocked.length === 1 ? 'discovery' : 'discoveries'}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Classes taken</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{sessions.filter((x) => x.endedAt).length}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Lesson notes</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{notes.length}</dd></div>
       </dl>
@@ -157,6 +160,8 @@ export default function StudentRecord() {
           </section>
 
           <ClassHistory studentId={student.id} sessions={sessions} lessons={lessons} onChange={reload} />
+
+          <DiscoveryJournal journey={journey} name={student.name} />
 
           <StudentExams studentId={student.id} name={student.name} exams={exams} totals={examTotals} onChange={reload} />
 
