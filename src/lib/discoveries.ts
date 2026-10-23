@@ -185,23 +185,22 @@ export function unlockedCount(points: number) {
 }
 
 // ----- The mountain map -----
-/** Trail through each camp on the map picture (1536 x 1024 pixels), from the start of the camp upwards */
-export const MAP_SIZE = { w: 1536, h: 1024 }
-export const TRAIL: Record<Tier, [number, number][]> = {
-  Explorers: [[150, 905], [230, 870], [300, 830], [378, 818], [362, 750]],
-  Trekkers: [[420, 700], [560, 650], [640, 630], [758, 588], [740, 540]],
-  Climbers: [[800, 515], [770, 462], [870, 422], [968, 412], [1027, 375], [980, 336]],
-  Mountaineers: [[1048, 305], [1150, 295], [1235, 283], [1265, 229], [1250, 196]],
-  Alpinists: [[1290, 176], [1300, 148], [1335, 105], [1376, 70]],
-}
-/** Where the camp signs are, for zooming to a camp */
-export const CAMP_SIGN: Record<Tier, [number, number]> = {
-  Explorers: [495, 790], Trekkers: [600, 560], Climbers: [845, 368], Mountaineers: [1080, 235], Alpinists: [1375, 118],
+/** The whole mountain (overview) and one detailed picture per camp, all in public/map */
+export const OVERVIEW = { src: 'map/overview.webp', w: 1774, h: 887 }
+/** Where each camp's stop is on the overview */
+export const OVERVIEW_STOP: Record<Tier, [number, number]> = { Explorers: [625, 748], Trekkers: [905, 538], Climbers: [1040, 383], Mountaineers: [1130, 242], Alpinists: [1240, 100] }
+/** Each camp's picture and its trail, from START to the camp at the end (pixels on the picture) */
+export const CAMP_MAPS: Record<Tier, { src: string; w: number; h: number; trail: [number, number][] }> = {
+  Explorers: { src: 'map/explorers.webp', w: 2172, h: 724, trail: [[150, 495], [240, 560], [360, 555], [440, 500], [520, 470], [590, 433], [655, 418], [720, 392], [800, 382], [880, 370], [960, 355], [1040, 345], [1110, 370], [1200, 420], [1300, 437], [1330, 472], [1440, 515], [1620, 525], [1770, 490], [1850, 412], [1745, 345], [1840, 312], [1930, 268], [1990, 230], [1960, 182], [1900, 150], [1990, 135]] },
+  Trekkers: { src: 'map/trekkers.webp', w: 2172, h: 724, trail: [[130, 520], [250, 605], [340, 585], [490, 565], [600, 540], [720, 505], [850, 480], [965, 462], [1060, 480], [1150, 500], [1215, 470], [1240, 425], [1265, 385], [1330, 365], [1420, 358], [1490, 345], [1580, 320], [1700, 272], [1790, 240], [1830, 205], [1900, 185]] },
+  Climbers: { src: 'map/climbers.webp', w: 2172, h: 724, trail: [[115, 530], [220, 620], [320, 600], [400, 583], [460, 565], [530, 520], [535, 478], [565, 460], [690, 445], [830, 415], [915, 388], [1000, 368], [1100, 320], [1200, 290], [1290, 250], [1380, 255], [1440, 252], [1530, 262], [1620, 280], [1680, 235], [1720, 205], [1760, 175], [1820, 140], [1880, 110], [1960, 95]] },
+  Mountaineers: { src: 'map/mountaineers.webp', w: 2172, h: 724, trail: [[100, 520], [210, 605], [305, 598], [410, 585], [515, 578], [595, 565], [665, 535], [720, 515], [800, 490], [885, 470], [955, 440], [1040, 380], [1150, 385], [1250, 370], [1330, 350], [1390, 320], [1430, 275], [1440, 240], [1500, 205], [1600, 200], [1700, 190], [1760, 175], [1840, 155], [1910, 125], [1960, 95]] },
+  Alpinists: { src: 'map/alpinists.webp', w: 2172, h: 724, trail: [[110, 560], [170, 630], [295, 650], [450, 680], [560, 680], [630, 660], [690, 622], [740, 592], [800, 560], [900, 545], [970, 538], [1030, 518], [1070, 485], [1100, 450], [1080, 420], [1120, 390], [1170, 360], [1220, 330], [1260, 290], [1310, 245], [1360, 205], [1400, 165], [1425, 130], [1415, 108]] },
 }
 
-/** A point part of the way along a camp's trail (0 = start of the camp, 1 = top of the camp) */
+/** A point part of the way along a camp's trail (0 = START, 1 = the camp at the end) */
 export function trailPoint(camp: Tier, t: number): [number, number] {
-  const pts = TRAIL[camp]
+  const pts = CAMP_MAPS[camp].trail
   const lens = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]))
   let d = Math.max(0, Math.min(1, t)) * lens.reduce((a, b) => a + b, 0)
   for (let i = 0; i < lens.length; i++) {

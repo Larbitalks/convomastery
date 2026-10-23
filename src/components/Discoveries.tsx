@@ -57,7 +57,7 @@ export function DiscoveryJournal({ journey, name, own = false, loadMap }: { jour
       {loadMap && (
         <button type="button" onClick={() => setMap(true)}
           className="group relative mt-3 flex w-full items-center gap-4 overflow-hidden rounded-2xl border-2 border-ink text-left text-white shadow-[4px_4px_0_#3D405B] transition-transform hover:-translate-y-0.5">
-          <img src={`${import.meta.env.BASE_URL}mountain-map-thumb.webp`} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <img src={`${import.meta.env.BASE_URL}map/overview-thumb.webp`} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
           <span className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/50 to-transparent" aria-hidden="true" />
           <span className="relative px-5 py-5">
             <span className="block text-xl font-extrabold">See the mountain map</span>
