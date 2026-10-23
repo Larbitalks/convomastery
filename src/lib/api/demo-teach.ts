@@ -81,6 +81,7 @@ const demoTeach: TeachApi = {
     db.studentNotes = db.studentNotes.filter((n) => n.studentId !== id)
     db.sessions = db.sessions.filter((x) => x.studentId !== id)
     db.exams = db.exams.filter((x) => x.studentId !== id)
+    db.studentMessages = db.studentMessages.filter((x) => x.studentId !== id)
     save()
   },
   async listAllAwards() { return mine(load().awards).map(strip) },
@@ -119,10 +120,15 @@ const demoTeach: TeachApi = {
     const st = (hid: string) => db.homeworkStatus.find((x) => x.homeworkId === hid && x.studentId === s.id)
     return {
       name: s.name,
+      goals: s.goals ?? '',
+      teacherName: db.users.find((u) => u.id === s.ownerId)?.fullName || 'your teacher',
+      classesTaken: db.sessions.filter((x) => x.studentId === s.id && x.endedAt).length,
+      messages: db.studentMessages.filter((m) => m.studentId === s.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).slice(-100)
+        .map((m) => ({ fromTeacher: m.fromTeacher, body: m.body, createdAt: m.createdAt })),
       className: cls?.name ?? '',
       level: s.level || cls?.level || '',
       totalPoints: awards.reduce((t, a) => t + a.points, 0),
-      categories: cats.map((c) => ({ name: c.name, color: c.color, points: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0) })),
+      categories: cats.map((c) => ({ name: c.name, color: c.color, points: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0), count: awards.filter((a) => a.categoryId === c.id).length })),
       recentAwards: [...awards].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10).map((a) => {
         const c = db.awardCategories.find((x) => x.id === a.categoryId)
         return { date: a.createdAt, category: c?.name ?? 'Award', color: c?.color ?? '#3D405B', points: a.points, lesson: db.lessons.find((l) => l.id === a.lessonId)?.title ?? null }
@@ -140,7 +146,8 @@ const demoTeach: TeachApi = {
           const tally = new Map<string, { label: string; color: string; count: number }>()
           x.behaviour.forEach((m) => { const t = tally.get(m.label) ?? { label: m.label, color: m.color, count: 0 }; t.count++; tally.set(m.label, t) })
           const { review, points, positive, negative } = scored[i]
-          return { date: x.date, attendance: x.attendance, behaviour: [...tally.values()].sort((a, b) => b.count - a.count), review, points, positive, negative }
+          return { date: x.date, attendance: x.attendance, behaviour: [...tally.values()].sort((a, b) => b.count - a.count), review, points, positive, negative,
+            lesson: db.lessons.find((l) => l.id === x.lessonId)?.title ?? null, minutes: Math.round((new Date(x.endedAt!).getTime() - new Date(x.startedAt).getTime()) / 60000) }
         })
       })() : null,
     }
@@ -208,6 +215,52 @@ const demoTeach: TeachApi = {
   },
   async saveExamTotals(totals) {
     requireUser().examTotals = totals
+    save()
+  },
+  async listStudentMessages(studentId) {
+    own(load().students, studentId, 'student')
+    return mine(load().studentMessages).filter((m) => m.studentId === studentId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(strip)
+  },
+  async replyToStudent(studentId, body) {
+    const u = requireUser()
+    own(load().students, studentId, 'student')
+    if (!body.trim()) throw new Error('Write a reply first.')
+    const m = { id: 'sm-' + uid(), ownerId: u.id, studentId, fromTeacher: true, body: body.trim(), read: true, createdAt: new Date().toISOString() }
+    load().studentMessages.push(m)
+    save()
+    return strip(m)
+  },
+  async markStudentMessagesRead(studentId) {
+    mine(load().studentMessages).filter((m) => m.studentId === studentId && !m.fromTeacher).forEach((m) => { m.read = true })
+    save()
+    window.dispatchEvent(new Event('cm:messages-read'))
+  },
+  async deleteStudentMessage(id) {
+    own(load().studentMessages, id, 'message')
+    const db = load()
+    db.studentMessages = db.studentMessages.filter((m) => m.id !== id)
+    save()
+  },
+  async unreadStudentMessages() {
+    if (!currentUser()) return {}
+    const out: Record<string, number> = {}
+    mine(load().studentMessages).filter((m) => !m.fromTeacher && !m.read).forEach((m) => { out[m.studentId] = (out[m.studentId] ?? 0) + 1 })
+    return out
+  },
+  async sendStudentMessage(code, body) {
+    await wait(200)
+    const norm = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '')
+    const db = load()
+    const s = norm(code).length >= 10 ? db.students.find((x) => x.shareCode && norm(x.shareCode) === norm(code)) : undefined
+    if (!s) throw new Error('This code does not work.')
+    const text = body.trim()
+    if (!text) throw new Error('Write a message first.')
+    if (text.length > 2000) throw new Error('Please keep your message under 2000 characters.')
+    const dayAgo = new Date(Date.now() - 864e5).toISOString()
+    if (db.studentMessages.filter((m) => m.studentId === s.id && !m.fromTeacher && m.createdAt > dayAgo).length >= 10) {
+      throw new Error('You have sent 10 messages today. Please wait until tomorrow, or talk to your teacher in class.')
+    }
+    db.studentMessages.push({ id: 'sm-' + uid(), ownerId: s.ownerId, studentId: s.id, fromTeacher: false, body: text, read: false, createdAt: new Date().toISOString() })
     save()
   },
   async listAllClassSessions() {

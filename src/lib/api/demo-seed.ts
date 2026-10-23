@@ -6,7 +6,7 @@ const day = 24 * 60 * 60 * 1000
 const iso = (d: Date) => d.toISOString()
 const ymd = (d: Date) => d.toISOString().slice(0, 10)
 
-export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'sessions' | 'exams' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
+export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'sessions' | 'exams' | 'studentMessages' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
   const now = new Date()
   const classes: DemoDb['classes'] = [
     { id: 'c-teens', ownerId: 'u-admin', name: 'Thursday Teens', level: 'B1', color: '#46725D', createdAt: iso(new Date(now.getTime() - 30 * day)) },
@@ -89,5 +89,8 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
     { id: 'ex-1', ownerId: 'u-admin', studentId: 's-c-teens-0', type: 'unit', title: 'Unit 1: Lucky Breaks', date: ymd(new Date(now.getTime() - 14 * day)), score: 17, outOf: 20, feedback: 'Strong vocabulary. Check past tense endings.', createdAt: iso(new Date(now.getTime() - 14 * day)) },
     { id: 'ex-2', ownerId: 'u-admin', studentId: 's-c-teens-0', type: 'unit', title: 'Unit 2: Sleep On It', date: ymd(new Date(now.getTime() - 6 * day)), score: 15, outOf: 20, feedback: '', createdAt: iso(new Date(now.getTime() - 6 * day)) },
   ]
-  return { classes, students, studentNotes, sessions, exams, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
+  const studentMessages: DemoDb['studentMessages'] = [
+    { id: 'sm-1', ownerId: 'u-admin', studentId: 's-c-teens-0', fromTeacher: false, body: 'Hi teacher, is the family interview homework for Monday or Thursday?', read: false, createdAt: iso(new Date(now.getTime() - 3 * 3600_000)) },
+  ]
+  return { classes, students, studentNotes, sessions, exams, studentMessages, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
 }

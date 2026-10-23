@@ -11,6 +11,7 @@ import { BehaviourBar, tallyOf } from './ClassSession'
 import { config } from '../lib/config'
 import { PerformanceCard } from '../components/Performance'
 import { StudentExams } from '../components/StudentExams'
+import { StudentMessages } from '../components/StudentMessages'
 import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { reviewLabel } from './ClassSession'
 
@@ -169,6 +170,7 @@ export default function StudentRecord() {
         </div>
 
         <div className="grid content-start gap-8">
+          <StudentMessages studentId={student.id} name={student.name} hasCode={Boolean(student.shareCode)} />
           <SharePanel studentId={student.id} name={student.name} code={student.shareCode} showBehaviour={student.showBehaviour} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
           <section className="panel p-5">
             <div className="flex items-center justify-between gap-3">
@@ -268,7 +270,7 @@ function SharePanel({ studentId, name, code, showBehaviour, sharedNotes, onChang
       {err && <div className="mt-3"><Notice tone="error">{err}</Notice></div>}
       {!code ? (
         <>
-          <p className="mt-2 text-[15px] text-inksoft">Give {name} (or a parent) a private code to see their points, homework and the notes you choose to share. They can look but not change anything, and no account is needed.</p>
+          <p className="mt-2 text-[15px] text-inksoft">Give {name} (or a parent) a private code to see their profile: points, homework, exams and the notes you choose to share. They can look but not change anything, and can send you messages. No account is needed.</p>
           <button className="btn-primary mt-4" disabled={busy} onClick={() => set(newShareCode())}>{busy ? 'Creating' : 'Create a progress code'}</button>
         </>
       ) : (
@@ -287,7 +289,7 @@ function SharePanel({ studentId, name, code, showBehaviour, sharedNotes, onChang
               <button className="btn-ghost !py-1.5" onClick={() => copy(link, 'link')}>{copied === 'link' ? 'Copied' : 'Copy link'}</button>
             </div>
           </div>
-          <p className="text-[14px] text-inksoft">They see their points, homework, exam results and feedback, and {sharedNotes === 1 ? '1 shared note' : `${sharedNotes} shared notes`}. Private notes and contact details stay hidden.</p>
+          <p className="text-[14px] text-inksoft">They see this profile without the edit buttons: points, homework, exam results, feedback and {sharedNotes === 1 ? '1 shared note' : `${sharedNotes} shared notes`}. Private notes and contact details stay hidden.</p>
           <label className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
             <span>
               <span className="block font-bold">Show attendance and behaviour</span>

@@ -12,7 +12,7 @@ const num = (v: string) => (v.trim() === '' ? NaN : Number(v.replace(',', '.')))
 type Draft = { id?: string; type: ExamType; title: string; date: string; score: string; outOf: string; feedback: string }
 
 /** Exam results for one student: unit exams, mid-terms and finals */
-export function StudentExams({ studentId, name, exams, totals, onChange }: { studentId: string; name: string; exams: Exam[]; totals: ExamTotals; onChange: () => void }) {
+export function StudentExams({ studentId, name, exams, totals, onChange, readOnly = false }: { studentId: string; name: string; exams: Exam[]; totals: ExamTotals; onChange: () => void; readOnly?: boolean }) {
   const blank = (type: ExamType = 'unit'): Draft => ({ type, title: '', date: today(), score: '', outOf: String(totals[type]), feedback: '' })
   const [draft, setDraft] = useState<Draft | null>(null)
   const [editTotals, setEditTotals] = useState(false)
@@ -43,10 +43,10 @@ export function StudentExams({ studentId, name, exams, totals, onChange }: { stu
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-extrabold">Exams</h2>
-        <div className="flex flex-wrap items-center gap-3">
+        {!readOnly && <div className="flex flex-wrap items-center gap-3">
           <button className="text-sm font-bold underline" onClick={() => { setEditTotals(!editTotals); setDraft(null) }} aria-expanded={editTotals}>Usual scores</button>
           {!draft && <button className="btn-primary" onClick={() => { setDraft(blank()); setEditTotals(false); setErr(null) }}>Add exam result</button>}
-        </div>
+        </div>}
       </div>
 
       {editTotals && <TotalsEditor totals={totals} onDone={() => { setEditTotals(false); onChange() }} />}
@@ -96,7 +96,7 @@ export function StudentExams({ studentId, name, exams, totals, onChange }: { stu
       )}
 
       {exams.length === 0 ? (
-        !draft && <p className="mt-3 text-inksoft">No exam results yet. Add unit exams, mid-terms and finals here. They count towards {name}'s overall performance.</p>
+        !draft && <p className="mt-3 text-inksoft">{readOnly ? 'No exam results yet.' : `No exam results yet. Add unit exams, mid-terms and finals here. They count towards ${name}'s overall performance.`}</p>
       ) : (
         <ul className="mt-4 grid gap-3">
           {exams.map((e) => {
@@ -120,12 +120,12 @@ export function StudentExams({ studentId, name, exams, totals, onChange }: { stu
                   <div className="h-full rounded-full" style={{ width: `${Math.max(p, 2)}%`, backgroundColor: b.color }} />
                 </div>
                 {e.feedback && <p className="mt-2 whitespace-pre-line text-[15px]">{e.feedback}</p>}
-                <div className="mt-2 flex gap-3 text-sm font-bold">
+                {!readOnly && <div className="mt-2 flex gap-3 text-sm font-bold">
                   <button className="underline" onClick={() => { setDraft({ id: e.id, type: e.type, title: e.title, date: e.date, score: String(e.score), outOf: String(e.outOf), feedback: e.feedback }); setErr(null) }}>Edit</button>
                   {confirm === e.id ? (
                     <span>Delete this result? <button className="text-coral underline" onClick={async () => { try { await api.deleteExam(e.id); setConfirm(null); onChange() } catch (x) { setErr(errorMessage(x)) } }}>Delete</button> <button className="underline" onClick={() => setConfirm(null)}>Keep</button></span>
                   ) : <button className="underline" onClick={() => setConfirm(e.id)}>Delete</button>}
-                </div>
+                </div>}
               </li>
             )
           })}

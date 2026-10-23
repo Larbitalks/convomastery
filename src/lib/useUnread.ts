@@ -18,3 +18,20 @@ export function useUnread() {
   }, [session])
   return count
 }
+
+/** Unread messages from students (by student), refreshed like useUnread. */
+export function useStudentUnread() {
+  const { session } = useAuth()
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  useEffect(() => {
+    if (!session) { setCounts({}); return }
+    let alive = true
+    const tick = () => api.unreadStudentMessages().then((c) => alive && setCounts(c)).catch(() => {})
+    tick()
+    const t = setInterval(tick, 30_000)
+    window.addEventListener('focus', tick)
+    window.addEventListener('cm:messages-read', tick)
+    return () => { alive = false; clearInterval(t); window.removeEventListener('focus', tick); window.removeEventListener('cm:messages-read', tick) }
+  }, [session])
+  return counts
+}

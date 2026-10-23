@@ -6,6 +6,7 @@ import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { PerformanceMini } from '../components/Performance'
+import { useStudentUnread } from '../lib/useUnread'
 import { computePerformance, toScoreClasses, toScoreExams, toScoreHomework } from '../lib/performance'
 
 export default function Students() {
@@ -19,6 +20,7 @@ export default function Students() {
     ])
     return { classes, students, awards, homework, statuses, notes, sessions, options, exams }
   })
+  const unread = useStudentUnread()
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ name: '', classId: '' })
   const [err, setErr] = useState<string | null>(null)
@@ -110,7 +112,7 @@ export default function Students() {
                 <tbody className="divide-y-2 divide-line">
                   {rows.map(({ s, cls, points, homework, lastNote, perf }) => (
                     <tr key={s.id} className="hover:bg-board/50">
-                      <td className="px-4 py-3 font-bold"><Link to={`/students/${s.id}`} className="underline underline-offset-2">{s.name}</Link></td>
+                      <td className="px-4 py-3 font-bold"><Link to={`/students/${s.id}`} className="underline underline-offset-2">{s.name}</Link>{unread[s.id] > 0 && <span className="ml-2 rounded-full bg-coral px-1.5 text-[12px] text-white" title="New messages">{unread[s.id]} new</span>}</td>
                       <td className="px-4 py-3"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls?.color }} aria-hidden="true" />{cls?.name}</td>
                       <td className="px-4 py-3">{s.level || cls?.level}</td>
                       <td className="px-4 py-3"><PerformanceMini perf={perf} /></td>

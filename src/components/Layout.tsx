@@ -6,7 +6,7 @@ import { DEMO_ADMIN, DEMO_TEACHER, resetDemo } from '../lib/api/demo'
 import { useAuth } from '../lib/auth'
 import { config, isDemo } from '../lib/config'
 import { Logo } from './Logo'
-import { useUnread } from '../lib/useUnread'
+import { useStudentUnread, useUnread } from '../lib/useUnread'
 
 const publicNav = [
   { to: '/lessons', label: 'Lessons' },
@@ -57,6 +57,7 @@ function Dot({ n }: { n: number }) {
 function Header() {
   const { session, isAdmin } = useAuth()
   const unread = useUnread()
+  const studentUnread = Object.values(useStudentUnread()).reduce((a, b) => a + b, 0)
   const [menu, setMenu] = useState(false)
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -73,7 +74,7 @@ function Header() {
       <div className="wrap flex h-[68px] items-center justify-between gap-4">
         <Link to="/" aria-label="ConvoMastery home"><Logo /></Link>
         <nav className="hidden xl:flex items-center gap-0.5" aria-label="Main">
-          {nav.map((n) => <NavLink key={n.to} to={n.to} className={linkCls}>{n.label}{n.to === '/messages' && unread > 0 && <Dot n={unread} />}</NavLink>)}
+          {nav.map((n) => <NavLink key={n.to} to={n.to} className={linkCls}>{n.label}{n.to === '/messages' && unread > 0 && <Dot n={unread} />}{n.to === '/students' && studentUnread > 0 && <Dot n={studentUnread} />}</NavLink>)}
         </nav>
         <div className="hidden xl:flex items-center gap-1">
           <NavLink to="/progress" className={linkCls}>Student progress</NavLink>
@@ -96,7 +97,7 @@ function Header() {
       </div>
       {menu && (
         <nav id="mobile-menu" className="xl:hidden border-t-2 border-line wrap py-3 grid gap-1" aria-label="Mobile">
-          {nav.map((n) => <NavLink key={n.to} to={n.to} className={linkCls}>{n.label}</NavLink>)}
+          {nav.map((n) => <NavLink key={n.to} to={n.to} className={linkCls}>{n.label}{n.to === '/students' && studentUnread > 0 && <Dot n={studentUnread} />}</NavLink>)}
           <NavLink to="/progress" className={linkCls}>Student progress</NavLink>
           {session ? (
             <>

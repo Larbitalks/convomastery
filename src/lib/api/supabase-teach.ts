@@ -1,5 +1,5 @@
 // Live versions of the teaching, booking and messaging functions (Supabase).
-import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam } from '../types'
+import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam, StudentMessage } from '../types'
 import { DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS } from '../types'
 import { supabase } from './supabase'
 
@@ -29,6 +29,7 @@ const toSession = (r: Row): ClassSession => ({
   attendance: r.attendance, review: r.review ?? null, lessonId: r.lesson_id, behaviour: r.behaviour ?? [], covered: r.covered ?? '', newWords: r.new_words ?? '',
   corrections: r.corrections ?? '', notes: r.notes ?? '', noteId: r.note_id, createdAt: r.created_at,
 })
+const toStudentMessage = (r: Row): StudentMessage => ({ id: r.id, studentId: r.student_id, fromTeacher: r.from_teacher, body: r.body, read: r.read, createdAt: r.created_at })
 const toExam = (r: Row): Exam => ({ id: r.id, studentId: r.student_id, type: r.type, title: r.title ?? '', date: r.date, score: Number(r.score), outOf: Number(r.out_of), feedback: r.feedback ?? '', createdAt: r.created_at })
 function fromSessionPatch(p: SessionPatch): Row {
   const map: Record<string, string> = { date: 'date', endedAt: 'ended_at', attendance: 'attendance', review: 'review', lessonId: 'lesson_id', behaviour: 'behaviour', covered: 'covered', newWords: 'new_words', corrections: 'corrections', notes: 'notes', noteId: 'note_id' }
@@ -127,6 +128,29 @@ export const supabaseTeach: TeachApi = {
   },
   async saveExamTotals(totals) {
     check(await supabase.from('profiles').update({ exam_totals: totals }).eq('id', await uid()))
+  },
+  async listStudentMessages(studentId) {
+    return check(await supabase.from('student_messages').select('*').eq('student_id', studentId).order('created_at')).map(toStudentMessage)
+  },
+  async replyToStudent(studentId, body) {
+    const text = body.trim()
+    if (!text) throw new Error('Write a reply first.')
+    return toStudentMessage(await upsert('student_messages', { owner_id: await uid(), student_id: studentId, from_teacher: true, body: text }))
+  },
+  async markStudentMessagesRead(studentId) {
+    check(await supabase.from('student_messages').update({ read: true }).eq('student_id', studentId).eq('from_teacher', false).eq('read', false))
+    window.dispatchEvent(new Event('cm:messages-read'))
+  },
+  async deleteStudentMessage(id) { check(await supabase.from('student_messages').delete().eq('id', id)) },
+  async unreadStudentMessages() {
+    const rows = check(await supabase.from('student_messages').select('student_id').eq('owner_id', await uid()).eq('from_teacher', false).eq('read', false)) as Row[]
+    const out: Record<string, number> = {}
+    rows.forEach((r) => { out[r.student_id] = (out[r.student_id] ?? 0) + 1 })
+    return out
+  },
+  async sendStudentMessage(code, body) {
+    const id = check(await supabase.rpc('send_student_message', { p_code: code, p_body: body })) as string
+    notify('notify-student-message', { id })
   },
   async listAllClassSessions() {
     return check(await supabase.from('class_sessions').select('*').eq('owner_id', await uid())).map(toSession)

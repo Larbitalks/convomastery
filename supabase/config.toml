@@ -4,3 +4,6 @@ verify_jwt = false
 
 [functions.notify-inquiry]
 verify_jwt = false
+
+[functions.notify-student-message]
+verify_jwt = false

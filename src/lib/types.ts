@@ -163,6 +163,7 @@ export const EXAM_TYPES: { value: ExamType; label: string; short: string; color:
 export type ExamTotals = Record<ExamType, number>
 export const DEFAULT_EXAM_TOTALS: ExamTotals = { unit: 20, midterm: 50, final: 100 }
 export interface Exam { id: string; studentId: string; type: ExamType; title: string; date: string; score: number; outOf: number; feedback: string; createdAt: string }
+export interface StudentMessage { id: string; studentId: string; fromTeacher: boolean; body: string; read: boolean; createdAt: string }
 export const examPercent = (e: { score: number; outOf: number }) => Math.round((e.score / e.outOf) * 100)
 /** Dark or white text, whichever reads better on the colour */
 export function textOn(hex: string) {
@@ -189,10 +190,14 @@ export interface StudentNote { id: string; studentId: string; date: string; body
 /** What a student or parent sees on their progress page */
 export interface StudentProgress {
   name: string
+  goals?: string
+  teacherName?: string
+  classesTaken?: number
+  messages?: { fromTeacher: boolean; body: string; createdAt: string }[]
   className: string
   level: string
   totalPoints: number
-  categories: { name: string; color: string; points: number }[]
+  categories: { name: string; color: string; points: number; count?: number }[]
   recentAwards: { date: string; category: string; color: string; points: number; lesson: string | null }[]
   homework: { title: string; instructions: string; dueDate: string; status: HomeworkState; feedback: string }[]
   notes: { date: string; body: string }[]
@@ -202,6 +207,7 @@ export interface StudentProgress {
     date: string; attendance: Attendance; behaviour: { label: string; color: string; count: number }[]
     /** For the overall score (up to 16 classes are sent: 8 shown, 8 more for the trend) */
     review?: Review | null; points?: number; positive?: number; negative?: number
+    lesson?: string | null; minutes?: number
   }[] | null
 }
 
@@ -270,6 +276,15 @@ export interface TeachApi {
   saveExam(input: Omit<Exam, 'id' | 'createdAt'> & { id?: string }): Promise<Exam>
   deleteExam(id: string): Promise<void>
   getExamTotals(): Promise<ExamTotals>
+  /** Messages with one student (teacher side) */
+  listStudentMessages(studentId: string): Promise<StudentMessage[]>
+  replyToStudent(studentId: string, body: string): Promise<StudentMessage>
+  markStudentMessagesRead(studentId: string): Promise<void>
+  deleteStudentMessage(id: string): Promise<void>
+  /** Unread student messages per student */
+  unreadStudentMessages(): Promise<Record<string, number>>
+  /** Student or parent sends a message with their progress code (no account) */
+  sendStudentMessage(code: string, body: string): Promise<void>
   saveExamTotals(totals: ExamTotals): Promise<void>
   updateClassSession(id: string, patch: SessionPatch): Promise<void>
   deleteClassSession(id: string): Promise<void>

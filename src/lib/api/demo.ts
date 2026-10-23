@@ -1,7 +1,7 @@
 // Demo backend: keeps everything in the browser so the site can be explored
 // before Supabase and payments are set up. Nothing here is sent anywhere.
 import { seedCategories, seedLessons } from '../seed'
-import type { Exam, ExamTotals, Award, AwardCategory, Booking, BookingSlot, Category, ClassGroup, ClassSession, CoreApi, StudentNote, BehaviourOption, Homework, HomeworkStatus, Inquiry, Lesson, Message, Profile, Purchase, Session, Student } from '../types'
+import type { StudentMessage, Exam, ExamTotals, Award, AwardCategory, Booking, BookingSlot, Category, ClassGroup, ClassSession, CoreApi, StudentNote, BehaviourOption, Homework, HomeworkStatus, Inquiry, Lesson, Message, Profile, Purchase, Session, Student } from '../types'
 import { seedTeaching } from './demo-seed'
 
 interface DemoUser extends Profile { password: string; behaviourOptions?: BehaviourOption[]; examTotals?: ExamTotals }
@@ -12,6 +12,7 @@ export interface DemoDb {
   studentNotes: Owned<StudentNote>[]
   sessions: Owned<ClassSession>[]
   exams: Owned<Exam>[]
+  studentMessages: Owned<StudentMessage>[]
   awardCategories: Owned<AwardCategory>[]
   awards: Owned<Award>[]
   homework: Owned<Homework>[]
@@ -30,7 +31,7 @@ export interface DemoDb {
 export const DEMO_ADMIN = { email: 'admin@demo.com', password: 'demo1234' }
 export const DEMO_TEACHER = { email: 'teacher@demo.com', password: 'demo1234' }
 
-const KEY = 'convomastery-demo-v9'
+const KEY = 'convomastery-demo-v10'
 const memory: { db: DemoDb | null } = { db: null }
 
 function fresh(): DemoDb {
