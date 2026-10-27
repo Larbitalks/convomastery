@@ -9,6 +9,7 @@ import { Seo } from '../lib/seo'
 import { LEVELS, newShareCode, textOn, type ClassSession, type Lesson } from '../lib/types'
 import { BehaviourBar, tallyOf } from './ClassSession'
 import { config } from '../lib/config'
+import { ShowMore } from '../components/ShowMore'
 import { PerformanceCard } from '../components/Performance'
 import { StudentExams } from '../components/StudentExams'
 import { Avatar, AvatarPicker } from '../components/Avatar'
@@ -51,6 +52,7 @@ export default function StudentRecord() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [starting, setStarting] = useState(false)
   const [picking, setPicking] = useState(false)
+  const [allNotes, setAllNotes] = useState(false)
 
   useEffect(() => {
     if (data?.student) {
@@ -155,7 +157,7 @@ export default function StudentRecord() {
             </form>
             {notes.length === 0 ? <p className="mt-3 text-inksoft">No notes yet. A short note after each lesson builds a useful record over time.</p> : (
               <ol className="mt-4 grid gap-3">
-                {notes.map((n) => (
+                {(allNotes ? notes : notes.slice(0, 1)).map((n) => (
                   <li key={n.id} className={`grid gap-1 border-l-[3px] pl-4 ${n.shared ? 'border-sage' : 'border-line'}`}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-bold text-inksoft">{formatDate(n.date)}</p>
@@ -173,6 +175,7 @@ export default function StudentRecord() {
                 ))}
               </ol>
             )}
+            <ShowMore hidden={notes.length - 1} open={allNotes} onToggle={() => setAllNotes(!allNotes)} what={['note', 'notes']} />
           </section>
 
           <ClassHistory studentId={student.id} sessions={sessions} lessons={lessons} onChange={reload} />
@@ -369,6 +372,7 @@ function SharePanel({ studentId, name, code, showOnMap, showBehaviour, sharedNot
 
 function ClassHistory({ studentId, sessions, lessons, onChange }: { studentId: string; sessions: ClassSession[]; lessons: Lesson[]; onChange: () => void }) {
   const [open, setOpen] = useState<string | null>(null)
+  const [all, setAll] = useState(false)
   const [confirm, setConfirm] = useState<string | null>(null)
   const done = sessions.filter((x) => x.endedAt)
   const label = { present: 'Present', late: 'Late', absent: 'Absent' } as const
@@ -378,7 +382,7 @@ function ClassHistory({ studentId, sessions, lessons, onChange }: { studentId: s
       <h2 className="text-2xl font-extrabold">Class history</h2>
       {done.length === 0 ? <p className="mt-2 text-inksoft">No classes yet. Click Start class at the top when your next lesson begins.</p> : (
         <ul className="mt-3 divide-y-2 divide-line rounded-2xl border-2 border-line bg-white">
-          {done.map((x) => {
+          {(all ? done : done.slice(0, 1)).map((x) => {
             const mins = Math.round((new Date(x.endedAt!).getTime() - new Date(x.startedAt).getTime()) / 60000)
             const lesson = lessons.find((l) => l.id === x.lessonId)
             const isOpen = open === x.id
@@ -419,6 +423,7 @@ function ClassHistory({ studentId, sessions, lessons, onChange }: { studentId: s
           })}
         </ul>
       )}
+      <ShowMore hidden={done.length - 1} open={all} onToggle={() => setAll(!all)} what={['class', 'classes']} />
     </section>
   )
 }

@@ -8,6 +8,7 @@ import { Seo } from '../lib/seo'
 import { DEFAULT_EXAM_TOTALS, textOn, type Exam, type HomeworkState } from '../lib/types'
 import { StudentExams } from '../components/StudentExams'
 import { MessageThread } from '../components/MessageThread'
+import { ShowMore } from '../components/ShowMore'
 import { Avatar } from '../components/Avatar'
 import { cleanAvatar } from '../lib/avatar'
 import { studentMapPeople } from '../lib/mapPeople'
@@ -55,6 +56,8 @@ export function ProgressEntry() {
 export function ProgressView() {
   const { code = '' } = useParams()
   const { data, loading, error, reload } = useLoad(() => api.getStudentProgress(code), [code])
+  const [allNotes, setAllNotes] = useState(false)
+  const [allClasses, setAllClasses] = useState(false)
   const loadMap = useCallback(() => studentMapPeople(code), [code])
 
   if (loading && !data) return <Spinner label="Loading your progress" />
@@ -113,7 +116,7 @@ export function ProgressView() {
             <h2 className="text-2xl font-extrabold">Lesson notes</h2>
             {data.notes.length === 0 ? <p className="mt-2 text-inksoft">No notes from {first} yet.</p> : (
               <ol className="mt-4 grid gap-3">
-                {data.notes.map((n, i) => (
+                {(allNotes ? data.notes : data.notes.slice(0, 1)).map((n, i) => (
                   <li key={i} className="grid gap-1 border-l-[3px] border-sage pl-4">
                     <p className="text-sm font-bold text-inksoft">{formatDate(n.date)}</p>
                     <p className="whitespace-pre-line">{n.body}</p>
@@ -121,6 +124,7 @@ export function ProgressView() {
                 ))}
               </ol>
             )}
+            <ShowMore hidden={data.notes.length - 1} open={allNotes} onToggle={() => setAllNotes(!allNotes)} what={['note', 'notes']} />
           </section>
 
           {data.classes && (
@@ -128,7 +132,7 @@ export function ProgressView() {
               <h2 className="text-2xl font-extrabold">Class history</h2>
               {data.classes.length === 0 ? <p className="mt-2 text-inksoft">No classes yet.</p> : (
                 <ul className="mt-3 divide-y-2 divide-line rounded-2xl border-2 border-line bg-white">
-                  {data.classes.slice(0, 8).map((c, i) => {
+                  {data.classes.slice(0, allClasses ? 8 : 1).map((c, i) => {
                     const total = c.behaviour.reduce((t, b) => t + b.count, 0)
                     const att = { present: ['Present', 'bg-sage-light text-sage-dark'], late: ['Late', 'bg-sun-light'], absent: ['Absent', 'bg-[#FDECEC] text-[#8E1C20]'] }[c.attendance]
                     return (
@@ -156,6 +160,7 @@ export function ProgressView() {
                   })}
                 </ul>
               )}
+              <ShowMore hidden={Math.min(8, data.classes.length) - 1} open={allClasses} onToggle={() => setAllClasses(!allClasses)} what={['class', 'classes']} />
             </section>
           )}
 
