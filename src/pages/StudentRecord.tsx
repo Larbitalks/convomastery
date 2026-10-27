@@ -15,7 +15,9 @@ import { Avatar, AvatarPicker } from '../components/Avatar'
 import type { AvatarConfig } from '../lib/avatar'
 import { StudentMessages } from '../components/StudentMessages'
 import { DiscoveryJournal } from '../components/Discoveries'
-import { campOfClass, journeyOf, staysOf } from '../lib/discoveries'
+import { ExpeditionCard } from '../components/Expedition'
+import { expeditionOf } from '../lib/expedition'
+import { campOfClass, journeyOf, staysOf, tierOf, TIERS } from '../lib/discoveries'
 import { teacherMapPeople } from '../lib/mapPeople'
 import { computePerformance, toScoreClasses, toScoreHomework } from '../lib/performance'
 import { reviewLabel } from './ClassSession'
@@ -64,7 +66,8 @@ export default function StudentRecord() {
   const perf = computePerformance(toScoreClasses(sessions, awards, options), toScoreHomework(student.id, homework, statuses), exams)
   const running = sessions.find((x) => !x.endedAt)
   const cls = classes.find((c) => c.id === student.classId)
-  const journey = journeyOf(awards.map((a) => ({ points: a.points, at: a.createdAt })), staysOf(moves), campOfClass(cls?.name, cls?.level))
+  const journey = journeyOf(awards.map((a) => ({ points: a.points, at: a.createdAt })), staysOf(moves), campOfClass(cls?.name, cls?.level), student.id)
+  const expedition = expeditionOf(awards.map((a) => ({ points: a.points, at: a.createdAt })), staysOf(moves), campOfClass(cls?.name, cls?.level), student.id)
 
   const totalPoints = awards.reduce((t, a) => t + a.points, 0)
   const byCategory = categories
@@ -173,6 +176,20 @@ export default function StudentRecord() {
           </section>
 
           <ClassHistory studentId={student.id} sessions={sessions} lessons={lessons} onChange={reload} />
+
+          {(() => {
+            // A hint only: moving up stays the teacher's decision (change the class in Details)
+            const here = expedition.summits.filter((x) => x.mountain.camp === expedition.camp).length
+            const i = TIERS.findIndex((t) => t.tier === expedition.camp)
+            if (here < 2 || i >= TIERS.length - 1 || (perf.score ?? 0) < 75) return null
+            return (
+              <div className="rounded-2xl border-2 border-sage bg-sage-light/60 p-4 text-[15px]">
+                <p className="font-extrabold">Ready to move up?</p>
+                <p className="mt-1">{student.name} has summited {here} mountains at {tierOf(expedition.camp).camp} and the overall performance is {perf.score}. If their speaking is ready, move them to a {TIERS[i + 1].tier} class under Details.</p>
+              </div>
+            )
+          })()}
+          <ExpeditionCard exp={expedition} name={student.name} />
 
           <DiscoveryJournal journey={journey} name={student.name} loadMap={teacherMapPeople} />
 

@@ -127,6 +127,7 @@ const demoTeach: TeachApi = {
     const st = (hid: string) => db.homeworkStatus.find((x) => x.homeworkId === hid && x.studentId === s.id)
     return {
       name: s.name,
+      seed: s.id,
       avatar: s.avatar ?? null,
       goals: s.goals ?? '',
       classLevel: cls?.level ?? '',
@@ -178,7 +179,7 @@ const demoTeach: TeachApi = {
       const mine = db.awards.filter((a) => a.studentId === x.id)
       const lastMove = db.classMoves.filter((m) => m.studentId === x.id).map((m) => m.at).sort().pop() ?? ''
       return {
-        name: x.name, avatar: x.avatar ?? null, me: x.id === s.id, className: c?.name ?? '', classLevel: c?.level ?? '',
+        name: x.name, seed: x.id, avatar: x.avatar ?? null, me: x.id === s.id, className: c?.name ?? '', classLevel: c?.level ?? '',
         total: mine.reduce((t, a) => t + a.points, 0),
         atMove: mine.filter((a) => a.createdAt < lastMove).reduce((t, a) => t + a.points, 0),
         log: mine.map((a) => ({ points: a.points, at: a.createdAt })),

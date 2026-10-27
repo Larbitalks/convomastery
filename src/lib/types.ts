@@ -209,6 +209,7 @@ export interface StudentNote { id: string; studentId: string; date: string; body
 /** What a student or parent sees on their progress page */
 export interface StudentProgress {
   name: string
+  seed?: string
   avatar?: unknown
   goals?: string
   classLevel?: string
@@ -289,7 +290,7 @@ export interface TeachApi {
   getStudentProgress(code: string): Promise<StudentProgress | null>
   setStudentShowOnMap(studentId: string, show: boolean): Promise<void>
   /** Everyone on the mountain map, seen with a student's progress code */
-  getStudentMap(code: string): Promise<{ name: string; avatar?: unknown; log?: { points: number; at: string }[]; moves?: { at: string; className: string; classLevel: string }[]; className: string; classLevel: string; total: number; atMove: number; me: boolean }[] | null>
+  getStudentMap(code: string): Promise<{ name: string; seed?: string; avatar?: unknown; log?: { points: number; at: string }[]; moves?: { at: string; className: string; classLevel: string }[]; className: string; classLevel: string; total: number; atMove: number; me: boolean }[] | null>
   setStudentShowBehaviour(studentId: string, show: boolean): Promise<void>
   // class sessions
   getBehaviourOptions(): Promise<BehaviourOption[]>

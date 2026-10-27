@@ -79,9 +79,9 @@ export function DiscoveryJournal({ journey, name, own = false, loadMap }: { jour
             <span className="text-sm text-inksoft">{new Set(inCamp.map((u) => u.discovery.id)).size} of {set.length} found</span>
           </div>
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {set.map((d) => <Card key={d.id} d={d} finds={inCamp.filter((u) => u.discovery.id === d.id)} isNext={d.id === next.discovery.id} nextEdition={next.edition} toGo={needed - current} />)}
+            {set.map((d) => <Card key={d.id} d={d} finds={inCamp.filter((u) => u.discovery.id === d.id)} isNext={false} nextEdition={next.edition} toGo={needed - current} />)}
           </ul>
-          <p className="mt-2 text-[13px] text-inksoft">After all {set.length}, the set starts again in Silver, then Gold, then Diamond.</p>
+          <p className="mt-2 text-[13px] text-inksoft">Every find is a surprise: rare ones are harder to get. Find the same one again and it becomes Silver, then Gold, then Diamond.</p>
         </div>
 
         {earlier.length > 0 && (

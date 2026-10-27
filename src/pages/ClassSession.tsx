@@ -13,6 +13,8 @@ import { teachableLessons } from './ClassDetail'
 import { typeOfMark } from '../lib/performance'
 import { campOfClass, journeyOf, staysOf, type CampStay, type Found, type Tier } from '../lib/discoveries'
 import { DiscoveryReveal } from '../components/Discoveries'
+import { ExpeditionReveal, eventsOf, type ExpeditionEvent } from '../components/Expedition'
+import { expeditionOf, MILESTONES } from '../lib/expedition'
 import { Avatar } from '../components/Avatar'
 
 const ATTENDANCE: { value: Attendance; label: string; cls: string }[] = [
@@ -76,7 +78,8 @@ export default function ClassSessionPage() {
 
   const [s, setS] = useState<ClassSession | null>(null)
   const [life, setLife] = useState<{ id: string; points: number; at: string }[]>([])
-  const [reveal, setReveal] = useState<Found[]>([])
+  // Celebrations waiting to be shown: new discoveries, milestones, summits and lucky finds
+  const [reveal, setReveal] = useState<({ find: Found } | { event: ExpeditionEvent })[]>([])
   const camps = useRef<{ stays: CampStay[]; camp: Tier }>({ stays: [], camp: 'Explorers' })
   const [options, setOptions] = useState<BehaviourOption[]>(DEFAULT_BEHAVIOURS)
   const [awardsGiven, setAwardsGiven] = useState<{ id: string; name: string; points: number }[]>([])
@@ -132,8 +135,11 @@ export default function ClassSessionPage() {
       setLife((prev) => {
         const next = [...prev, { id: a.id, points: a.points, at: a.createdAt }]
         const { stays, camp } = camps.current
-        const before = journeyOf(prev, stays, camp).unlocked.length, j = journeyOf(next, stays, camp)
-        if (j.unlocked.length > before) setReveal((r) => [...r.filter((f) => f.number <= before), ...j.unlocked.slice(before)])
+        const seed = data?.student.id ?? ''
+        const before = journeyOf(prev, stays, camp, seed).unlocked.length, j = journeyOf(next, stays, camp, seed)
+        const eBefore = eventsOf(expeditionOf(prev, stays, camp, seed)).length, ev = eventsOf(expeditionOf(next, stays, camp, seed))
+        const add = [...j.unlocked.slice(before).map((f) => ({ find: f })), ...ev.slice(eBefore).sort((a, b) => (a.kind === 'summit' ? 1 : 0) - (b.kind === 'summit' ? 1 : 0)).map((e) => ({ event: e }))]
+        if (add.length) setReveal((r) => [...r, ...add])
         return next
       })
     } catch (e) { setErr(errorMessage(e)) }
@@ -233,9 +239,17 @@ export default function ClassSessionPage() {
                   </button>
                 ))}
               </div>
-              {(() => { const j = journeyOf(life, camps.current.stays, camps.current.camp); return (
-                <p className="mt-2 text-[15px] text-inksoft">Next discovery for {student.name}: <strong className="text-ink">{j.current} / {j.needed} points</strong></p>
-              ) })()}
+              {(() => {
+                const j = journeyOf(life, camps.current.stays, camps.current.camp, student.id)
+                const e = expeditionOf(life, camps.current.stays, camps.current.camp, student.id)
+                const stop = Math.min(4, Math.floor(e.steps / (e.cost / 5)))
+                return (
+                  <div className="mt-2 grid gap-0.5 text-[15px] text-inksoft">
+                    <p>Next discovery for {student.name}: <strong className="text-ink">{j.current} / {j.needed} points</strong></p>
+                    <p>Climbing <strong className="text-ink">{e.mountain.name}</strong>: {Math.ceil((stop + 1) * (e.cost / 5) - e.steps)} steps to {MILESTONES[stop]}</p>
+                  </div>
+                )
+              })()}
               {awardsGiven.length > 0 && <p className="mt-2 text-[15px]">This class: {awardsGiven.reduce((t, a) => t + a.points, 0)} points ({awardsGiven.map((a) => a.name).join(', ')})</p>}
             </section>
 
@@ -295,7 +309,9 @@ export default function ClassSessionPage() {
           </aside>
         </div>
       )}
-      {reveal.length > 0 && <DiscoveryReveal found={reveal[0]} name={student.name} more={reveal.length - 1} onClose={() => setReveal((r) => r.slice(1))} />}
+      {reveal.length > 0 && ('find' in reveal[0]
+        ? <DiscoveryReveal found={reveal[0].find} name={student.name} more={reveal.length - 1} onClose={() => setReveal((r) => r.slice(1))} />
+        : <ExpeditionReveal event={reveal[0].event} name={student.name} more={reveal.length - 1} onClose={() => setReveal((r) => r.slice(1))} />)}
     </div>
   )
 }

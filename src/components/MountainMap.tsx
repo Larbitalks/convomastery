@@ -4,30 +4,34 @@ import { Avatar } from './Avatar'
 import { DiscoveryArt } from './DiscoveryArt'
 import { editionOf, RARITY_COLOR, type Found } from '../lib/discoveries'
 import { errorMessage } from '../lib/format'
-import { CAMP_MAPS, OVERVIEW, OVERVIEW_STOP, TIERS, campProgress, tierOf, trailPoint, type MapPerson, type Tier } from '../lib/discoveries'
+import { OVERVIEW, OVERVIEW_STOP, TIERS, tierOf, type MapPerson, type Tier } from '../lib/discoveries'
+import { MILESTONES, MOUNTAINS, MOUNTAIN_SIZE, SUMMIT_POINTS, mountainSrc, seriesOf, trailSpot, type Mountain } from '../lib/expedition'
 
 const url = (src: string) => `${import.meta.env.BASE_URL}${src}`
 type Person = MapPerson & { hidden?: boolean }
 type Placed = Person & { x: number; y: number }
 type View = 'overview' | Tier
 
-/** Put a camp's people on its trail. Anyone too close to someone already placed moves a little along the trail,
- * so names stay readable; only very crowded camps fan out sideways. */
-function placeInCamp(camp: Tier, people: Person[]): Placed[] {
+const mountainOf = (p: Person) => MOUNTAINS.find((m) => m.id === p.mountainId && m.camp === p.camp) ?? seriesOf(p.camp)[0]
+
+/** Put the people on one mountain at their spot on its trail. Anyone too close to someone already placed moves a
+ * little along the trail, so names stay readable; only very crowded mountains fan out sideways. */
+function placeOnMountain(m: Mountain, people: Person[]): Placed[] {
   const placed: Placed[] = []
+  const cost = SUMMIT_POINTS[m.camp]
   const near = (x: number, y: number) => placed.some((q) => Math.hypot(q.x - x, q.y - y) < 70)
-  const order = [...people].sort((a, b) => (a.me ? -1 : b.me ? 1 : b.findsInCamp - a.findsInCamp))
+  const order = [...people].sort((a, b) => (a.me ? -1 : b.me ? 1 : (b.steps ?? 0) - (a.steps ?? 0)))
   for (const p of order) {
-    const base = campProgress(p.findsInCamp)
+    const base = p.steps ?? 0
     let spot: [number, number] | null = null
     for (let i = 0; i < 40 && !spot; i++) {
-      const t = base + Math.ceil(i / 2) * 0.025 * (i % 2 ? 1 : -1)
-      if (t < 0 || t > 1) continue
-      const [x, y] = trailPoint(camp, t)
+      const st = base + Math.ceil(i / 2) * cost * 0.025 * (i % 2 ? 1 : -1)
+      if (st < 0 || st > cost) continue
+      const [x, y] = trailSpot(m, st, cost)
       if (!near(x, y)) spot = [x, y]
     }
     if (!spot) {
-      const [bx, by] = trailPoint(camp, base)
+      const [bx, by] = trailSpot(m, base, cost)
       const k = placed.length
       spot = [bx + Math.cos(k * 2.4) * 60, by + Math.sin(k * 2.4) * 60]
     }
@@ -51,8 +55,10 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
 
   useEffect(() => { load().then(setPeople).catch((e) => setErr(errorMessage(e))) }, [load])
 
-  const pic = view === 'overview' ? OVERVIEW : CAMP_MAPS[view]
-  const placed = useMemo(() => (view === 'overview' || !people ? [] : placeInCamp(view, people.filter((p) => p.camp === view))), [people, view])
+  const [mtnId, setMtnId] = useState<string | null>(null)
+  const mountain = view === 'overview' ? null : (seriesOf(view).find((m) => m.id === mtnId) ?? seriesOf(view)[0])
+  const pic = useMemo(() => (mountain ? { src: mountainSrc(mountain), ...MOUNTAIN_SIZE } : OVERVIEW), [mountain])
+  const placed = useMemo(() => (!mountain || !people ? [] : placeOnMountain(mountain, people.filter((p) => p.camp === mountain.camp && mountainOf(p).id === mountain.id))), [people, mountain])
   const me = people?.find((p) => p.me)
 
   const clamp = useCallback((s: number, x: number, y: number, min: number) => {
@@ -97,14 +103,14 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
     if (pending.current) { at = pending.current; pending.current = null }
     else if (view !== 'overview') {
       const mine = placed.find((p) => p.me)
-      at = mine ? [mine.x, mine.y] : CAMP_MAPS[view].trail[0]
+      at = mine ? [mine.x, mine.y] : mountain!.trail[0]
     } else if (me) at = OVERVIEW_STOP[me.camp]
     open(at)
     const onResize = () => open()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, open, people])
+  }, [view, mtnId, open, people])
 
   const zoomAt = useCallback((factor: number, cx?: number, cy?: number) => {
     setT((cur) => {
@@ -115,12 +121,18 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
     })
   }, [clamp])
 
-  const enter = useCallback((camp: Tier, personKey?: string) => {
+  /** Open a camp on a mountain: the picked person's, else your own, else the busiest one */
+  const enter = useCallback((camp: Tier, personKey?: string, mountainId?: string) => {
     setSelected(personKey ?? null)
-    if (personKey && people) {
-      const spot = placeInCamp(camp, people.filter((p) => p.camp === camp)).find((p) => p.key === personKey)
+    const here = (people ?? []).filter((p) => p.camp === camp)
+    const person = here.find((p) => p.key === personKey) ?? here.find((p) => p.me)
+    const busiest = seriesOf(camp).map((m) => ({ m, n: here.filter((p) => mountainOf(p).id === m.id).length })).sort((a, b) => b.n - a.n)[0].m
+    const m = seriesOf(camp).find((x) => x.id === mountainId) ?? (person ? mountainOf(person) : busiest)
+    if (personKey && person) {
+      const spot = placeOnMountain(m, here.filter((p) => mountainOf(p).id === m.id)).find((p) => p.key === personKey)
       if (spot) pending.current = [spot.x, spot.y]
     }
+    setMtnId(m.id)
     setView(camp)
   }, [people])
 
@@ -160,7 +172,7 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
   }
   const up = (e: React.PointerEvent) => { pointers.current.delete(e.pointerId) }
 
-  const byCamp = useMemo(() => [...TIERS].reverse().map((c) => ({ c, list: (people ?? []).filter((p) => p.camp === c.tier).sort((a, b) => b.findsInCamp - a.findsInCamp) })), [people])
+  const byCamp = useMemo(() => [...TIERS].reverse().map((c) => ({ c, list: (people ?? []).filter((p) => p.camp === c.tier).sort((a, b) => (b.summits ?? 0) - (a.summits ?? 0) || (b.steps ?? 0) - (a.steps ?? 0)) })), [people])
   const sel = placed.find((p) => p.key === selected)
   const k = 1 / t.s
   const camp = view === 'overview' ? null : tierOf(view)
@@ -170,9 +182,9 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
       <style>{`@keyframes cm-dive { from { opacity: 0; transform: scale(1.12) } to { opacity: 1; transform: none } } .cm-dive { animation: cm-dive .45s ease-out } @media (prefers-reduced-motion: reduce) { .cm-dive { animation: none } }`}</style>
       <div className="flex items-center justify-between gap-3 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
-          {camp && <button className="shrink-0 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-ink" onClick={() => { setSelected(null); setView('overview') }}>← Whole mountain</button>}
+          {camp && <button className="shrink-0 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-ink" onClick={() => { setSelected(null); setView('overview') }}>← All camps</button>}
           <div className="min-w-0">
-            <p className="truncate text-lg font-extrabold">{camp ? camp.camp : 'The ConvoMastery Mountain'}</p>
+            <p className="truncate text-lg font-extrabold">{camp && mountain ? <>{mountain.name} <span className="text-sm font-bold text-white/70">{camp.camp}{mountain.height ? `, ${mountain.height}` : ''}</span></> : 'The ConvoMastery Mountain'}</p>
             <p className="truncate text-[13px] text-white/70">
               {!people ? 'Loading the climbers' : camp ? `${placed.length} ${placed.length === 1 ? 'climber' : 'climbers'} here. Zoom and drag to look around.` : 'Tap a camp to zoom in. Scroll or pinch to zoom, drag to look around.'}
             </p>
@@ -188,10 +200,35 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
         <div ref={box} className="relative min-w-0 flex-1 cursor-grab touch-none select-none overflow-hidden active:cursor-grabbing"
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}
           onClick={() => { if (moved.current < 6) setSelected(null) }}>
-          <div key={view} className="cm-dive absolute inset-0">
+          {camp && mountain && seriesOf(camp.tier).length > 1 && (
+            <div className="absolute left-1/2 top-3 z-20 flex -translate-x-1/2 gap-1 rounded-full bg-ink/80 p-1 shadow-lg" role="tablist" aria-label={`${camp.camp} mountains`} onPointerDown={(e) => e.stopPropagation()}>
+              {seriesOf(camp.tier).map((m) => {
+                const n = (people ?? []).filter((p) => p.camp === camp.tier && mountainOf(p).id === m.id).length
+                return (
+                  <button key={m.id} role="tab" aria-selected={m.id === mountain.id} onClick={(e) => { e.stopPropagation(); setSelected(null); setMtnId(m.id) }}
+                    className={`whitespace-nowrap rounded-full px-3 py-1 text-[13px] font-bold ${m.id === mountain.id ? 'bg-white text-ink' : 'text-white hover:bg-white/15'}`}>{m.name} <span className="opacity-70">{n}</span></button>
+                )
+              })}
+            </div>
+          )}
+          <div key={`${view}-${mountain?.id ?? ''}`} className="cm-dive absolute inset-0">
             <div className="absolute left-0 top-0 origin-top-left" style={{ width: pic.w, height: pic.h, transform: `translate(${t.x}px, ${t.y}px) scale(${t.s})` }}>
-              <img src={url(pic.src)} alt={camp ? `${camp.camp}: a trail from Start to the camp` : 'The mountain, with the trail from Explorers up through Trekkers, Climbers and Mountaineers to the Alpinists summit'}
+              <img src={url(pic.src)} alt={mountain ? `${mountain.name}: the trail from Start past four camps to the summit` : 'The mountain, with the trail from Explorers up through Trekkers, Climbers and Mountaineers to the Alpinists summit'}
                 width={pic.w} height={pic.h} draggable={false} className="pointer-events-none block h-full w-full" />
+              {mountain && (
+                <svg viewBox={`0 0 ${pic.w} ${pic.h}`} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+                  {mountain.ropeFrom !== undefined && <polyline points={mountain.trail.slice(mountain.ropeFrom).map((q) => q.join(',')).join(' ')} fill="none" stroke="#fff" strokeWidth="5" strokeDasharray="4 12" strokeLinecap="round" />}
+                  {mountain.stops.map((i, n) => {
+                    const [sx, sy] = mountain.trail[i]
+                    return (
+                      <g key={n}>
+                        <circle cx={sx} cy={sy} r="11" fill={n === 4 ? '#E9B949' : '#fff'} stroke="#3D405B" strokeWidth="4" />
+                        <text x={sx + 18} y={sy + 6} fontSize="20" fontWeight="800" fill="#fff" stroke="#3D405B" strokeWidth="5" paintOrder="stroke">{MILESTONES[n]}</text>
+                      </g>
+                    )
+                  })}
+                </svg>
+              )}
 
               {view === 'overview' && people && TIERS.map((c) => {
                 const here = people.filter((p) => p.camp === c.tier)
@@ -248,7 +285,8 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
                 <Avatar avatar={sel.avatar} name={sel.name} size={48} color={camp.color} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-lg font-extrabold">{sel.me ? `${sel.name} (you)` : sel.name}</p>
-                  <p className="text-[14px]"><span className="font-bold" style={{ color: camp.color }}>{camp.camp}</span>, {sel.discoveries} {sel.discoveries === 1 ? 'discovery' : 'discoveries'}</p>
+                  <p className="text-[14px]"><span className="font-bold" style={{ color: camp.color }}>{mountain?.name}</span>{typeof sel.steps === 'number' && sel.cost ? `, ${sel.steps < sel.cost / 5 ? 'on the way to Base Camp' : `past ${MILESTONES[Math.min(3, Math.floor(sel.steps / (sel.cost / 5)) - 1)]}`}` : ''}</p>
+                  <p className="text-[13px] text-inksoft">{sel.summits ?? 0} {sel.summits === 1 ? 'summit' : 'summits'}, {sel.discoveries} {sel.discoveries === 1 ? 'discovery' : 'discoveries'}</p>
                 </div>
                 <button className="shrink-0 text-sm font-bold underline" onClick={() => setSelected(null)}>Close</button>
               </div>

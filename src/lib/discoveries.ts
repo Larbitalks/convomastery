@@ -63,6 +63,10 @@ export const CAMP_ITEMS: Record<Tier, Discovery[]> = {
     item('Mountaineers', 'Rare', 'snowflake-medal', 'The Snowflake Medal', 'Given to mountaineers who keep going when it gets cold.'),
     item('Mountaineers', 'Epic', 'eagle-feather', 'The Eagle Feather', 'A gift from the eagles who fly above the clouds.'),
     item('Mountaineers', 'Epic', 'expedition-flag', 'The Expedition Flag', 'Planted at every camp you reach. Look how far you have come!'),
+    item('Mountaineers', 'Common', 'marmot', 'Alpine Marmot', 'Real animal: whistles loudly to warn its friends of danger. Lives in the Alps.'),
+    item('Mountaineers', 'Uncommon', 'chamois', 'Chamois', 'Real animal: a mountain goat-antelope that can jump 2 metres up a cliff.'),
+    item('Mountaineers', 'Rare', 'golden-eagle', 'Golden Eagle', 'Real animal: can spot a rabbit from 3 kilometres away.'),
+    item('Mountaineers', 'Epic', 'lammergeier', 'Bearded Vulture', 'Real animal: also called the lammergeier. It eats bones and paints its feathers orange with mud.'),
   ],
   Alpinists: [
     item('Alpinists', 'Rare', 'ancient-scroll', 'The Ancient Scroll', 'Old words from old climbers. You can read every one of them.'),
@@ -73,6 +77,10 @@ export const CAMP_ITEMS: Record<Tier, Discovery[]> = {
     item('Alpinists', 'Legendary', 'sun-medallion', 'The Sun Medallion', 'The first light of morning, caught at the very top.'),
     item('Alpinists', 'Legendary', 'crystal-crown', 'The Crystal Crown', 'For true masters of conversation.'),
     item('Alpinists', 'Legendary', 'summit-trophy', 'The Summit Trophy', 'You reached the top! And there is always another summit.'),
+    item('Alpinists', 'Rare', 'blue-sheep', 'Blue Sheep', 'Real animal: the bharal of the Himalayas. Its grey-blue coat hides it on the rocks.'),
+    item('Alpinists', 'Epic', 'red-panda', 'Red Panda', 'Real animal: lives in Himalayan forests and uses its fluffy tail as a blanket.'),
+    item('Alpinists', 'Epic', 'monal', 'Himalayan Monal', 'Real animal: the national bird of Nepal, shining in nine colours.'),
+    item('Alpinists', 'Legendary', 'snow-leopard', 'Snow Leopard', 'Real animal: the ghost of the mountains. Very few people have ever seen one.'),
   ],
 }
 
@@ -108,6 +116,22 @@ export function campOfClass(name = '', level = ''): Tier {
 export const costOf = (n: number) => FIRST_COSTS[n] ?? STEP
 
 export interface Found { discovery: Discovery; round: number; edition: string; number: number; date: string }
+
+/** A number from 0 to 1 that is always the same for the same text (so every screen agrees on what was found) */
+export function chance(text: string): number {
+  let h = 2166136261
+  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619) }
+  h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15
+  return (h >>> 0) / 4294967296
+}
+/** How likely each rarity is: common things turn up often, legendary ones rarely */
+export const RARITY_WEIGHT: Record<Rarity, number> = { Common: 30, Uncommon: 20, Rare: 12, Epic: 6, Legendary: 3 }
+function pickRandom(set: Discovery[], roll: number): Discovery {
+  const total = set.reduce((t, d) => t + RARITY_WEIGHT[d.rarity], 0)
+  let x = roll * total
+  for (const d of set) { x -= RARITY_WEIGHT[d.rarity]; if (x < 0) return d }
+  return set[set.length - 1]
+}
 export interface Journey {
   lifetime: number
   unlocked: Found[]
@@ -131,19 +155,19 @@ function campAt(stays: CampStay[], at: string, fallback: Tier): Tier {
  * Work out the journey from a student's awards and class moves. Awards are added up in the order they were given;
  * each time the running total passes a threshold, the student finds the next item of the camp they were in then.
  */
-export function journeyOf(awards: { points: number; at: string }[], stays: CampStay[] = [], currentCamp: Tier = 'Explorers'): Journey {
+export function journeyOf(awards: { points: number; at: string }[], stays: CampStay[] = [], currentCamp: Tier = 'Explorers', seed = ''): Journey {
   const sorted = [...awards].sort((a, b) => a.at.localeCompare(b.at))
   const camps = [...stays].sort((a, b) => a.at.localeCompare(b.at))
-  const perCamp: Record<string, number> = {}
+  const copies: Record<string, number> = {}
   const unlocked: Found[] = []
   let lifetime = 0
   let nextAt = costOf(0)
+  // Each find is random for this student (rarer things less likely). Finding the same thing again gives a better edition.
   const take = (camp: Tier) => {
-    const k = perCamp[camp] ?? 0
-    perCamp[camp] = k + 1
-    const set = CAMP_ITEMS[camp]
-    const round = Math.floor(k / set.length)
-    return { discovery: set[k % set.length], round, edition: editionOf(round).label }
+    const d = pickRandom(CAMP_ITEMS[camp], chance(`${seed}|find|${unlocked.length}`))
+    const round = copies[d.id] ?? 0
+    copies[d.id] = round + 1
+    return { discovery: d, round, edition: editionOf(round).label }
   }
   for (const a of sorted) {
     lifetime += Math.max(0, a.points)
@@ -154,12 +178,11 @@ export function journeyOf(awards: { points: number; at: string }[], stays: CampS
     }
   }
   const needed = costOf(unlocked.length)
-  const k = perCamp[currentCamp] ?? 0
-  const set = CAMP_ITEMS[currentCamp]
-  const round = Math.floor(k / set.length)
+  const next = pickRandom(CAMP_ITEMS[currentCamp], chance(`${seed}|find|${unlocked.length}`))
+  const round = copies[next.id] ?? 0
   return {
     lifetime, unlocked, current: lifetime - (nextAt - needed), needed, camp: currentCamp,
-    next: { discovery: set[k % set.length], round, edition: editionOf(round).label },
+    next: { discovery: next, round, edition: editionOf(round).label },
   }
 }
 
@@ -216,4 +239,4 @@ export function trailPoint(camp: Tier, t: number): [number, number] {
 /** How far up their camp a student is: each find moves them up, slowing near the top so there is always room */
 export const campProgress = (findsInCamp: number) => 0.06 + 0.88 * (1 - Math.pow(0.82, findsInCamp))
 
-export interface MapPerson { finds?: Found[]; key: string; name: string; avatar?: import('./avatar').AvatarConfig | null; camp: Tier; findsInCamp: number; discoveries: number; me?: boolean }
+export interface MapPerson { mountainId?: string; steps?: number; cost?: number; summits?: number; finds?: Found[]; key: string; name: string; avatar?: import('./avatar').AvatarConfig | null; camp: Tier; findsInCamp: number; discoveries: number; me?: boolean }

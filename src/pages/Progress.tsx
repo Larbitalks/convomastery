@@ -12,6 +12,8 @@ import { Avatar } from '../components/Avatar'
 import { cleanAvatar } from '../lib/avatar'
 import { studentMapPeople } from '../lib/mapPeople'
 import { DiscoveryJournal, DiscoveryReveal } from '../components/Discoveries'
+import { ExpeditionCard, ExpeditionReveal, eventsOf, type ExpeditionEvent } from '../components/Expedition'
+import { expeditionOf } from '../lib/expedition'
 import { campOfClass, journeyOf, staysOf, type Found } from '../lib/discoveries'
 import { PerformanceCard } from '../components/Performance'
 import { computePerformance } from '../lib/performance'
@@ -69,7 +71,9 @@ export function ProgressView() {
     )
   }
 
-  const journey = journeyOf(data.awardLog ?? [], staysOf(data.moves ?? []), campOfClass(data.className, data.classLevel ?? data.level))
+  const journey = journeyOf(data.awardLog ?? [], staysOf(data.moves ?? []), campOfClass(data.className, data.classLevel ?? data.level), data.seed ?? data.name)
+  const expedition = expeditionOf(data.awardLog ?? [], staysOf(data.moves ?? []), campOfClass(data.className, data.classLevel ?? data.level), data.seed ?? data.name)
+  const expEvents = eventsOf(expedition)
   const teacher = data.teacherName || 'your teacher'
   const first = teacher.split(/[\s(]/)[0] || 'your teacher'
   const perf = data.classes
@@ -155,6 +159,8 @@ export function ProgressView() {
             </section>
           )}
 
+          <ExpeditionCard own exp={expedition} name={data.name} />
+
           <DiscoveryJournal own journey={journey} name={data.name} loadMap={loadMap} />
 
           <StudentExams readOnly studentId="" name={data.name} exams={exams} totals={DEFAULT_EXAM_TOTALS} onChange={() => {}} />
@@ -237,26 +243,32 @@ export function ProgressView() {
       </div>
 
       <p className="mt-16 text-sm text-inksoft">This page is just for you. Keep your code private.</p>
-      <Celebrate code={code} name={data.name} found={journey.unlocked} />
+      <Celebrate code={code} name={data.name} found={journey.unlocked} events={expEvents} />
     </div>
   )
 }
 
-/** Shows each discovery unlocked since this browser last opened the page, one after another */
-function Celebrate({ code, name, found }: { code: string; name: string; found: Found[] }) {
-  const count = found.length
-  const key = `cm-discoveries-seen-${code.toUpperCase().replace(/[^A-Z0-9]/g, '')}`
-  const [queue, setQueue] = useState<number[]>([])
+/** Shows each discovery and expedition event since this browser last opened the page, one after another */
+function Celebrate({ code, name, found, events }: { code: string; name: string; found: Found[]; events: ExpeditionEvent[] }) {
+  const id = code.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const kF = `cm-discoveries-seen-${id}`, kE = `cm-expedition-seen-${id}`
+  const [queue, setQueue] = useState<({ find: Found; n: number } | { event: ExpeditionEvent; n: number })[]>([])
   useEffect(() => {
-    let seen = 0
-    try { seen = Number(localStorage.getItem(key) ?? '-1') } catch { seen = count }
-    // First visit on this device: celebrate only the newest one
-    const from = seen < 0 ? Math.max(0, count - 1) : seen
-    if (count > from) setQueue(Array.from({ length: count - from }, (_, i) => from + i + 1))
-  }, [key, count])
+    const read = (k: string, count: number) => { try { const v = Number(localStorage.getItem(k) ?? '-1'); return v < 0 ? Math.max(0, count - 1) : v } catch { return count } }
+    const f = read(kF, found.length), e = read(kE, events.length)
+    setQueue([
+      ...found.slice(f).map((x, i) => ({ find: x, n: f + i + 1 })),
+      ...events.slice(e).map((x, i) => ({ event: x, n: e + i + 1 })),
+    ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kF, kE, found.length, events.length])
   if (!queue.length) return null
-  return <DiscoveryReveal found={found[queue[0] - 1]} name={name} more={queue.length - 1} onClose={() => {
-    try { localStorage.setItem(key, String(queue[0])) } catch { /* private window: show again next time */ }
+  const head = queue[0]
+  const close = () => {
+    try { localStorage.setItem('find' in head ? kF : kE, String(head.n)) } catch { /* private window: show again next time */ }
     setQueue(queue.slice(1))
-  }} />
+  }
+  return 'find' in head
+    ? <DiscoveryReveal found={head.find} name={name} more={queue.length - 1} onClose={close} />
+    : <ExpeditionReveal event={head.event} name={name} more={queue.length - 1} onClose={close} />
 }
