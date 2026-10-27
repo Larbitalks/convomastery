@@ -16,6 +16,7 @@ import { DiscoveryReveal } from '../components/Discoveries'
 import { ExpeditionReveal, eventsOf, type ExpeditionEvent } from '../components/Expedition'
 import { expeditionOf, MILESTONES } from '../lib/expedition'
 import { Avatar } from '../components/Avatar'
+import { AwardIcon } from '../components/AwardIcon'
 
 const ATTENDANCE: { value: Attendance; label: string; cls: string }[] = [
   { value: 'present', label: 'Present', cls: 'bg-sage-light text-sage-dark border-sage' },
@@ -72,7 +73,7 @@ export default function ClassSessionPage() {
     // Awards already given during this class (for example before a page reload)
     const given = classAwards
       .filter((a) => a.studentId === student.id && a.createdAt >= session.startedAt && (!session.endedAt || a.createdAt <= session.endedAt))
-      .map((a) => ({ id: a.id, name: categories.find((c) => c.id === a.categoryId)?.name ?? 'Award', points: a.points }))
+      .map((a) => ({ id: a.id, categoryId: a.categoryId, name: categories.find((c) => c.id === a.categoryId)?.name ?? 'Award', points: a.points }))
     // The last 6 different lessons taught (any student), newest first
     const recentLessons: string[] = []
     for (const x of [...mine].sort((p, q) => q.startedAt.localeCompare(p.startedAt))) {
@@ -89,7 +90,7 @@ export default function ClassSessionPage() {
   const [reveal, setReveal] = useState<({ find: Found } | { event: ExpeditionEvent })[]>([])
   const camps = useRef<{ stays: CampStay[]; camp: Tier }>({ stays: [], camp: 'Explorers' })
   const [options, setOptions] = useState<BehaviourOption[]>(DEFAULT_BEHAVIOURS)
-  const [awardsGiven, setAwardsGiven] = useState<{ id: string; name: string; points: number }[]>([])
+  const [awardsGiven, setAwardsGiven] = useState<{ id: string; categoryId?: string; name: string; points: number }[]>([])
   const [ending, setEnding] = useState(false)
   const [editing, setEditing] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -138,7 +139,7 @@ export default function ClassSessionPage() {
   const give = async (categoryId: string, name: string) => {
     try {
       const a = await api.giveAward({ classId: student.classId, studentId: student.id, categoryId, lessonId: s.lessonId })
-      setAwardsGiven((x) => [...x, { id: a.id, name, points: a.points }])
+      setAwardsGiven((x) => [...x, { id: a.id, categoryId, name, points: a.points }])
       // Celebrate any discovery this award unlocks
       setLife((prev) => {
         const next = [...prev, { id: a.id, points: a.points, at: a.createdAt }]
@@ -241,11 +242,19 @@ export default function ClassSessionPage() {
                 {awardsGiven.length > 0 && <button className="text-sm font-bold underline" onClick={undoAward}>Undo last award</button>}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {categories.map((c) => (
-                  <button key={c.id} onClick={() => give(c.id, c.name)} className="rounded-full border-2 px-3 py-1.5 font-bold hover:opacity-80" style={{ borderColor: c.color, color: c.color }}>
-                    {c.name} +{c.points}
-                  </button>
-                ))}
+                {categories.map((c) => {
+                  const n = awardsGiven.filter((x) => x.categoryId === c.id).length
+                  return (
+                    <button key={c.id} onClick={() => give(c.id, c.name)} title={`${c.name} +${c.points}`}
+                      className="relative flex w-[7.5rem] flex-col items-center gap-1 rounded-2xl border-2 bg-white px-2 pb-2 pt-3 text-center font-bold shadow-sm transition-transform hover:-translate-y-0.5 active:scale-95"
+                      style={{ borderColor: c.color, color: c.color }}>
+                      <span className="grid h-14 w-14 place-items-center rounded-full" style={{ backgroundColor: `${c.color}1F` }}><AwardIcon name={c.name} className="h-9 w-9" /></span>
+                      <span className="text-[13px] leading-tight">{c.name}</span>
+                      <span className="rounded-full px-2 text-[12px] text-white" style={{ backgroundColor: c.color }}>+{c.points}</span>
+                      {n > 0 && <span className="absolute right-1.5 top-1.5 rounded-full bg-ink px-1.5 text-[11px] text-white tabular-nums">{n}</span>}
+                    </button>
+                  )
+                })}
               </div>
               {(() => {
                 const j = journeyOf(life, camps.current.stays, camps.current.camp, student.id)
