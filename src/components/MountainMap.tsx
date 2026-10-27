@@ -9,33 +9,41 @@ import { MILESTONES, MOUNTAINS, MOUNTAIN_SIZE, SUMMIT_POINTS, mountainSrc, serie
 
 const url = (src: string) => `${import.meta.env.BASE_URL}${src}`
 type Person = MapPerson & { hidden?: boolean }
-type Placed = Person & { x: number; y: number }
+/** x, y: where the avatar is drawn; ax, ay: the student's exact spot on the trail */
+type Placed = Person & { x: number; y: number; ax: number; ay: number }
 type View = 'overview' | Tier
 
 const mountainOf = (p: Person) => MOUNTAINS.find((m) => m.id === p.mountainId && m.camp === p.camp) ?? seriesOf(p.camp)[0]
 
-/** Put the people on one mountain at their spot on its trail. Anyone too close to someone already placed moves a
- * little along the trail, so names stay readable; only very crowded mountains fan out sideways. */
-function placeOnMountain(m: Mountain, people: Person[]): Placed[] {
+const exactSpot = (m: Mountain, p: Person) => trailSpot(m, p.steps ?? 0, SUMMIT_POINTS[m.camp])
+
+/** Everyone stays pinned to their exact spot on the trail (a small dot). Their avatar sits on the dot when there is
+ * room, otherwise it moves out to the nearest free place and a thin line joins it to the dot. Spacing is worked out
+ * in screen pixels, so it stays tidy at every zoom. */
+function placeOnMountain(m: Mountain, people: Person[], scale: number): Placed[] {
   const placed: Placed[] = []
-  const cost = SUMMIT_POINTS[m.camp]
-  const near = (x: number, y: number) => placed.some((q) => Math.hypot(q.x - x, q.y - y) < 70)
+  const W = 62 / scale, H = 66 / scale // room one avatar and its name need, in picture pixels
+  // Keep the milestone names readable: their labels sit just right of each stop
+  const labels = m.stops.map((i) => { const [sx, sy] = m.trail[i]; return { x1: sx - 14, x2: sx + 170, y1: sy - 18, y2: sy + 14 } })
+  const free = (x: number, y: number) => placed.every((q) => Math.abs(q.x - x) >= W || Math.abs(q.y - y) >= H)
+    && labels.every((r) => x + W / 2 < r.x1 || x - W / 2 > r.x2 || y + H / 2 < r.y1 || y - H / 2 > r.y2)
   const order = [...people].sort((a, b) => (a.me ? -1 : b.me ? 1 : (b.steps ?? 0) - (a.steps ?? 0)))
   for (const p of order) {
-    const base = p.steps ?? 0
-    let spot: [number, number] | null = null
-    for (let i = 0; i < 40 && !spot; i++) {
-      const st = base + Math.ceil(i / 2) * cost * 0.025 * (i % 2 ? 1 : -1)
-      if (st < 0 || st > cost) continue
-      const [x, y] = trailSpot(m, st, cost)
-      if (!near(x, y)) spot = [x, y]
+    const [ax, ay] = exactSpot(m, p)
+    let spot: [number, number] | null = free(ax, ay) ? [ax, ay] : null
+    for (let ring = 1; ring <= 10 && !spot; ring++) {
+      const n = 8 + ring * 4
+      for (let i = 0; i < n && !spot; i++) {
+        // Start straight up, then alternate left and right, so callouts fan out above the trail first
+        const step = Math.ceil(i / 2) * (i % 2 ? 1 : -1)
+        const angle = -Math.PI / 2 + (step * 2 * Math.PI) / n
+        const x = ax + Math.cos(angle) * ring * W * 0.95, y = ay + Math.sin(angle) * ring * H * 0.85
+        if (x < W / 2 || x > MOUNTAIN_SIZE.w - W / 2 || y < H / 2 || y > MOUNTAIN_SIZE.h - H / 2) continue
+        if (free(x, y)) spot = [x, y]
+      }
     }
-    if (!spot) {
-      const [bx, by] = trailSpot(m, base, cost)
-      const k = placed.length
-      spot = [bx + Math.cos(k * 2.4) * 60, by + Math.sin(k * 2.4) * 60]
-    }
-    placed.push({ ...p, x: spot[0], y: spot[1] })
+    const [x, y] = spot ?? [ax, ay]
+    placed.push({ ...p, x, y, ax, ay })
   }
   return placed
 }
@@ -58,7 +66,8 @@ export function MountainMap({ load, onClose, teacher = false, camp: startCamp, m
   const [mtnId, setMtnId] = useState<string | null>(mountainId ?? null)
   const mountain = view === 'overview' ? null : (seriesOf(view).find((m) => m.id === mtnId) ?? seriesOf(view)[0])
   const pic = useMemo(() => (mountain ? { src: mountainSrc(mountain), ...MOUNTAIN_SIZE } : OVERVIEW), [mountain])
-  const placed = useMemo(() => (!mountain || !people ? [] : placeOnMountain(mountain, people.filter((p) => p.camp === mountain.camp && mountainOf(p).id === mountain.id))), [people, mountain])
+  const zoomKey = Math.round(t.s * 20) / 20
+  const placed = useMemo(() => (!mountain || !people ? [] : placeOnMountain(mountain, people.filter((p) => p.camp === mountain.camp && mountainOf(p).id === mountain.id), zoomKey)), [people, mountain, zoomKey])
   const me = people?.find((p) => p.me)
 
   const clamp = useCallback((s: number, x: number, y: number, min: number) => {
@@ -103,7 +112,7 @@ export function MountainMap({ load, onClose, teacher = false, camp: startCamp, m
     if (pending.current) { at = pending.current; pending.current = null }
     else if (view !== 'overview') {
       const mine = placed.find((p) => p.me)
-      at = mine ? [mine.x, mine.y] : mountain!.trail[0]
+      at = mine ? [mine.ax, mine.ay] : mountain!.trail[0]
     } else if (me) at = OVERVIEW_STOP[me.camp]
     open(at)
     const onResize = () => open()
@@ -128,10 +137,7 @@ export function MountainMap({ load, onClose, teacher = false, camp: startCamp, m
     const person = here.find((p) => p.key === personKey) ?? here.find((p) => p.me)
     const busiest = seriesOf(camp).map((m) => ({ m, n: here.filter((p) => mountainOf(p).id === m.id).length })).sort((a, b) => b.n - a.n)[0].m
     const m = seriesOf(camp).find((x) => x.id === mountainId) ?? (person ? mountainOf(person) : busiest)
-    if (personKey && person) {
-      const spot = placeOnMountain(m, here.filter((p) => mountainOf(p).id === m.id)).find((p) => p.key === personKey)
-      if (spot) pending.current = [spot.x, spot.y]
-    }
+    if (personKey && person) pending.current = exactSpot(m, person)
     setMtnId(m.id)
     setView(camp)
   }, [people])
@@ -249,17 +255,27 @@ export function MountainMap({ load, onClose, teacher = false, camp: startCamp, m
                 )
               })}
 
+              {camp && placed.length > 0 && (
+                <svg viewBox={`0 0 ${pic.w} ${pic.h}`} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+                  {placed.map((p) => (
+                    <g key={p.key}>
+                      {(p.x !== p.ax || p.y !== p.ay) && <line x1={p.ax} y1={p.ay} x2={p.x} y2={p.y} stroke="#fff" strokeWidth={2.5 * k} opacity="0.9" />}
+                      <circle cx={p.ax} cy={p.ay} r={5 * k} fill={p.me ? '#E07A5F' : camp.color} stroke="#fff" strokeWidth={2 * k} />
+                    </g>
+                  ))}
+                </svg>
+              )}
               {camp && placed.map((p) => {
                 const isSel = p.key === selected
                 return (
                   <button key={p.key} type="button" aria-label={`${p.name}${p.me ? ' (you)' : ''}, ${p.discoveries} discoveries`}
                     className="absolute left-0 top-0" style={{ transform: `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${k})`, zIndex: p.me ? 30 : isSel ? 20 : 10 }}
                     onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setSelected(p.key) }}>
-                    <span className={`block rounded-full shadow-lg ${p.me ? 'border-4 border-[#E07A5F]' : 'border-[3px] border-white'} ${p.hidden ? 'opacity-50' : ''}`}
+                    <span className={`block rounded-full shadow-lg ${p.me ? 'border-[3px] border-[#E07A5F]' : 'border-2 border-white'} ${p.hidden ? 'opacity-50' : ''}`}
                       style={{ outline: isSel ? '3px solid #F2CC8F' : undefined }}>
-                      <Avatar avatar={p.avatar} name={p.name} size={p.me ? 60 : 48} color={camp.color} />
+                      <Avatar avatar={p.avatar} name={p.name} size={p.me ? 46 : 36} color={camp.color} />
                     </span>
-                    <span className={`absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-bold shadow ${p.me ? 'bg-[#E07A5F] text-white' : 'bg-white text-ink'}`}>
+                    <span className={`absolute left-1/2 top-full mt-0.5 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-bold shadow ${p.me ? 'bg-[#E07A5F] text-white' : 'bg-white text-ink'}`}>
                       {p.me ? `${p.name} (you)` : p.name}
                     </span>
                   </button>
