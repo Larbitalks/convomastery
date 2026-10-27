@@ -128,7 +128,13 @@ export default function StudentRecord() {
       <dl className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border-2 border-line bg-line sm:grid-cols-3">
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Points to next discovery</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{journey.current} / {journey.needed}</dd><dd className="text-sm text-inksoft">Lifetime {totalPoints}, {journey.unlocked.length} {journey.unlocked.length === 1 ? 'discovery' : 'discoveries'}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Classes taken</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{sessions.filter((x) => x.endedAt).length}</dd></div>
-        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Lesson notes</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{notes.length}</dd></div>
+        <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Homework completed</dt>{(() => {
+          const due = homework.map((h) => ({ due: h.dueDate, st: statuses.find((x) => x.homeworkId === h.id)?.status })).filter((h) => h.due <= new Date().toISOString().slice(0, 10))
+          const done = due.filter((h) => h.st === 'done' || h.st === 'late').length
+          return due.length
+            ? <><dd className="font-display text-3xl font-extrabold tabular-nums">{done} / {due.length}</dd><dd className="text-sm text-inksoft">{Math.round((done / due.length) * 100)}% handed in</dd></>
+            : <dd className="pt-1 text-lg font-bold text-inksoft">None due yet</dd>
+        })()}</div>
       </dl>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.25fr_1fr]">
