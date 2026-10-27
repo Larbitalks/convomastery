@@ -47,7 +47,6 @@ export default function StudentRecord() {
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
   const [editing, setEditing] = useState(false)
-  const [note, setNote] = useState({ date: new Date().toISOString().slice(0, 10), body: '', shared: false })
   const [msg, setMsg] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [starting, setStarting] = useState(false)
@@ -80,11 +79,6 @@ export default function StudentRecord() {
   const saveDetails = async (e: FormEvent) => {
     e.preventDefault(); setMsg(null)
     try { await api.saveStudent({ id: student.id, ...details }); setEditing(false); setMsg({ tone: 'success', text: 'Details saved.' }); reload() }
-    catch (e2) { setMsg({ tone: 'error', text: errorMessage(e2) }) }
-  }
-  const addNote = async (e: FormEvent) => {
-    e.preventDefault(); setMsg(null)
-    try { await api.addStudentNote({ studentId: student.id, date: note.date, body: note.body.trim(), shared: note.shared }); setNote({ ...note, body: '', shared: false }); reload() }
     catch (e2) { setMsg({ tone: 'error', text: errorMessage(e2) }) }
   }
   const startClass = async () => {
@@ -141,20 +135,7 @@ export default function StudentRecord() {
         <div className="grid content-start gap-8">
           <section>
             <h2 className="text-2xl font-extrabold">Lesson notes</h2>
-            <form onSubmit={addNote} className="panel mt-3 grid gap-3 p-4">
-              <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
-                <Field label="Date" htmlFor="noteDate"><Input id="noteDate" type="date" required value={note.date} onChange={(e) => setNote({ ...note, date: e.target.value })} /></Field>
-                <Field label="Note" htmlFor="noteBody"><Textarea id="noteBody" rows={2} required value={note.body} onChange={(e) => setNote({ ...note, body: e.target.value })} placeholder="What you covered, how they did, what to work on next" /></Field>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <label className="flex items-center gap-2 text-[15px] font-bold">
-                  <input type="checkbox" className="h-5 w-5 accent-sage-dark" checked={note.shared} onChange={(e) => setNote({ ...note, shared: e.target.checked })} />
-                  Show to student
-                </label>
-                <button className="btn-primary" disabled={!note.body.trim()}>Add note</button>
-              </div>
-            </form>
-            {notes.length === 0 ? <p className="mt-3 text-inksoft">No notes yet. A short note after each lesson builds a useful record over time.</p> : (
+            {notes.length === 0 ? <p className="mt-3 text-inksoft">No notes yet. When you end a class, its notes are saved here.</p> : (
               <ol className="mt-4 grid gap-3">
                 {(allNotes ? notes : notes.slice(0, 1)).map((n) => (
                   <li key={n.id} className={`grid gap-1 border-l-[3px] pl-4 ${n.shared ? 'border-sage' : 'border-line'}`}>
