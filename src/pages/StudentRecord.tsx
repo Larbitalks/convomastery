@@ -76,7 +76,6 @@ export default function StudentRecord() {
     .map((c) => ({ c, pts: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0), n: awards.filter((a) => a.categoryId === c.id).length }))
     .filter((x) => x.n > 0)
     .sort((a, b) => b.pts - a.pts)
-  const lessonTitle = (lid: string | null) => lessons.find((l) => l.id === lid)?.title
 
   const saveDetails = async (e: FormEvent) => {
     e.preventDefault(); setMsg(null)
@@ -254,7 +253,7 @@ export default function StudentRecord() {
 
           <section>
             <h2 className="text-xl font-extrabold">Awards</h2>
-            {byCategory.length === 0 ? <p className="mt-2 text-inksoft">No awards yet. Give awards from the class scoreboard or while teaching.</p> : (
+            {byCategory.length === 0 ? <p className="mt-2 text-inksoft">No awards yet. Give awards during a class.</p> : (
               <>
                 <ul className="mt-3 grid gap-2">
                   {byCategory.map(({ c, pts, n }) => (
@@ -264,12 +263,6 @@ export default function StudentRecord() {
                       <span className="text-[15px] text-inksoft">{n} {n === 1 ? 'time' : 'times'}</span>
                       <span className="w-10 text-right font-bold tabular-nums">{pts}</span>
                     </li>
-                  ))}
-                </ul>
-                <p className="mt-4 text-sm font-bold text-inksoft">Latest</p>
-                <ul className="mt-1 grid gap-1 text-[15px]">
-                  {[...awards].reverse().slice(0, 8).map((a) => (
-                    <li key={a.id}>{formatDate(a.createdAt)}: {categories.find((c) => c.id === a.categoryId)?.name ?? 'Award'} +{a.points}{lessonTitle(a.lessonId) ? ` (${lessonTitle(a.lessonId)})` : ''}</li>
                   ))}
                 </ul>
               </>

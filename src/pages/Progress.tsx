@@ -235,14 +235,6 @@ export function ProgressView() {
                     </li>
                   ))}
                 </ul>
-                {data.recentAwards.length > 0 && (
-                  <>
-                    <p className="mt-4 text-sm font-bold text-inksoft">Latest</p>
-                    <ul className="mt-1 grid gap-1 text-[15px]">
-                      {data.recentAwards.slice(0, 8).map((a, i) => <li key={i}>{formatDate(a.date)}: {a.category} +{a.points}{a.lesson ? ` (${a.lesson})` : ''}</li>)}
-                    </ul>
-                  </>
-                )}
               </>
             )}
           </section>
