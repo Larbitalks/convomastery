@@ -109,7 +109,7 @@ export function ProgressView() {
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Points to next discovery</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{journey.current} / {journey.needed}</dd><dd className="text-sm text-inksoft">Lifetime {journey.lifetime}, {journey.unlocked.length} {journey.unlocked.length === 1 ? 'discovery' : 'discoveries'}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Classes taken</dt><dd className="font-display text-3xl font-extrabold tabular-nums">{data.classesTaken ?? 0}</dd></div>
         <div className="bg-white px-5 py-4"><dt className="text-sm text-inksoft">Homework completed</dt>{(() => {
-          const due = data.homework.map((h) => ({ due: h.dueDate, st: h.status })).filter((h) => h.due <= new Date().toISOString().slice(0, 10))
+          const due = data.homework.map((h) => ({ due: h.dueDate, st: h.status })).filter((h) => h.due <= new Date().toISOString().slice(0, 10) || (!!h.st && h.st !== 'assigned'))
           const done = due.filter((h) => h.st === 'done' || h.st === 'late').length
           return due.length
             ? <><dd className="font-display text-3xl font-extrabold tabular-nums">{done} / {due.length}</dd><dd className="text-sm text-inksoft">{Math.round((done / due.length) * 100)}% handed in</dd></>

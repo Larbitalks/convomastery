@@ -40,7 +40,8 @@ export default function Students() {
     return data.students
       .filter((s) => (!classFilter || s.classId === classFilter) && (!q || s.name.toLowerCase().includes(q.toLowerCase())))
       .map((s) => {
-        const due = data.homework.filter((h) => h.studentId === s.id && h.dueDate <= today)
+        const marked = (hid: string) => (data.statuses.find((x) => x.homeworkId === hid && x.studentId === s.id)?.status ?? 'assigned') !== 'assigned'
+    const due = data.homework.filter((h) => h.studentId === s.id && (h.dueDate <= today || marked(h.id)))
         const handed = due.filter((h) => ['done', 'late'].includes(data.statuses.find((x) => x.homeworkId === h.id && x.studentId === s.id)?.status ?? '')).length
         const lastNote = data.notes.find((n) => n.studentId === s.id)
         return {

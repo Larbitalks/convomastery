@@ -98,7 +98,8 @@ function Overview({ classId }: { classId: string }) {
   const rows = data.students.map((s) => {
     const mine = data.sessions.filter((x) => x.studentId === s.id && x.endedAt).sort((a, b) => b.date.localeCompare(a.date))
     const awards = data.awards.filter((a) => a.studentId === s.id)
-    const due = data.homework.filter((h) => h.studentId === s.id && h.dueDate <= today)
+    const marked = (hid: string) => (data.statuses.find((x) => x.homeworkId === hid && x.studentId === s.id)?.status ?? 'assigned') !== 'assigned'
+    const due = data.homework.filter((h) => h.studentId === s.id && (h.dueDate <= today || marked(h.id)))
     const handed = due.filter((h) => ['done', 'late'].includes(data.statuses.find((x) => x.homeworkId === h.id && x.studentId === s.id)?.status ?? '')).length
     return {
       s, classes: mine.length, last: mine[0]?.date,

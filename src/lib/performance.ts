@@ -88,7 +88,7 @@ export function computePerformance(allClasses: ScoreClass[], allHomework: ScoreH
   const classes = [...allClasses].sort((a, b) => b.date.localeCompare(a.date))
   const now = classes.slice(0, WINDOW)
   const before = classes.slice(WINDOW, WINDOW * 2)
-  const due = allHomework.filter((h) => h.dueDate <= today)
+  const due = allHomework.filter((h) => h.dueDate <= today || h.status !== 'assigned')
   // Homework belongs to the period its due date falls in
   const start = classes.length > WINDOW ? now[now.length - 1].date : ''
   const prevStart = classes.length > WINDOW * 2 ? before[before.length - 1].date : ''
