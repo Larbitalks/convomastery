@@ -4,6 +4,7 @@ import { errorMessage, formatDate } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import type { HomeworkState, Lesson } from '../lib/types'
 import { Field, Input, Notice, Select, Spinner, Textarea } from './ui'
+import { ShowMore } from './ShowMore'
 
 export const HOMEWORK_STATES: { value: HomeworkState; label: string; cls: string }[] = [
   { value: 'assigned', label: 'Not yet', cls: 'bg-board' },
@@ -25,6 +26,7 @@ export function StudentHomework({ studentId, classId, name, lessons, onChange }:
   const [creating, setCreating] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [all, setAll] = useState(false)
 
   if (loading || !data) return <Spinner />
   const statusOf = (hid: string) => data.statuses.find((s) => s.homeworkId === hid)
@@ -74,7 +76,7 @@ export function StudentHomework({ studentId, classId, name, lessons, onChange }:
 
       {data.homework.length === 0 ? <p className="text-inksoft">No homework yet.</p> : (
         <ul className="divide-y-2 divide-line rounded-2xl border-2 border-line bg-white">
-          {[...data.homework].sort((a, b) => b.dueDate.localeCompare(a.dueDate)).map((h) => {
+          {[...data.homework].sort((a, b) => b.dueDate.localeCompare(a.dueDate)).slice(0, all ? undefined : 1).map((h) => {
             const st = statusOf(h.id)
             const state = st?.status ?? 'assigned'
             const lesson = lessons.find((l) => l.id === h.lessonId)
@@ -107,6 +109,9 @@ export function StudentHomework({ studentId, classId, name, lessons, onChange }:
             )
           })}
         </ul>
+      )}
+      {data.homework.length > 0 && (
+        <ShowMore hidden={data.homework.length - 1} open={all} onToggle={() => setAll(!all)} what={['homework task', 'homework tasks']} />
       )}
     </div>
   )

@@ -58,6 +58,7 @@ export function ProgressView() {
   const { data, loading, error, reload } = useLoad(() => api.getStudentProgress(code), [code])
   const [allNotes, setAllNotes] = useState(false)
   const [allClasses, setAllClasses] = useState(false)
+  const [allHw, setAllHw] = useState(false)
   const loadMap = useCallback(() => studentMapPeople(code), [code])
 
   if (loading && !data) return <Spinner label="Loading your progress" />
@@ -175,7 +176,7 @@ export function ProgressView() {
             {toDo > 0 && <div className="mt-3"><Notice>You have {toDo === 1 ? '1 homework' : `${toDo} homeworks`} to do.</Notice></div>}
             {data.homework.length === 0 ? <p className="mt-2 text-inksoft">No homework yet.</p> : (
               <ul className="mt-3 grid gap-3">
-                {data.homework.map((h, i) => {
+                {data.homework.slice(0, allHw ? undefined : 1).map((h, i) => {
                   const st = STATUS[h.status] ?? STATUS.assigned
                   return (
                     <li key={i} className="panel p-4">
@@ -193,6 +194,7 @@ export function ProgressView() {
                 })}
               </ul>
             )}
+            <ShowMore hidden={data.homework.length - 1} open={allHw} onToggle={() => setAllHw(!allHw)} what={['homework task', 'homework tasks']} />
           </section>
         </div>
 
