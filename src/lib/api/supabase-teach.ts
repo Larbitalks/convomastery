@@ -27,13 +27,13 @@ const toBooking = (r: Row, slots: Map<string, BookingSlot>): Booking => ({
 
 const toSession = (r: Row): ClassSession => ({
   id: r.id, studentId: r.student_id, classId: r.class_id, date: r.date, startedAt: r.started_at, endedAt: r.ended_at,
-  attendance: r.attendance, review: r.review ?? null, lessonId: r.lesson_id, behaviour: r.behaviour ?? [], covered: r.covered ?? '', newWords: r.new_words ?? '',
+  attendance: r.attendance, review: r.review ?? null, lessonId: r.lesson_id, lessonTitle: r.lesson_title ?? '', behaviour: r.behaviour ?? [], covered: r.covered ?? '', newWords: r.new_words ?? '',
   corrections: r.corrections ?? '', notes: r.notes ?? '', noteId: r.note_id, createdAt: r.created_at,
 })
 const toStudentMessage = (r: Row): StudentMessage => ({ id: r.id, studentId: r.student_id, fromTeacher: r.from_teacher, body: r.body, read: r.read, createdAt: r.created_at })
 const toExam = (r: Row): Exam => ({ id: r.id, studentId: r.student_id, type: r.type, title: r.title ?? '', date: r.date, score: Number(r.score), outOf: Number(r.out_of), feedback: r.feedback ?? '', createdAt: r.created_at })
 function fromSessionPatch(p: SessionPatch): Row {
-  const map: Record<string, string> = { date: 'date', endedAt: 'ended_at', attendance: 'attendance', review: 'review', lessonId: 'lesson_id', behaviour: 'behaviour', covered: 'covered', newWords: 'new_words', corrections: 'corrections', notes: 'notes', noteId: 'note_id' }
+  const map: Record<string, string> = { date: 'date', endedAt: 'ended_at', attendance: 'attendance', review: 'review', lessonTitle: 'lesson_title', lessonId: 'lesson_id', behaviour: 'behaviour', covered: 'covered', newWords: 'new_words', corrections: 'corrections', notes: 'notes', noteId: 'note_id' }
   const row: Row = {}
   for (const [k, v] of Object.entries(p)) if (v !== undefined) row[map[k]] = v
   return row

@@ -159,7 +159,7 @@ const demoTeach: TeachApi = {
           x.behaviour.forEach((m) => { const t = tally.get(m.label) ?? { label: m.label, color: m.color, count: 0 }; t.count++; tally.set(m.label, t) })
           const { review, points, positive, negative } = scored[i]
           return { date: x.date, attendance: x.attendance, behaviour: [...tally.values()].sort((a, b) => b.count - a.count), review, points, positive, negative,
-            lesson: db.lessons.find((l) => l.id === x.lessonId)?.title ?? null, minutes: Math.round((new Date(x.endedAt!).getTime() - new Date(x.startedAt).getTime()) / 60000) }
+            lesson: x.lessonTitle || db.lessons.find((l) => l.id === x.lessonId)?.title || null, minutes: Math.round((new Date(x.endedAt!).getTime() - new Date(x.startedAt).getTime()) / 60000) }
         })
       })() : null,
     }

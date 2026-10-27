@@ -197,13 +197,15 @@ export interface ClassSession {
   id: string; studentId: string; classId: string; date: string
   startedAt: string; endedAt: string | null
   attendance: Attendance; lessonId: string | null
+  /** The lesson's name as typed in class (may not be a lesson on the website) */
+  lessonTitle?: string
   /** Did the student review the previous lesson? null = not checked */
   review: Review | null
   behaviour: BehaviourMark[]
   covered: string; newWords: string; corrections: string; notes: string
   noteId: string | null; createdAt: string
 }
-export type SessionPatch = Partial<Pick<ClassSession, 'date' | 'endedAt' | 'attendance' | 'review' | 'lessonId' | 'behaviour' | 'covered' | 'newWords' | 'corrections' | 'notes' | 'noteId'>>
+export type SessionPatch = Partial<Pick<ClassSession, 'date' | 'endedAt' | 'attendance' | 'review' | 'lessonTitle' | 'lessonId' | 'behaviour' | 'covered' | 'newWords' | 'corrections' | 'notes' | 'noteId'>>
 export interface StudentNote { id: string; studentId: string; date: string; body: string; createdAt: string; shared: boolean }
 
 /** What a student or parent sees on their progress page */

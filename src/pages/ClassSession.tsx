@@ -58,8 +58,8 @@ export default function ClassSessionPage() {
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const { data, loading, error } = useLoad(async () => {
-    const [session, students, notes, sessions, options, lessons] = await Promise.all([
-      api.getClassSession(sessionId), api.listStudents(), api.listStudentNotes(id), api.listClassSessions(id), api.getBehaviourOptions(), teachableLessons(isAdmin),
+    const [session, students, notes, sessions, options, lessons, mine] = await Promise.all([
+      api.getClassSession(sessionId), api.listStudents(), api.listStudentNotes(id), api.listClassSessions(id), api.getBehaviourOptions(), teachableLessons(isAdmin), api.listAllClassSessions(),
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!session || !student) return null
@@ -73,7 +73,14 @@ export default function ClassSessionPage() {
     const given = classAwards
       .filter((a) => a.studentId === student.id && a.createdAt >= session.startedAt && (!session.endedAt || a.createdAt <= session.endedAt))
       .map((a) => ({ id: a.id, name: categories.find((c) => c.id === a.categoryId)?.name ?? 'Award', points: a.points }))
-    return { session, student, notes, previous, options, lessons, categories, given, life, stays, camp }
+    // The last 6 different lessons taught (any student), newest first
+    const recentLessons: string[] = []
+    for (const x of [...mine].sort((p, q) => q.startedAt.localeCompare(p.startedAt))) {
+      const t = (x.lessonTitle || lessons.find((l) => l.id === x.lessonId)?.title || '').trim()
+      if (t && x.id !== session.id && !recentLessons.some((r) => r.toLowerCase() === t.toLowerCase())) recentLessons.push(t)
+      if (recentLessons.length === 6) break
+    }
+    return { session, student, notes, previous, options, lessons, categories, given, life, stays, camp, recentLessons }
   }, [id, sessionId, isAdmin])
 
   const [s, setS] = useState<ClassSession | null>(null)
@@ -124,6 +131,7 @@ export default function ClassSessionPage() {
   const elapsedMin = Math.max(0, Math.round(((s.endedAt ? new Date(s.endedAt).getTime() : now) - new Date(s.startedAt).getTime()) / 60000))
   const elapsed = `${Math.floor(elapsedMin / 60) ? `${Math.floor(elapsedMin / 60)} h ` : ''}${elapsedMin % 60} min`
   const lesson = lessons.find((l) => l.id === s.lessonId)
+  const lessonName = s.lessonTitle || lesson?.title || ''
 
   const mark = (o: BehaviourOption) => patch({ behaviour: [...(latest.current?.behaviour ?? []), { label: o.label, color: o.color, at: new Date().toISOString(), type: o.type ?? 'neutral' }] })
   const undoMark = () => patch({ behaviour: (latest.current?.behaviour ?? []).slice(0, -1) })
@@ -181,7 +189,7 @@ export default function ClassSessionPage() {
       {err && <div className="mb-4"><Notice tone="error">{err}</Notice></div>}
 
       {ending || finished ? (
-        <EndSummary session={s} studentName={student.name} lessonTitle={lesson?.title} elapsed={elapsed} awards={awardsGiven}
+        <EndSummary session={s} studentName={student.name} lessonTitle={lessonName || undefined} elapsed={elapsed} awards={awardsGiven}
           onBack={() => setEnding(false)} onSaved={() => navigate(`/students/${student.id}`)} studentId={student.id} />
       ) : (
         <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
@@ -274,10 +282,11 @@ export default function ClassSessionPage() {
           <aside className="grid content-start gap-6">
             <section className="panel p-5">
               <h2 className="text-lg font-extrabold">Lesson</h2>
-              <Select aria-label="Lesson taught" className="mt-2" value={s.lessonId ?? ''} onChange={(e) => patch({ lessonId: e.target.value || null })}>
-                <option value="">{lessons.length ? 'Choose the lesson you are teaching' : 'No lessons in your library yet'}</option>
-                {lessons.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
-              </Select>
+              <LessonBox value={lessonName} recent={data.recentLessons} lessons={lessons} onChange={(title) => {
+                // A name that matches a lesson on the website links to it, so its slides can be opened
+                const match = lessons.find((l) => l.title.trim().toLowerCase() === title.trim().toLowerCase())
+                patch({ lessonTitle: title, lessonId: match?.id ?? null }, true)
+              }} />
               {lesson && <a href={`${config.hashRouter ? '#' : ''}/teach/${lesson.slug}?class=${student.classId}`} target="_blank" rel="noopener noreferrer" className="btn-sun mt-3">Open slides in a new tab</a>}
             </section>
 
@@ -415,6 +424,44 @@ function EndSummary({ session, studentName, studentId, lessonTitle, elapsed, awa
           <button className="btn-primary !px-6 !py-3" disabled={busy} onClick={save}>{busy ? 'Saving' : 'Save and finish class'}</button>
           <button className="btn-ghost !py-3" onClick={onBack}>Back to the class</button>
         </div>
+      )}
+    </div>
+  )
+}
+
+/** Type the lesson, or pick one of the last 6 taught (shown when the box is clicked). Website lessons also match as you type. */
+function LessonBox({ value, recent, lessons, onChange }: { value: string; recent: string[]; lessons: { id: string; title: string }[]; onChange: (title: string) => void }) {
+  const [text, setText] = useState(value)
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(-1)
+  useEffect(() => { setText(value) }, [value])
+  const q = text.trim().toLowerCase()
+  const options = (q
+    ? [...recent, ...lessons.map((l) => l.title)].filter((t, i, all) => t.toLowerCase().includes(q) && t.toLowerCase() !== q && all.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i)
+    : recent).slice(0, 6)
+  const pick = (t: string) => { setText(t); onChange(t); setOpen(false); setActive(-1) }
+  return (
+    <div className="relative mt-2">
+      <Input aria-label="Lesson taught" placeholder="Type the lesson, e.g. Unit 3: Food" value={text} maxLength={200} autoComplete="off"
+        role="combobox" aria-expanded={open && options.length > 0} aria-controls="lesson-options"
+        onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onChange={(e) => { setText(e.target.value); onChange(e.target.value); setOpen(true); setActive(-1) }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(options.length - 1, a + 1)) }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(-1, a - 1)) }
+          else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); pick(options[active]) }
+          else if (e.key === 'Escape') setOpen(false)
+        }} />
+      {open && options.length > 0 && (
+        <ul id="lesson-options" role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl border-2 border-line bg-white shadow-lg">
+          {!q && <li className="px-3 pt-2 text-[12px] font-bold uppercase tracking-wide text-inksoft">Recent lessons</li>}
+          {options.map((t, i) => (
+            <li key={t} role="option" aria-selected={i === active}>
+              <button type="button" className={`block w-full px-3 py-2 text-left text-[15px] hover:bg-board ${i === active ? 'bg-board' : ''}`}
+                onMouseDown={(e) => e.preventDefault()} onClick={() => pick(t)}>{t}</button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

@@ -62,7 +62,7 @@ You'll need these accounts. All have free plans that are enough to launch.
 ## Step 2. Set up Supabase
 
 1. Create a new project. Pick the region closest to most customers. Save the database password somewhere safe.
-2. Open **SQL Editor**, paste in all of `supabase/migrations/0001_init.sql`, and click **Run**. Then do the same, in this order, with `supabase/migrations/0002_teaching_booking_messaging.sql` (classes, homework, awards, bookings, messages), `supabase/migrations/0003_student_records.sql` (student records), then 0004 to 0018 in number order, and `supabase/seed.sql` (starter topic areas). Or run `supabase/setup-all.sql`, which is all of these in one file.
+2. Open **SQL Editor**, paste in all of `supabase/migrations/0001_init.sql`, and click **Run**. Then do the same, in this order, with `supabase/migrations/0002_teaching_booking_messaging.sql` (classes, homework, awards, bookings, messages), `supabase/migrations/0003_student_records.sql` (student records), then 0004 to 0019 in number order, and `supabase/seed.sql` (starter topic areas). Or run `supabase/setup-all.sql`, which is all of these in one file.
 3. Open **Project Settings > API** and copy the **Project URL** and the **anon public key**. You'll need them in step 5.
 4. Open **Authentication > URL Configuration**:
    - Site URL: your domain, e.g. `https://www.convomastery.com`

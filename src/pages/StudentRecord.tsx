@@ -358,7 +358,7 @@ function ClassHistory({ studentId, sessions, lessons, onChange }: { studentId: s
         <ul className="mt-3 divide-y-2 divide-line rounded-2xl border-2 border-line bg-white">
           {(all ? done : done.slice(0, 1)).map((x) => {
             const mins = Math.round((new Date(x.endedAt!).getTime() - new Date(x.startedAt).getTime()) / 60000)
-            const lesson = lessons.find((l) => l.id === x.lessonId)
+            const lesson = x.lessonTitle ? { title: x.lessonTitle } : lessons.find((l) => l.id === x.lessonId)
             const isOpen = open === x.id
             return (
               <li key={x.id} className="p-4">
