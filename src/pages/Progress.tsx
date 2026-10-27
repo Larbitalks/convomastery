@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { NoteBody } from '../components/NoteBody'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Input, Notice, Spinner } from '../components/ui'
 import { api } from '../lib/api'
@@ -126,7 +127,7 @@ export function ProgressView() {
                 {(allNotes ? data.notes : data.notes.slice(0, 1)).map((n, i) => (
                   <li key={i} className="grid gap-1 border-l-[3px] border-sage pl-4">
                     <p className="text-sm font-bold text-inksoft">{formatDate(n.date)}</p>
-                    <p className="whitespace-pre-line">{n.body}</p>
+                    <NoteBody text={n.body} />
                   </li>
                 ))}
               </ol>

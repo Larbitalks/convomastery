@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { NoteBody } from '../components/NoteBody'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { StudentHomework } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
@@ -156,7 +157,7 @@ export default function StudentRecord() {
                         <button className="text-sm font-bold underline" onClick={() => removeNote(n.id)}>Delete</button>
                       </div>
                     </div>
-                    <p className="whitespace-pre-line">{n.body}</p>
+                    <NoteBody text={n.body} />
                   </li>
                 ))}
               </ol>

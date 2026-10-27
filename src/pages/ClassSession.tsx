@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { NoteBody } from '../components/NoteBody'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { StudentHomework } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
@@ -314,7 +315,7 @@ export default function ClassSessionPage() {
               ) : notes[0] ? (
                 <div className="mt-3 text-[15px]">
                   <p className="font-bold">Latest note, {formatDate(notes[0].date)}</p>
-                  <p className="mt-1 whitespace-pre-line">{notes[0].body}</p>
+                  <NoteBody text={notes[0].body} className="mt-1" />
                 </div>
               ) : <p className="mt-2 text-[15px] text-inksoft">This is your first class with {student.name} on the website.</p>}
             </section>
@@ -419,7 +420,7 @@ function EndSummary({ session, studentName, studentId, lessonTitle, elapsed, awa
       </section>
       <section>
         <h3 className="text-lg font-bold">Lesson note</h3>
-        {noteText ? <p className="panel mt-2 whitespace-pre-line p-4">{noteText}</p> : <p className="text-inksoft">No notes written. You can still save the class.</p>}
+        {noteText ? <NoteBody text={noteText} className="panel mt-2 p-4" /> : <p className="text-inksoft">No notes written. You can still save the class.</p>}
         {!finished && noteText && (
           <label className="mt-3 flex items-center gap-2 font-bold">
             <input type="checkbox" className="h-5 w-5 accent-sage-dark" checked={share} onChange={(e) => setShare(e.target.checked)} />
