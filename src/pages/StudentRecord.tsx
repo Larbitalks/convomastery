@@ -189,9 +189,9 @@ export default function StudentRecord() {
               </div>
             )
           })()}
-          <ExpeditionCard exp={expedition} name={student.name} />
+          <ExpeditionCard exp={expedition} name={student.name} loadMap={teacherMapPeople} />
 
-          <DiscoveryJournal journey={journey} name={student.name} loadMap={teacherMapPeople} />
+          <DiscoveryJournal journey={journey} name={student.name} />
 
           <StudentExams studentId={student.id} name={student.name} exams={exams} totals={examTotals} onChange={reload} />
 

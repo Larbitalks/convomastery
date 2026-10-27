@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { DiscoveryArt } from './DiscoveryArt'
-import { MountainMap } from './MountainMap'
 import { formatDate } from '../lib/format'
 import { CAMP_ITEMS, RARITY_COLOR, TIERS, editionOf, tierOf, type Discovery, type Found, type Journey, type MapPerson } from '../lib/discoveries'
 
@@ -8,7 +7,6 @@ const tint = (hex: string) => `${hex}22`
 
 /** The adventure journal: progress to the next discovery, the current camp's set, and a shelf for earlier camps */
 export function DiscoveryJournal({ journey, name, own = false, loadMap }: { journey: Journey; name: string; own?: boolean; loadMap?: () => Promise<(MapPerson & { hidden?: boolean })[]> }) {
-  const [map, setMap] = useState(false)
   const { unlocked, current, needed, next, lifetime, camp } = journey
   const pct = Math.min(100, Math.round((current / needed) * 100))
   const tier = tierOf(camp)
@@ -53,18 +51,6 @@ export function DiscoveryJournal({ journey, name, own = false, loadMap }: { jour
         </dl>
       </div>
 
-      {loadMap && (
-        <button type="button" onClick={() => setMap(true)}
-          className="group relative mt-3 flex w-full items-center gap-4 overflow-hidden rounded-2xl border-2 border-ink text-left text-white shadow-[4px_4px_0_#3D405B] transition-transform hover:-translate-y-0.5">
-          <img src={`${import.meta.env.BASE_URL}map/overview-thumb.webp`} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-          <span className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/50 to-transparent" aria-hidden="true" />
-          <span className="relative px-5 py-5">
-            <span className="block text-xl font-extrabold">See the mountain map</span>
-            <span className="block text-[14px] text-white/85">{own ? 'Find yourself on the trail and see where everyone else is.' : 'Every student on the trail, camp by camp.'}</span>
-          </span>
-        </button>
-      )}
-      {map && loadMap && <MountainMap load={loadMap} teacher={!own} onClose={() => setMap(false)} />}
 
       {!open && (
         <button type="button" className="mt-3 w-full rounded-xl border-2 border-dashed border-line py-2.5 text-[15px] font-bold hover:border-ink/40" onClick={() => setOpen(true)} aria-controls="disc-camps" aria-expanded={false}>

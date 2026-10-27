@@ -159,9 +159,9 @@ export function ProgressView() {
             </section>
           )}
 
-          <ExpeditionCard own exp={expedition} name={data.name} />
+          <ExpeditionCard own exp={expedition} name={data.name} loadMap={loadMap} />
 
-          <DiscoveryJournal own journey={journey} name={data.name} loadMap={loadMap} />
+          <DiscoveryJournal own journey={journey} name={data.name} />
 
           <StudentExams readOnly studentId="" name={data.name} exams={exams} totals={DEFAULT_EXAM_TOTALS} onChange={() => {}} />
 

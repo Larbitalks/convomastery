@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { MountainMap } from './MountainMap'
+import type { MapPerson } from '../lib/discoveries'
 import { formatDate } from '../lib/format'
 import { tierOf } from '../lib/discoveries'
 import { MILESTONES, MOUNTAIN_SIZE, mountainSrc, mountainThumb, seriesOf, trailSpot, type Expedition, type Lucky, type Mountain } from '../lib/expedition'
@@ -31,14 +33,21 @@ export function MountainView({ mountain, steps, cost, className = '', label }: {
 }
 
 /** Expedition card: current mountain, progress past the milestones, summits and lucky finds */
-export function ExpeditionCard({ exp, name, own = false, onOpenMap }: { exp: Expedition; name: string; own?: boolean; onOpenMap?: () => void }) {
+export function ExpeditionCard({ exp, name, own = false, loadMap }: { exp: Expedition; name: string; own?: boolean; loadMap?: () => Promise<(MapPerson & { hidden?: boolean })[]> }) {
+  const [open, setOpen] = useState(false)
   const camp = tierOf(exp.camp)
   const series = seriesOf(exp.camp)
   const nextStop = Math.min(4, Math.floor(exp.steps / (exp.cost / 5)))
   const toNext = Math.ceil((nextStop + 1) * (exp.cost / 5) - exp.steps)
   return (
     <section aria-labelledby="exp-h" className="overflow-hidden rounded-2xl border-2 border-line bg-white">
-      <MountainView mountain={exp.mountain} steps={exp.steps} cost={exp.cost} label={own ? 'You' : name} />
+      {loadMap ? (
+        <button type="button" className="group relative block w-full text-left" onClick={() => setOpen(true)} aria-label={`Open ${exp.mountain.name} and see who is climbing`}>
+          <MountainView mountain={exp.mountain} steps={exp.steps} cost={exp.cost} label={own ? 'You' : name} />
+          <span className="absolute bottom-3 right-3 rounded-full bg-white/95 px-3.5 py-1.5 text-sm font-extrabold text-ink shadow-lg transition group-hover:scale-105">⛰ Open the mountain</span>
+        </button>
+      ) : <MountainView mountain={exp.mountain} steps={exp.steps} cost={exp.cost} label={own ? 'You' : name} />}
+      {open && loadMap && <MountainMap load={loadMap} teacher={!own} camp={exp.camp} mountainId={exp.mountain.id} onClose={() => setOpen(false)} />}
       <div className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -46,7 +55,7 @@ export function ExpeditionCard({ exp, name, own = false, onOpenMap }: { exp: Exp
             <h2 id="exp-h" className="text-2xl font-extrabold">{exp.mountain.name}{exp.ascent > 1 ? <span className="text-base font-bold text-inksoft"> (ascent {exp.ascent})</span> : null}</h2>
             <p className="text-[14px] text-inksoft">{exp.mountain.where}{exp.mountain.height ? `, ${exp.mountain.height}` : ''}</p>
           </div>
-          {onOpenMap && <button className="btn-ghost !py-1.5" onClick={onOpenMap}>See everyone on the map</button>}
+          {loadMap && <button className="btn-ghost !py-1.5" onClick={() => setOpen(true)}>See who's climbing</button>}
         </div>
 
         <div className="mt-4">

@@ -41,10 +41,10 @@ function placeOnMountain(m: Mountain, people: Person[]): Placed[] {
 }
 
 /** Full-screen map: the whole mountain, and a close-up of each camp with its students on the trail. */
-export function MountainMap({ load, onClose, teacher = false }: { load: () => Promise<Person[]>; onClose: () => void; teacher?: boolean }) {
+export function MountainMap({ load, onClose, teacher = false, camp: startCamp, mountainId }: { load: () => Promise<Person[]>; onClose: () => void; teacher?: boolean; camp: Tier; mountainId?: string }) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
-  const [view, setView] = useState<View>('overview')
+  const [view, setView] = useState<View>(startCamp)
   const [selected, setSelected] = useState<string | null>(null)
   const [panel, setPanel] = useState(false)
   const box = useRef<HTMLDivElement>(null)
@@ -55,7 +55,7 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
 
   useEffect(() => { load().then(setPeople).catch((e) => setErr(errorMessage(e))) }, [load])
 
-  const [mtnId, setMtnId] = useState<string | null>(null)
+  const [mtnId, setMtnId] = useState<string | null>(mountainId ?? null)
   const mountain = view === 'overview' ? null : (seriesOf(view).find((m) => m.id === mtnId) ?? seriesOf(view)[0])
   const pic = useMemo(() => (mountain ? { src: mountainSrc(mountain), ...MOUNTAIN_SIZE } : OVERVIEW), [mountain])
   const placed = useMemo(() => (!mountain || !people ? [] : placeOnMountain(mountain, people.filter((p) => p.camp === mountain.camp && mountainOf(p).id === mountain.id))), [people, mountain])
@@ -142,7 +142,7 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
     const wheel = (e: WheelEvent) => { e.preventDefault(); const r = el.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top) }
     el.addEventListener('wheel', wheel, { passive: false })
     const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { if (view !== 'overview') setView('overview'); else onClose() }
+      if (e.key === 'Escape') onClose()
       if (e.key === '+' || e.key === '=') zoomAt(1.25)
       if (e.key === '-') zoomAt(0.8)
     }
@@ -182,7 +182,6 @@ export function MountainMap({ load, onClose, teacher = false }: { load: () => Pr
       <style>{`@keyframes cm-dive { from { opacity: 0; transform: scale(1.12) } to { opacity: 1; transform: none } } .cm-dive { animation: cm-dive .45s ease-out } @media (prefers-reduced-motion: reduce) { .cm-dive { animation: none } }`}</style>
       <div className="flex items-center justify-between gap-3 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
-          {camp && <button className="shrink-0 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-ink" onClick={() => { setSelected(null); setView('overview') }}>← All camps</button>}
           <div className="min-w-0">
             <p className="truncate text-lg font-extrabold">{camp && mountain ? <>{mountain.name} <span className="text-sm font-bold text-white/70">{camp.camp}{mountain.height ? `, ${mountain.height}` : ''}</span></> : 'The ConvoMastery Mountain'}</p>
             <p className="truncate text-[13px] text-white/70">
