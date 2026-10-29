@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Field, Input, Notice, Select, Spinner } from '../components/ui'
 import { api } from '../lib/api'
-import { errorMessage, formatDate } from '../lib/format'
+import { errorMessage, formatDate, timeAgo } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { PerformanceMini } from '../components/Performance'
@@ -117,7 +117,7 @@ export default function Students() {
             <div className="panel mt-4 overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-[15px]">
                 <thead className="border-b-2 border-line bg-board">
-                  <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Class</th><th className="px-4 py-3">Level</th><th className="px-4 py-3">Performance</th><th className="px-4 py-3">Award points</th><th className="px-4 py-3">Homework handed in</th><th className="px-4 py-3">Last lesson note</th></tr>
+                  <tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Class</th><th className="px-4 py-3">Level</th><th className="px-4 py-3">Performance</th><th className="px-4 py-3">Award points</th><th className="px-4 py-3">Homework handed in</th><th className="px-4 py-3">Last lesson note</th><th className="px-4 py-3" title="Only you can see this">Opened their page</th></tr>
                 </thead>
                 <tbody className="divide-y-2 divide-line">
                   {rows.map(({ s, cls, points, homework, lastNote, perf }) => (
@@ -129,6 +129,7 @@ export default function Students() {
                       <td className="px-4 py-3 tabular-nums">{points}</td>
                       <td className="px-4 py-3">{homework}</td>
                       <td className="px-4 py-3 text-inksoft">{lastNote ? formatDate(lastNote) : 'None yet'}</td>
+                      <td className="px-4 py-3 text-inksoft">{!s.shareCode ? 'No code' : s.lastViewedAt ? timeAgo(s.lastViewedAt) : 'Not yet'}</td>
                     </tr>
                   ))}
                 </tbody>

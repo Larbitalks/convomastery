@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { StudentHomework } from '../components/StudentHomework'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
-import { errorMessage, formatDate, formatTime } from '../lib/format'
+import { errorMessage, formatDate, formatDateTime, formatTime, timeAgo } from '../lib/format'
 import { useLoad } from '../lib/hooks'
 import { Seo } from '../lib/seo'
 import { LEVELS, newShareCode, textOn, type ClassSession, type Lesson } from '../lib/types'
@@ -110,6 +110,7 @@ export default function StudentRecord() {
           <div>
           <h1 className="text-4xl font-extrabold">{student.name}</h1>
           <p className="mt-1 text-inksoft">{cls && <Link to={`/classes/${cls.id}`} className="underline underline-offset-2">{cls.name}</Link>}{(student.level || cls?.level) && `, level ${student.level || cls?.level}`}</p>
+          {student.shareCode && <p className="mt-1 text-[13px] text-inksoft" title={student.lastViewedAt ? `${formatDateTime(student.lastViewedAt)}. Only you can see this.` : 'Only you can see this.'}>{student.lastViewedAt ? `Opened their page ${timeAgo(student.lastViewedAt)}` : 'Has not opened their page yet'}</p>}
           </div>
         </div>
         {running ? (
@@ -196,7 +197,7 @@ export default function StudentRecord() {
 
         <div className="grid content-start gap-8">
           <StudentMessages studentId={student.id} name={student.name} hasCode={Boolean(student.shareCode)} />
-          <SharePanel studentId={student.id} name={student.name} code={student.shareCode} showOnMap={student.showOnMap !== false} showBehaviour={student.showBehaviour} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
+          <SharePanel studentId={student.id} name={student.name} code={student.shareCode} showOnMap={student.showOnMap !== false} showBehaviour={student.showBehaviour} lastViewedAt={student.lastViewedAt ?? null} viewCount={student.viewCount ?? 0} sharedNotes={notes.filter((n) => n.shared).length} onChange={reload} />
           <section className="panel p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-extrabold">Details</h2>
@@ -274,7 +275,20 @@ export default function StudentRecord() {
   )
 }
 
-function SharePanel({ studentId, name, code, showOnMap, showBehaviour, sharedNotes, onChange }: { studentId: string; name: string; code: string | null; showOnMap: boolean; showBehaviour: boolean; sharedNotes: number; onChange: () => void }) {
+/** Only the teacher sees this: when the progress page was last opened with the code */
+function LastViewed({ at, count }: { at: string | null; count: number }) {
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-white px-3 py-2 text-[14px]">
+      <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-sage-dark" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+      {at ? (
+        <span title={formatDateTime(at)}><b>Last opened {timeAgo(at)}</b> <span className="text-inksoft">({count === 1 ? '1 visit' : `${count} visits`} in total)</span></span>
+      ) : <span><b>Not opened yet.</b> <span className="text-inksoft">You will see here when they look at it.</span></span>}
+      <span className="w-full text-[12px] text-inksoft">Only you can see this. Your own visits are not counted.</span>
+    </p>
+  )
+}
+
+function SharePanel({ studentId, name, code, showOnMap, showBehaviour, lastViewedAt, viewCount, sharedNotes, onChange }: { studentId: string; name: string; code: string | null; showOnMap: boolean; showBehaviour: boolean; lastViewedAt: string | null; viewCount: number; sharedNotes: number; onChange: () => void }) {
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<'new' | 'off' | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
@@ -290,6 +304,7 @@ function SharePanel({ studentId, name, code, showOnMap, showBehaviour, sharedNot
   return (
     <section className={`rounded-2xl border-2 p-5 ${code ? 'border-sage bg-sage-light/50' : 'border-line bg-white'}`}>
       <h2 className="text-xl font-extrabold">Share with {name}</h2>
+      {code && <LastViewed at={lastViewedAt} count={viewCount} />}
       {err && <div className="mt-3"><Notice tone="error">{err}</Notice></div>}
       {!code ? (
         <>

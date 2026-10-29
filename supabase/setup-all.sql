@@ -1,6 +1,4 @@
--- ConvoMastery: complete database setup for a NEW Supabase project. Paste this whole file into the Supabase SQL Editor and click Run, once.
-
-
+-- ConvoMastery: full database setup (all migrations plus seed). Safe to run on a fresh project.
 -- ===== migrations/0001_init.sql =====
 -- ConvoMastery database schema.
 -- Run this once in the Supabase SQL editor (or with `supabase db push`).
@@ -171,7 +169,6 @@ create policy "public images read" on storage.objects for select using (bucket_i
 create policy "admin manages images" on storage.objects for all
   using (bucket_id = 'public-images' and public.is_admin())
   with check (bucket_id = 'public-images' and public.is_admin());
-
 -- ===== migrations/0002_teaching_booking_messaging.sql =====
 -- Teaching tools (classes, students, awards, homework), teaching from the website,
 -- booking and messaging. Run after 0001_init.sql.
@@ -428,7 +425,6 @@ $$;
 
 -- Bookings and emails sent by server functions need to know if a booking email went out
 alter table public.bookings add column notified_status text;
-
 -- ===== migrations/0003_student_records.sql =====
 -- Student records: extra details and a dated notes log. Run after 0002.
 alter table public.students
@@ -449,7 +445,6 @@ create index student_notes_student_idx on public.student_notes (student_id, date
 alter table public.student_notes enable row level security;
 create policy "own student notes" on public.student_notes for all using (owner_id = auth.uid())
   with check (owner_id = auth.uid() and exists (select 1 from public.students s where s.id = student_id and s.owner_id = auth.uid()));
-
 -- ===== migrations/0004_palette_colours.sql =====
 -- Optional: new default award colours to match the site's palette. Safe to run any time.
 create or replace function public.add_default_award_categories() returns trigger
@@ -464,7 +459,6 @@ begin
   return new;
 end $$;
 alter table public.lessons alter column cover_color set default '#3D405B';
-
 -- ===== migrations/0005_student_progress_codes.sql =====
 -- Student progress codes: a teacher can share a read-only progress page with a student or parent.
 -- Run after 0003_student_records.sql.
@@ -511,7 +505,6 @@ begin
 end $$;
 
 grant execute on function public.student_progress(text) to anon, authenticated;
-
 -- ===== migrations/0006_homework_per_student.sql =====
 -- Homework belongs to one student (set from the student's profile).
 -- Existing whole-class homework is copied to every student in that class, with their status and feedback.
@@ -584,7 +577,6 @@ begin
       from student_notes n where n.student_id = s.id and n.shared), '[]'::jsonb)
   );
 end $$;
-
 -- ===== migrations/0007_class_sessions.sql =====
 -- Class sessions: start a class from a student's profile, record attendance, behaviour,
 -- notes and the lesson taught. Run after 0006_homework_per_student.sql.
@@ -662,7 +654,6 @@ begin
         order by cs.date desc, cs.started_at desc limit 8) t), '[]'::jsonb) else null end
   );
 end $$;
-
 -- ===== migrations/0008_review_and_performance.sql =====
 -- Review check and overall performance. Run after 0007_class_sessions.sql.
 -- Safe to run more than once.
@@ -738,13 +729,11 @@ begin
 end $$;
 
 grant execute on function public.student_progress(text) to anon, authenticated;
-
 -- ===== migrations/0009_class_pictures.sql =====
 -- Optional picture for each class (a small image stored with the class). Run after 0008. Safe to run more than once.
 alter table public.classes add column if not exists image text;
 alter table public.classes drop constraint if exists classes_image_size;
 alter table public.classes add constraint classes_image_size check (image is null or (image like 'data:image/%' and length(image) < 400000));
-
 -- ===== migrations/0010_exams.sql =====
 -- Exam records: unit exams (quizzes), mid-term and final exams for each student. Run after 0009. Safe to run more than once.
 
@@ -827,7 +816,6 @@ begin
 end $$;
 
 grant execute on function public.student_progress(text) to anon, authenticated;
-
 -- ===== migrations/0011_student_messages.sql =====
 -- Students and parents can message their teacher from the progress page, and the teacher replies on the student's profile.
 -- The progress page also gets what it needs to look like the teacher's view of the profile (read-only).
@@ -949,7 +937,6 @@ begin
 end $$;
 
 grant execute on function public.student_progress(text) to anon, authenticated;
-
 -- ===== migrations/0012_discoveries.sql =====
 -- Discoveries: award points unlock mountain-themed collectibles (5 points, then 15 more, then every 30).
 -- Nothing new is stored: the journey is worked out from the awards already saved, so rewards can never be
@@ -1023,7 +1010,6 @@ begin
 end $$;
 
 grant execute on function public.student_progress(text) to anon, authenticated;
-
 -- ===== migrations/0013_discovery_camps.sql =====
 -- Discoveries by camp: students collect from the camp of their class (Explorers, Trekkers, Climbers, Mountaineers,
 -- Alpinists), and move up when the teacher changes their class. This keeps a dated record of class moves so earlier
@@ -1137,7 +1123,6 @@ begin
 end $$;
 
 grant execute on function public.student_progress(text) to anon, authenticated;
-
 -- ===== migrations/0014_mountain_map.sql =====
 -- The mountain map: every student of a teacher shown on one trail, by name, unless the teacher hides them.
 -- Run after 0013. Safe to run more than once.
@@ -1166,7 +1151,6 @@ begin
     where x.owner_id = s.owner_id and (x.show_on_map or x.id = s.id)), '[]'::jsonb);
 end $$;
 grant execute on function public.student_map(text) to anon, authenticated;
-
 -- ===== migrations/0015_student_avatars.sql =====
 -- Student avatars: chosen by the teacher, shown on the profile, the student's page, lists and the mountain map.
 -- The avatar is a small list of choices (skin, hair, eyes and so on), drawn in the browser. Run after 0014. Safe to run more than once.
@@ -1268,7 +1252,6 @@ begin
     where x.owner_id = s.owner_id and (x.show_on_map or x.id = s.id)), '[]'::jsonb);
 end $$;
 grant execute on function public.student_map(text) to anon, authenticated;
-
 -- ===== migrations/0016_more_lesson_options.sql =====
 -- More options for lessons: CEFR levels from Pre-A1 to C2 (plus "All levels"), more student groups,
 -- and more topic areas. Activities were already free text. Run after 0015. Safe to run more than once.
@@ -1308,7 +1291,6 @@ insert into public.categories (name, slug, description) values
   ('Fantasy and imagination', 'fantasy-and-imagination', 'What if, superpowers, stories and the future.'),
   ('Exam practice', 'exam-practice', 'IELTS, Cambridge and other exam-style speaking practice.')
 on conflict (slug) do nothing;
-
 -- ===== migrations/0017_map_collections.sql =====
 -- Mountain map: clicking a student shows the discoveries they have collected.
 -- Sends each visible student's award history and class moves, so their collection can be worked out. Run after 0016. Safe to run more than once.
@@ -1338,7 +1320,6 @@ begin
     where x.owner_id = s.owner_id and (x.show_on_map or x.id = s.id)), '[]'::jsonb);
 end $$;
 grant execute on function public.student_map(text) to anon, authenticated;
-
 -- ===== migrations/0018_expeditions.sql =====
 -- Expeditions and random discoveries. Each student's finds and lucky finds are random but fixed for that student,
 -- so the progress page and the map need the same key the teacher's pages use (the student's id). Nothing new is stored.
@@ -1443,7 +1424,6 @@ begin
     where x.owner_id = s.owner_id and (x.show_on_map or x.id = s.id)), '[]'::jsonb);
 end $$;
 grant execute on function public.student_map(text) to anon, authenticated;
-
 -- ===== migrations/0019_lesson_title.sql =====
 -- Lesson typed by hand in a class (for lessons that are not on the website). Run after 0018. Safe to run more than once.
 alter table public.class_sessions add column if not exists lesson_title text not null default '' check (char_length(lesson_title) <= 200);
@@ -1521,7 +1501,30 @@ begin
 end $$;
 
 grant execute on function public.student_progress(text) to anon, authenticated;
+-- ===== migrations/0020_progress_views.sql =====
+-- When a student (or a parent) last opened their progress page. Only the teacher sees this.
+-- Run after 0019. Safe to run more than once.
 
+alter table public.students add column if not exists last_viewed_at timestamptz;
+alter table public.students add column if not exists view_count integer not null default 0;
+
+-- Called by the progress page when it opens. The teacher's own visits are not counted,
+-- and opening the page again within 30 minutes counts as the same visit.
+create or replace function public.mark_progress_viewed(p_code text)
+returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  v_code text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
+  s students;
+begin
+  if length(v_code) < 10 then return; end if;
+  select * into s from students where replace(share_code, '-', '') = v_code;
+  if s.id is null or s.owner_id = auth.uid() then return; end if;
+  update students set
+    view_count = view_count + case when last_viewed_at is null or last_viewed_at < now() - interval '30 minutes' then 1 else 0 end,
+    last_viewed_at = now()
+  where id = s.id;
+end $$;
+grant execute on function public.mark_progress_viewed(text) to anon, authenticated;
 -- ===== seed.sql =====
 -- Optional starter topic areas. Run after 0001_init.sql.
 insert into public.categories (name, slug, description) values

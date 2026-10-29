@@ -157,6 +157,9 @@ export interface Student {
   avatar?: import('./avatar').AvatarConfig | null
   /** Whether the progress page shows attendance and behaviour */
   showBehaviour: boolean
+  /** Last time the progress page was opened with the code (teacher only), and how many visits */
+  lastViewedAt?: string | null
+  viewCount?: number
 }
 
 export type BehaviourType = 'positive' | 'neutral' | 'negative'
@@ -290,6 +293,8 @@ export interface TeachApi {
   setStudentShareCode(studentId: string, code: string | null): Promise<void>
   /** Public: read-only progress for a code, or null if the code is wrong or turned off */
   getStudentProgress(code: string): Promise<StudentProgress | null>
+  /** Record that the progress page was opened (not counted for the teacher) */
+  markProgressViewed(code: string): Promise<void>
   setStudentShowOnMap(studentId: string, show: boolean): Promise<void>
   /** Everyone on the mountain map, seen with a student's progress code */
   getStudentMap(code: string): Promise<{ name: string; seed?: string; avatar?: unknown; log?: { points: number; at: string }[]; moves?: { at: string; className: string; classLevel: string }[]; className: string; classLevel: string; total: number; atMove: number; me: boolean }[] | null>

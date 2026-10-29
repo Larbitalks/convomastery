@@ -113,6 +113,17 @@ const demoTeach: TeachApi = {
     own(load().students, studentId, 'student').shareCode = code
     save()
   },
+  async markProgressViewed(code) {
+    const norm = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '')
+    if (norm(code).length < 10) return
+    const db = load()
+    const s = db.students.find((x) => x.shareCode && norm(x.shareCode) === norm(code))
+    if (!s || currentUser()?.id === s.ownerId) return
+    const now = Date.now()
+    if (!s.lastViewedAt || now - new Date(s.lastViewedAt).getTime() > 30 * 60e3) s.viewCount = (s.viewCount ?? 0) + 1
+    s.lastViewedAt = new Date(now).toISOString()
+    save()
+  },
   async getStudentProgress(code) {
     await wait(200)
     const norm = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '')

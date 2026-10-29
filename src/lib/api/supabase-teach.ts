@@ -12,7 +12,7 @@ function check<T = any>(res: { data: T | null; error: { message: string } | null
 const notify = (fn: string, body: object) => { supabase.functions.invoke(fn, { body }).catch(() => {}) }
 
 const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.level, color: r.color, image: r.image ?? null, createdAt: r.created_at })
-const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showOnMap: r.show_on_map ?? true, avatar: cleanAvatar(r.avatar), showBehaviour: Boolean(r.show_behaviour), createdAt: r.created_at })
+const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showOnMap: r.show_on_map ?? true, avatar: cleanAvatar(r.avatar), showBehaviour: Boolean(r.show_behaviour), lastViewedAt: r.last_viewed_at ?? null, viewCount: r.view_count ?? 0, createdAt: r.created_at })
 const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
 const toAward = (r: Row): Award => ({ id: r.id, classId: r.class_id, studentId: r.student_id, categoryId: r.category_id, points: r.points, lessonId: r.lesson_id, createdAt: r.created_at })
@@ -178,6 +178,10 @@ export const supabaseTeach: TeachApi = {
   async deleteClassSession(id) { check(await supabase.from('class_sessions').delete().eq('id', id)) },
   async setStudentShareCode(studentId, code) {
     check(await supabase.from('students').update({ share_code: code }).eq('id', studentId))
+  },
+  async markProgressViewed(code) {
+    // Best effort: a missing function (update not run yet) must not break the page
+    try { await supabase.rpc('mark_progress_viewed', { p_code: code }) } catch { /* ignore */ }
   },
   async getStudentProgress(code) {
     const data = check(await supabase.rpc('student_progress', { p_code: code }))

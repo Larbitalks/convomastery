@@ -61,6 +61,8 @@ export function ProgressView() {
   const [allClasses, setAllClasses] = useState(false)
   const [allHw, setAllHw] = useState(false)
   const loadMap = useCallback(() => studentMapPeople(code), [code])
+  // Let the teacher know the page was opened (only the teacher sees this)
+  useEffect(() => { if (code) api.markProgressViewed(code).catch(() => {}) }, [code])
 
   if (loading && !data) return <Spinner label="Loading your progress" />
   if (error || !data) {

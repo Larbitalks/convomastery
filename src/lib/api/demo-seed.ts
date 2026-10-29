@@ -24,7 +24,7 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
   )
   // Most demo students have an avatar; a couple don't, to show the initials
   students.forEach((s, i) => { if (i % 5 !== 4) s.avatar = presetAvatar(i * 3 + 1) })
-  Object.assign(students[0], { shareCode: 'DEMO-AMY2-CODE', contact: "Parent: Mrs Lee, lee.family@example.com", goals: 'Speak more fluently in debates; use linking words', notes: 'Confident speaker, sometimes rushes answers.' })
+  Object.assign(students[0], { shareCode: 'DEMO-AMY2-CODE', contact: "Parent: Mrs Lee, lee.family@example.com", goals: 'Speak more fluently in debates; use linking words', notes: 'Confident speaker, sometimes rushes answers.', lastViewedAt: new Date(Date.now() - 3 * 3600e3).toISOString(), viewCount: 12 })
   Object.assign(students[1], { goals: 'Build confidence speaking in front of the group', notes: 'Quiet at first, warms up in pair work.' })
   const studentNotes: DemoDb['studentNotes'] = [
     { id: 'n-1', ownerId: 'u-admin', studentId: students[0].id, date: ymd(new Date(now.getTime() - 7 * day)), body: 'Sleep On It: great opinions in the debate. Practise "on the other hand" and "whereas".', createdAt: iso(new Date(now.getTime() - 7 * day)), shared: true },
