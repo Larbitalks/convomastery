@@ -12,7 +12,7 @@ import { useStudentUnread, useUnread } from '../lib/useUnread'
 const publicNav = [
   { to: '/lessons', label: 'Lessons' },
   { to: '/pricing', label: 'Pricing' },
-  { to: '/about', label: 'About' },
+  { to: '/about', label: 'About me' },
   { to: '/contact', label: 'Contact' },
 ]
 // Signed-in teachers get their tools in the main menu
@@ -22,6 +22,7 @@ const memberNav = [
   { to: '/classes', label: 'Classes' },
   { to: '/students', label: 'Students' },
   { to: '/bookings', label: 'Bookings' },
+  { to: '/about', label: 'About me' },
 ]
 
 function DemoBanner() {
@@ -65,14 +66,14 @@ function Header() {
   useEffect(() => setMenu(false), [pathname])
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
-    `whitespace-nowrap rounded-full px-3 py-2 font-bold text-[15px] ${isActive ? 'bg-board text-ink' : 'text-inksoft hover:text-ink'}`
+    `whitespace-nowrap rounded-full px-2.5 py-2 font-bold text-[14px] 2xl:px-3 2xl:text-[15px] ${isActive ? 'bg-board text-ink' : 'text-inksoft hover:text-ink'}`
 
   const nav = session ? [...memberNav, ...(isAdmin ? [] : [{ to: '/messages', label: 'Messages' }])] : publicNav
   const signOut = async () => { await api.signOut(); navigate('/') }
 
   return (
     <header className="border-b-2 border-line bg-white">
-      <div className="wrap flex h-[68px] items-center justify-between gap-4">
+      <div className="wrap flex h-[68px] items-center justify-between gap-2 2xl:gap-4">
         <Link to="/" aria-label="ConvoMastery home"><Logo /></Link>
         <nav className="hidden xl:flex items-center gap-0.5" aria-label="Main">
           {nav.map((n) => <NavLink key={n.to} to={n.to} className={linkCls}>{n.label}{n.to === '/messages' && unread > 0 && <Dot n={unread} />}{n.to === '/students' && studentUnread > 0 && <Dot n={studentUnread} />}</NavLink>)}
