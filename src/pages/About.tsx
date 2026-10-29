@@ -4,7 +4,7 @@ import { Seo } from '../lib/seo'
 export default function About() {
   return (
     <div className="wrap py-12">
-      <Seo title="About" description="ConvoMastery is written by Larbi Amzil, an online English teacher who builds communicative speaking lessons for teens and adults." />
+      <Seo title="About" description="ConvoMastery is written by Larbi Amzil, an online English teacher who builds communicative speaking lessons for kids, teens and adults." />
       <div className="grid gap-12 md:grid-cols-[1.3fr_1fr]">
         <div className="max-w-[66ch]">
           <h1 className="text-4xl sm:text-5xl font-extrabold">Made by a teacher, tested in real lessons</h1>
@@ -18,6 +18,11 @@ export default function About() {
             <Link to="/contact" className="btn-ghost">Get in touch</Link>
           </div>
         </div>
+        <div className="grid content-start gap-6">
+        <figure className="mx-auto w-full max-w-[20rem] md:mx-0">
+          <img src={`${import.meta.env.BASE_URL}about/larbi.webp`} alt="Larbi Amzil" width={378} height={528} className="aspect-[378/528] w-full rounded-3xl object-cover shadow-md ring-4 ring-white" />
+          <figcaption className="mt-2 text-center text-[14px] font-bold text-inksoft">Larbi Amzil, English teacher</figcaption>
+        </figure>
         <aside className="self-start rounded-2xl bg-board p-7">
           <h2 className="text-xl font-extrabold">What makes these lessons different</h2>
           <ul className="mt-4 grid gap-3">
@@ -26,6 +31,7 @@ export default function About() {
             <li><strong>Scaffolded.</strong> <span className="text-inksoft">Sentence starters and expression banks for every debate.</span></li>
           </ul>
         </aside>
+        </div>
       </div>
     </div>
   )
