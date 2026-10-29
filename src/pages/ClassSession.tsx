@@ -91,6 +91,7 @@ export default function ClassSessionPage() {
   const [reveal, setReveal] = useState<({ find: Found } | { event: ExpeditionEvent })[]>([])
   const camps = useRef<{ stays: CampStay[]; camp: Tier }>({ stays: [], camp: 'Explorers' })
   const [options, setOptions] = useState<BehaviourOption[]>(DEFAULT_BEHAVIOURS)
+  const [burst, setBurst] = useState<{ id: string; key: number } | null>(null)
   const [awardsGiven, setAwardsGiven] = useState<{ id: string; categoryId?: string; name: string; points: number }[]>([])
   const [ending, setEnding] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -138,6 +139,7 @@ export default function ClassSessionPage() {
   const mark = (o: BehaviourOption) => patch({ behaviour: [...(latest.current?.behaviour ?? []), { label: o.label, color: o.color, at: new Date().toISOString(), type: o.type ?? 'neutral' }] })
   const undoMark = () => patch({ behaviour: (latest.current?.behaviour ?? []).slice(0, -1) })
   const give = async (categoryId: string, name: string) => {
+    setBurst((b) => ({ id: categoryId, key: (b?.key ?? 0) + 1 }))
     try {
       const a = await api.giveAward({ classId: student.classId, studentId: student.id, categoryId, lessonId: s.lessonId })
       setAwardsGiven((x) => [...x, { id: a.id, categoryId, name, points: a.points }])
@@ -246,10 +248,11 @@ export default function ClassSessionPage() {
                 {categories.map((c) => {
                   const n = awardsGiven.filter((x) => x.categoryId === c.id).length
                   return (
-                    <button key={c.id} onClick={() => give(c.id, c.name)} title={`${c.name} +${c.points}`}
-                      className="relative flex w-[7.5rem] flex-col items-center gap-1 rounded-2xl border-2 bg-white px-2 pb-2 pt-3 text-center font-bold shadow-sm transition-transform hover:-translate-y-0.5 active:scale-95"
+                    <button key={c.id} onClick={(e) => { bounce(e.currentTarget); give(c.id, c.name) }} title={`${c.name} +${c.points}`}
+                      className={`relative flex w-[7.5rem] flex-col items-center gap-1 rounded-2xl border-2 bg-white px-2 pb-2 pt-3 text-center font-bold shadow-sm transition-transform hover:-translate-y-0.5 active:scale-95`}
                       style={{ borderColor: c.color, color: c.color }}>
-                      <span className="grid h-14 w-14 place-items-center rounded-full" style={{ backgroundColor: `${c.color}1F` }}><AwardIcon name={c.name} className="h-9 w-9" /></span>
+                      {burst?.id === c.id && <AwardBurst key={burst.key} color={c.color} points={c.points} />}
+                      <span key={burst?.id === c.id ? burst.key : 0} className={`relative grid h-14 w-14 place-items-center rounded-full ${burst?.id === c.id ? 'award-icon' : ''}`} style={{ backgroundColor: `${c.color}1F` }}><AwardIcon name={c.name} className="h-9 w-9" /></span>
                       <span className="text-[13px] leading-tight">{c.name}</span>
                       <span className="rounded-full px-2 text-[12px] text-white" style={{ backgroundColor: c.color }}>+{c.points}</span>
                       {n > 0 && <span className="absolute right-1.5 top-1.5 rounded-full bg-ink px-1.5 text-[11px] text-white tabular-nums">{n}</span>}
@@ -474,5 +477,32 @@ function LessonBox({ value, recent, lessons, onChange }: { value: string; recent
         </ul>
       )}
     </div>
+  )
+}
+
+const bounce = (el: HTMLElement) => {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+  el.animate?.([
+    { transform: 'scale(1)' }, { transform: 'scale(.88)', offset: .2 }, { transform: 'scale(1.12) rotate(-2deg)', offset: .5 },
+    { transform: 'scale(.97) rotate(1deg)', offset: .78 }, { transform: 'scale(1)' },
+  ], { duration: 550, easing: 'ease-out' })
+}
+
+/** A quick celebration over an award tile: a ring, coloured sparks and the points floating up */
+function AwardBurst({ color, points }: { color: string; points: number }) {
+  const sparks = Array.from({ length: 12 }, (_, i) => {
+    const angle = (i / 12) * Math.PI * 2 + (i % 2 ? 0.2 : 0)
+    const dist = 46 + (i % 3) * 14
+    return { dx: Math.cos(angle) * dist, dy: Math.sin(angle) * dist - 10, rot: (i % 2 ? 1 : -1) * (90 + i * 20), round: i % 3 !== 0, c: i % 4 === 1 ? '#F2CC8F' : i % 4 === 3 ? '#E07A5F' : color }
+  })
+  return (
+    <span className="pointer-events-none absolute inset-0 z-10" aria-hidden="true">
+      <span className="award-ring absolute left-1/2 top-[2.6rem] -ml-7 -mt-7 h-14 w-14 rounded-full border-4" style={{ borderColor: color }} />
+      {sparks.map((p, i) => (
+        <span key={i} className={`award-spark absolute left-1/2 top-[2.6rem] h-3 ${p.round ? 'w-3 rounded-full' : 'w-2 rounded-sm'}`}
+          style={{ backgroundColor: p.c, ['--dx' as string]: `${p.dx}px`, ['--dy' as string]: `${p.dy}px`, ['--rot' as string]: `${p.rot}deg` }} />
+      ))}
+      <span className="award-float absolute left-1/2 top-0 rounded-full px-2.5 py-0.5 text-base font-extrabold text-white shadow-md" style={{ backgroundColor: color }}>+{points}</span>
+    </span>
   )
 }

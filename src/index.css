@@ -40,3 +40,16 @@
 /* Tab rows scroll sideways on small screens without showing a scrollbar */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Award tile celebration (class page) */
+@keyframes award-bounce { 0% { transform: scale(1) } 25% { transform: scale(.88) } 55% { transform: scale(1.12) rotate(-2deg) } 80% { transform: scale(.97) rotate(1deg) } 100% { transform: none } }
+@keyframes award-icon { 0% { transform: none } 30% { transform: scale(1.35) rotate(-14deg) } 60% { transform: scale(1.2) rotate(10deg) } 100% { transform: none } }
+@keyframes award-ring { from { transform: scale(.6); opacity: .7 } to { transform: scale(1.9); opacity: 0 } }
+@keyframes award-float { 0% { transform: translate(-50%, 0) scale(.6); opacity: 0 } 20% { transform: translate(-50%, -14px) scale(1.25); opacity: 1 } 100% { transform: translate(-50%, -64px) scale(1); opacity: 0 } }
+@keyframes award-spark { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1 } 100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.3) rotate(var(--rot)); opacity: 0 } }
+.award-bounce { animation: award-bounce .55s cubic-bezier(.3,1.4,.5,1) }
+.award-icon { animation: award-icon .6s ease-out }
+.award-ring { animation: award-ring .6s ease-out forwards }
+.award-float { animation: award-float .9s ease-out forwards }
+.award-spark { animation: award-spark .85s cubic-bezier(.2,.7,.4,1) forwards }
+@media (prefers-reduced-motion: reduce) { .award-bounce, .award-icon, .award-ring, .award-spark { animation: none } .award-spark, .award-ring { display: none } }
