@@ -244,12 +244,12 @@ export default function ClassSessionPage() {
                 <h2 className="text-xl font-extrabold">Awards</h2>
                 {awardsGiven.length > 0 && <button className="text-sm font-bold underline" onClick={undoAward}>Undo last award</button>}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap">
                 {categories.map((c) => {
                   const n = awardsGiven.filter((x) => x.categoryId === c.id).length
                   return (
                     <button key={c.id} onClick={(e) => { bounce(e.currentTarget); give(c.id, c.name) }} title={`${c.name} +${c.points}`}
-                      className={`relative flex w-[7.5rem] flex-col items-center gap-1 rounded-2xl border-2 bg-white px-2 pb-2 pt-3 text-center font-bold shadow-sm transition-transform hover:-translate-y-0.5 active:scale-95`}
+                      className={`relative flex w-full min-w-0 flex-col items-center gap-1 rounded-2xl sm:flex-1 border-2 bg-white px-2 pb-2 pt-3 text-center font-bold shadow-sm transition-transform hover:-translate-y-0.5 active:scale-95`}
                       style={{ borderColor: c.color, color: c.color }}>
                       {burst?.id === c.id && <AwardBurst key={burst.key} color={c.color} points={c.points} />}
                       <span key={burst?.id === c.id ? burst.key : 0} className={`relative grid h-14 w-14 place-items-center rounded-full ${burst?.id === c.id ? 'award-icon' : ''}`} style={{ backgroundColor: `${c.color}1F` }}><AwardIcon name={c.name} className="h-9 w-9" /></span>
@@ -264,14 +264,34 @@ export default function ClassSessionPage() {
                 const j = journeyOf(life, camps.current.stays, camps.current.camp, student.id)
                 const e = expeditionOf(life, camps.current.stays, camps.current.camp, student.id)
                 const stop = Math.min(4, Math.floor(e.steps / (e.cost / 5)))
+                const total = life.reduce((t, a) => t + a.points, 0)
+                const thisClass = awardsGiven.reduce((t, a) => t + a.points, 0)
+                const toStop = Math.ceil((stop + 1) * (e.cost / 5) - e.steps)
                 return (
-                  <div className="mt-2 grid gap-0.5 text-[15px] text-inksoft">
-                    <p>Next discovery for {student.name}: <strong className="text-ink">{j.current} / {j.needed} points</strong></p>
-                    <p>Climbing <strong className="text-ink">{e.mountain.name}</strong>: {Math.ceil((stop + 1) * (e.cost / 5) - e.steps)} steps to {MILESTONES[stop]}</p>
+                  <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-2xl border-2 border-line bg-white sm:grid-cols-4">
+                    <div className="border-b-2 border-r-2 border-line px-4 py-3 sm:border-b-0">
+                      <p className="text-sm font-bold text-inksoft">Total points</p>
+                      <p className="font-display text-4xl font-extrabold tabular-nums">{total}</p>
+                    </div>
+                    <div className="border-b-2 border-line px-4 py-3 sm:border-b-0 sm:border-r-2">
+                      <p className="text-sm font-bold text-inksoft">This class</p>
+                      <p className="font-display text-4xl font-extrabold tabular-nums text-sage-dark">+{thisClass}</p>
+                    </div>
+                    <div className="border-r-2 border-line px-4 py-3">
+                      <p className="text-sm font-bold text-inksoft">Next discovery</p>
+                      <p className="font-display text-2xl font-extrabold tabular-nums">{j.current} <span className="text-base text-inksoft">/ {j.needed}</span></p>
+                      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-board" role="progressbar" aria-label="Points to next discovery" aria-valuenow={j.current} aria-valuemin={0} aria-valuemax={j.needed}>
+                        <div className="h-full rounded-full bg-[#E9B949] transition-all duration-500" style={{ width: `${Math.min(100, (j.current / Math.max(1, j.needed)) * 100)}%` }} />
+                      </div>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-bold text-inksoft">Expedition</p>
+                      <p className="font-display text-2xl font-extrabold tabular-nums">{toStop} <span className="text-base text-inksoft">{toStop === 1 ? 'step' : 'steps'}</span></p>
+                      <p className="text-[13px] leading-snug text-inksoft">to {MILESTONES[stop]} on <strong className="text-ink">{e.mountain.name}</strong></p>
+                    </div>
                   </div>
                 )
               })()}
-              {awardsGiven.length > 0 && <p className="mt-2 text-[15px]">This class: {awardsGiven.reduce((t, a) => t + a.points, 0)} points ({awardsGiven.map((a) => a.name).join(', ')})</p>}
             </section>
 
             <section>
