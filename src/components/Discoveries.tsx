@@ -13,6 +13,8 @@ export function DiscoveryJournal({ journey, name, own = false, loadMap }: { jour
   const [open, setOpen] = useState(false)
   const set = CAMP_ITEMS[camp]
   const inCamp = unlocked.filter((u) => u.discovery.tier === camp)
+  // Found items fill the collection from the start, in the order they were found; chests for the rest follow
+  const firstFound = (id: string) => { const i = inCamp.findIndex((u) => u.discovery.id === id); return i < 0 ? Infinity : i }
   const earlier = TIERS.filter((t) => t.tier !== camp).map((t) => ({ t, finds: unlocked.filter((u) => u.discovery.tier === t.tier) })).filter((x) => x.finds.length)
 
   return (
@@ -65,7 +67,7 @@ export function DiscoveryJournal({ journey, name, own = false, loadMap }: { jour
             <span className="text-sm text-inksoft">{new Set(inCamp.map((u) => u.discovery.id)).size} of {set.length} found</span>
           </div>
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {set.map((d) => <Card key={d.id} d={d} finds={inCamp.filter((u) => u.discovery.id === d.id)} isNext={false} nextEdition={next.edition} toGo={needed - current} />)}
+            {[...set].sort((a, b) => { const x = firstFound(a.id), y = firstFound(b.id); return x === y ? 0 : x - y }).map((d) => <Card key={d.id} d={d} finds={inCamp.filter((u) => u.discovery.id === d.id)} isNext={false} nextEdition={next.edition} toGo={needed - current} />)}
           </ul>
           <p className="mt-2 text-[13px] text-inksoft">Every find is a surprise: rare ones are harder to get. Find the same one again and it becomes Silver, then Gold, then Diamond.</p>
         </div>
