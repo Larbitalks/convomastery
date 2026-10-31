@@ -118,7 +118,7 @@ export default function Students() {
                 <tbody className="divide-y-2 divide-line">
                   {rows.map(({ s, cls, points, taken, lastNote, perf }) => (
                     <tr key={s.id} className="hover:bg-board/50">
-                      <td className="px-4 py-3 font-bold"><span className="flex items-center gap-2.5"><Avatar avatar={s.avatar} name={s.name} size={34} color={cls?.color} /><Link to={`/students/${s.id}`} className="underline underline-offset-2">{s.name}</Link>{unread[s.id] > 0 && <span className="ml-2 rounded-full bg-coral px-1.5 text-[12px] text-white" title="New messages">{unread[s.id]} new</span>}</span></td>
+                      <td className="px-4 py-3 font-bold"><span className="flex items-center gap-2.5"><Avatar avatar={s.avatar} name={s.name} size={34} color={cls?.color} /><Link to={`/students/${s.id}`} className="whitespace-nowrap underline underline-offset-2">{s.name}</Link>{unread[s.id] > 0 && <span className="ml-1 shrink-0 whitespace-nowrap rounded-full bg-coral px-2 py-0.5 text-[12px] leading-none text-white" title="New messages">{unread[s.id]} new</span>}</span></td>
                       <td className="px-4 py-3"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cls?.color }} aria-hidden="true" />{cls?.name}</td>
                       <td className="px-4 py-3">{s.level || cls?.level}</td>
                       <td className="px-4 py-3"><PerformanceMini perf={perf} /></td>
