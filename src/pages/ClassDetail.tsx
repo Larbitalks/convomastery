@@ -3,6 +3,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { computePerformance, toScoreClasses, toScoreExams, toScoreHomework } from '../lib/performance'
 import { HOMEWORK_STATES } from '../components/StudentHomework'
 import { Avatar } from '../components/Avatar'
+import { Crown } from '../components/MonthStar'
+import { StudentOfMonthCard } from '../components/StudentOfMonth'
+import { crownedIds } from '../lib/monthStar'
 import { Field, Input, Notice, Select, Spinner, Textarea } from '../components/ui'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -74,7 +77,7 @@ export default function ClassDetail() {
         ))}
       </nav>
       <div className="mt-6">
-        {tab === 'scores' && <Overview classId={cls.id} />}
+        {tab === 'scores' && <Overview classId={cls.id} color={cls.color} />}
         {tab === 'students' && <Students classId={cls.id} />}
         {tab === 'homework' && <HomeworkTab classId={cls.id} lessons={data.lessons} />}
         {tab === 'awards' && <AwardCategories classId={cls.id} />}
@@ -85,13 +88,15 @@ export default function ClassDetail() {
 }
 
 /** One row per student: performance bar and key numbers. Awards are given during a class, not here. */
-function Overview({ classId }: { classId: string }) {
-  const { data, loading } = useLoad(async () => {
-    const [students, awards, homework, statuses, sessions, options, exams] = await Promise.all([
+function Overview({ classId, color }: { classId: string; color?: string }) {
+  const { data, loading, reload } = useLoad(async () => {
+    const [students, awards, homework, statuses, sessions, options, exams, stars] = await Promise.all([
       api.listStudents(classId), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listAllClassSessions(), api.getBehaviourOptions(), api.listExams(),
+      api.listMonthStars({ classId }),
     ])
-    return { students, awards, homework, statuses, sessions, options, exams }
+    return { students, awards, homework, statuses, sessions, options, exams, stars }
   }, [classId])
+  const crowns = data ? crownedIds(data.stars) : new Set<string>()
   if (loading || !data) return <Spinner />
   if (!data.students.length) return <p className="text-inksoft">No students in this class yet. Add them in the Students tab.</p>
   const today = new Date().toISOString().slice(0, 10)
@@ -111,10 +116,12 @@ function Overview({ classId }: { classId: string }) {
 
   return (
     <div className="grid max-w-4xl gap-3">
+      {/* Only for group classes: a one-to-one class has nobody to compare with */}
+      {data.students.length >= 2 && <div className="mb-3"><StudentOfMonthCard classId={classId} color={color} students={data.students} stars={data.stars} data={data} onChange={reload} /></div>}
       {rows.map(({ s, classes, last, awards, points, homework, perf }) => (
         <Link key={s.id} to={`/students/${s.id}`} className="rounded-2xl border-2 border-line bg-white p-4 hover:border-ink/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="flex items-center gap-2.5"><Avatar avatar={s.avatar} name={s.name} size={40} /><span className="text-lg font-bold">{s.name}</span></span>
+            <span className="flex items-center gap-2.5"><Avatar avatar={s.avatar} name={s.name} size={40} /><span className="text-lg font-bold">{s.name}</span>{crowns.has(s.id) && <Crown className="h-5 w-6" title="Student of the month" />}</span>
             {perf.score !== null && perf.band ? (
               <span className="flex items-center gap-2">
                 {perf.trend !== null && Math.abs(perf.trend) >= 3 && (

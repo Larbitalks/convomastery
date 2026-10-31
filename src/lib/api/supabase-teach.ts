@@ -1,5 +1,5 @@
 // Live versions of the teaching, booking and messaging functions (Supabase).
-import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam, StudentMessage, ClassMove } from '../types'
+import type { Award, AwardCategory, Booking, BookingSlot, ClassGroup, Homework, HomeworkStatus, Message, Student, StudentNote, StudentProgress, TeachApi, ClassSession, SessionPatch, Exam, StudentMessage, ClassMove, MonthStar } from '../types'
 import { byLevel, DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS } from '../types'
 import { supabase } from './supabase'
 import { cleanAvatar } from '../avatar'
@@ -15,6 +15,7 @@ const toClass = (r: Row): ClassGroup => ({ id: r.id, name: r.name, level: r.leve
 const toStudent = (r: Row): Student => ({ id: r.id, classId: r.class_id, name: r.name, notes: r.notes ?? '', level: r.level ?? '', contact: r.contact ?? '', goals: r.goals ?? '', shareCode: r.share_code ?? null, showOnMap: r.show_on_map ?? true, avatar: cleanAvatar(r.avatar), showBehaviour: Boolean(r.show_behaviour), lastViewedAt: r.last_viewed_at ?? null, viewCount: r.view_count ?? 0, createdAt: r.created_at })
 const toNote = (r: Row): StudentNote => ({ id: r.id, studentId: r.student_id, date: r.date, body: r.body, shared: Boolean(r.shared), createdAt: r.created_at })
 const toCategory = (r: Row): AwardCategory => ({ id: r.id, classId: r.class_id, name: r.name, points: r.points, color: r.color, position: r.position })
+const toStar = (r: Row): MonthStar => ({ id: r.id, classId: r.class_id, studentId: r.student_id, month: String(r.month).slice(0, 7), reason: r.reason ?? '', bonus: r.bonus ?? 0, createdAt: r.created_at })
 const toAward = (r: Row): Award => ({ id: r.id, classId: r.class_id, studentId: r.student_id, categoryId: r.category_id, points: r.points, lessonId: r.lesson_id, createdAt: r.created_at })
 const toHomework = (r: Row): Homework => ({ id: r.id, classId: r.class_id, studentId: r.student_id ?? null, title: r.title, instructions: r.instructions ?? '', dueDate: r.due_date, lessonId: r.lesson_id, createdAt: r.created_at })
 const toStatus = (r: Row): HomeworkStatus => ({ homeworkId: r.homework_id, studentId: r.student_id, status: r.status, feedback: r.feedback ?? '' })
@@ -131,6 +132,20 @@ export const supabaseTeach: TeachApi = {
     return toExam(await upsert('exams', { student_id: studentId, type, title, date, score, out_of: outOf, feedback }, id))
   },
   async deleteExam(id) { check(await supabase.from('exams').delete().eq('id', id)) },
+  async listMonthStars(filter) {
+    let q = supabase.from('student_of_month').select('*').eq('owner_id', await uid()).order('month', { ascending: false })
+    if (filter?.classId) q = q.eq('class_id', filter.classId)
+    if (filter?.studentId) q = q.eq('student_id', filter.studentId)
+    const res = await q
+    // Before the database update is run, the table does not exist yet: nobody has won
+    if (res.error) return []
+    return (res.data as Row[]).map(toStar)
+  },
+  async setMonthStar({ classId, studentId, month, reason, bonus }) {
+    const row = check(await supabase.from('student_of_month').upsert({ class_id: classId, student_id: studentId, month: `${month}-01`, reason: reason.trim(), bonus, created_at: new Date().toISOString() }, { onConflict: 'class_id,month' }).select().single())
+    return toStar(row as unknown as Row)
+  },
+  async removeMonthStar(id) { check(await supabase.from('student_of_month').delete().eq('id', id)) },
   async listClassMoves(studentId) {
     let q = supabase.from('student_class_moves').select('*').eq('owner_id', await uid()).order('moved_at')
     if (studentId) q = q.eq('student_id', studentId)

@@ -225,8 +225,12 @@ export interface StudentProgress {
   className: string
   level: string
   totalPoints: number
-  /** Every award, for the discovery journey */
+  /** Every award, for the discovery journey (student of the month bonuses included) */
   awardLog?: { points: number; at: string }[]
+  /** Student of the month right now (wears the crown) */
+  crown?: boolean
+  /** Every time they were student of the month */
+  monthStars?: { month: string; reason: string; bonus: number; className: string; at: string }[]
   categories: { name: string; color: string; points: number; count?: number }[]
   recentAwards: { date: string; category: string; color: string; points: number; lesson: string | null }[]
   homework: { title: string; instructions: string; dueDate: string; status: HomeworkState; feedback: string }[]
@@ -250,6 +254,10 @@ export function newShareCode() {
   return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8)}`
 }
 export interface AwardCategory { id: string; classId: string; name: string; points: number; color: string; position: number }
+/** Student of the month: one per class per month. The bonus points count towards discoveries and the expedition. */
+export interface MonthStar { id: string; classId: string; studentId: string; /** YYYY-MM */ month: string; reason: string; bonus: number; createdAt: string }
+export const MONTH_STAR_BONUS = 5
+
 export interface Award { id: string; classId: string; studentId: string; categoryId: string; points: number; lessonId: string | null; createdAt: string }
 
 export type HomeworkState = 'assigned' | 'done' | 'late' | 'missing'
@@ -297,7 +305,7 @@ export interface TeachApi {
   markProgressViewed(code: string): Promise<void>
   setStudentShowOnMap(studentId: string, show: boolean): Promise<void>
   /** Everyone on the mountain map, seen with a student's progress code */
-  getStudentMap(code: string): Promise<{ name: string; seed?: string; avatar?: unknown; log?: { points: number; at: string }[]; moves?: { at: string; className: string; classLevel: string }[]; className: string; classLevel: string; total: number; atMove: number; me: boolean }[] | null>
+  getStudentMap(code: string): Promise<{ name: string; seed?: string; avatar?: unknown; log?: { points: number; at: string }[]; moves?: { at: string; className: string; classLevel: string }[]; className: string; classLevel: string; total: number; atMove: number; me: boolean; crown?: boolean }[] | null>
   setStudentShowBehaviour(studentId: string, show: boolean): Promise<void>
   // class sessions
   getBehaviourOptions(): Promise<BehaviourOption[]>
@@ -313,6 +321,11 @@ export interface TeachApi {
   getExamTotals(): Promise<ExamTotals>
   /** Class joins and moves, oldest first */
   listClassMoves(studentId?: string): Promise<ClassMove[]>
+  /** Students of the month, newest first */
+  listMonthStars(filter?: { classId?: string; studentId?: string }): Promise<MonthStar[]>
+  /** Choose the student of the month for a class (replaces an earlier choice for that month) */
+  setMonthStar(input: { classId: string; studentId: string; month: string; reason: string; bonus: number }): Promise<MonthStar>
+  removeMonthStar(id: string): Promise<void>
   /** Messages with one student (teacher side) */
   listStudentMessages(studentId: string): Promise<StudentMessage[]>
   replyToStudent(studentId: string, body: string): Promise<StudentMessage>

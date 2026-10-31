@@ -7,7 +7,7 @@ const day = 24 * 60 * 60 * 1000
 const iso = (d: Date) => d.toISOString()
 const ymd = (d: Date) => d.toISOString().slice(0, 10)
 
-export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNotes' | 'sessions' | 'exams' | 'studentMessages' | 'classMoves' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
+export function seedTeaching(): Pick<DemoDb, 'monthStars' | 'classes' | 'students' | 'studentNotes' | 'sessions' | 'exams' | 'studentMessages' | 'classMoves' | 'awardCategories' | 'awards' | 'homework' | 'homeworkStatus' | 'slots' | 'bookings' | 'messages'> {
   const now = new Date()
   const classes: DemoDb['classes'] = [
     { id: 'c-teens', ownerId: 'u-admin', name: 'Thursday Teens', level: 'B1', color: '#46725D', createdAt: iso(new Date(now.getTime() - 30 * day)) },
@@ -99,5 +99,10 @@ export function seedTeaching(): Pick<DemoDb, 'classes' | 'students' | 'studentNo
     const c = classes.find((x) => x.id === s.classId)!
     return { ownerId: s.ownerId, studentId: s.id, className: c.name, classLevel: c.level, at: s.createdAt }
   })
-  return { classes, students, studentNotes, sessions, exams, studentMessages, classMoves, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
+  // Last month's student of the month in the teens class
+  const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const monthStars: DemoDb['monthStars'] = [
+    { id: 'w-1', ownerId: 'u-admin', classId: 'c-teens', studentId: 's-c-teens-1', month: `${lm.getFullYear()}-${String(lm.getMonth() + 1).padStart(2, '0')}`, reason: 'Asked brilliant follow-up questions in every debate.', bonus: 5, createdAt: iso(new Date(now.getTime() - 2 * day)) },
+  ]
+  return { monthStars, classes, students, studentNotes, sessions, exams, studentMessages, classMoves, awardCategories, awards, homework, homeworkStatus, slots, bookings, messages }
 }

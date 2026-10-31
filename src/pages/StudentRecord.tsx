@@ -13,6 +13,8 @@ import { config } from '../lib/config'
 import { ShowMore } from '../components/ShowMore'
 import { PerformanceCard } from '../components/Performance'
 import { StudentExams } from '../components/StudentExams'
+import { Crown, TrophyShelf } from '../components/MonthStar'
+import { crownedIds, withStarBonus } from '../lib/monthStar'
 import { Avatar, AvatarPicker } from '../components/Avatar'
 import type { AvatarConfig } from '../lib/avatar'
 import { StudentMessages } from '../components/StudentMessages'
@@ -35,15 +37,15 @@ export default function StudentRecord() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data, loading, reload } = useLoad(async () => {
-    const [students, classes, awards, homework, statuses, notes, lessons, sessions, options, exams, examTotals, moves] = await Promise.all([
+    const [students, classes, awards, homework, statuses, notes, lessons, sessions, options, exams, examTotals, moves, stars] = await Promise.all([
       api.listStudents(), api.listClasses(), api.listAllAwards(), api.listHomework(), api.listAllHomeworkStatus(), api.listStudentNotes(id), api.listLessons({ includeUnpublished: true }),
-      api.listClassSessions(id), api.getBehaviourOptions(), api.listExams(id), api.getExamTotals(), api.listClassMoves(id),
+      api.listClassSessions(id), api.getBehaviourOptions(), api.listExams(id), api.getExamTotals(), api.listClassMoves(id), api.listMonthStars({ studentId: id }),
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!student) return null
     const myAwards = awards.filter((a) => a.studentId === id)
     const categories = (await Promise.all([...new Set(myAwards.map((a) => a.classId).concat(student.classId))].map((c) => api.listAwardCategories(c)))).flat()
-    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions, options, exams, examTotals, moves }
+    return { student, classes, awards: myAwards, categories, homework: homework.filter((h) => h.studentId === id), statuses: statuses.filter((s) => s.studentId === id), notes, lessons, sessions, options, exams, examTotals, moves, stars }
   }, [id])
 
   const [details, setDetails] = useState({ name: '', classId: '', level: '', contact: '', goals: '', notes: '' })
@@ -63,15 +65,18 @@ export default function StudentRecord() {
 
   if (loading && !data) return <Spinner />
   if (!data) return <Notice tone="error">This student no longer exists. <Link to="/students" className="underline">Back to students</Link></Notice>
-  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options, exams, examTotals, moves } = data
+  const { student, classes, awards, categories, homework, statuses, notes, lessons, sessions, options, exams, examTotals, moves, stars } = data
 
   const perf = computePerformance(toScoreClasses(sessions, awards, options), toScoreHomework(student.id, homework, statuses), exams)
   const running = sessions.find((x) => !x.endedAt)
   const cls = classes.find((c) => c.id === student.classId)
-  const journey = journeyOf(awards.map((a) => ({ points: a.points, at: a.createdAt })), staysOf(moves), campOfClass(cls?.name, cls?.level), student.id)
-  const expedition = expeditionOf(awards.map((a) => ({ points: a.points, at: a.createdAt })), staysOf(moves), campOfClass(cls?.name, cls?.level), student.id)
+  // Student of the month bonuses count like awards
+  const log = withStarBonus(awards.map((a) => ({ points: a.points, at: a.createdAt })), stars)
+  const journey = journeyOf(log, staysOf(moves), campOfClass(cls?.name, cls?.level), student.id)
+  const expedition = expeditionOf(log, staysOf(moves), campOfClass(cls?.name, cls?.level), student.id)
+  const crowned = crownedIds(stars).has(student.id)
 
-  const totalPoints = awards.reduce((t, a) => t + a.points, 0)
+  const totalPoints = log.reduce((t, a) => t + a.points, 0)
   const byCategory = categories
     .map((c) => ({ c, pts: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0), n: awards.filter((a) => a.categoryId === c.id).length }))
     .filter((x) => x.n > 0)
@@ -108,7 +113,7 @@ export default function StudentRecord() {
             <span className="absolute -bottom-1 -right-1 rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-white">{student.avatar ? 'Edit' : 'Add'}</span>
           </button>
           <div>
-          <h1 className="text-4xl font-extrabold">{student.name}</h1>
+          <h1 className="flex items-center gap-2 text-4xl font-extrabold">{student.name}{crowned && <Crown className="h-8 w-10 -rotate-6" title="Student of the month" />}</h1>
           <p className="mt-1 text-inksoft">{cls && <Link to={`/classes/${cls.id}`} className="underline underline-offset-2">{cls.name}</Link>}{(student.level || cls?.level) && `, level ${student.level || cls?.level}`}</p>
           {student.shareCode && <p className="mt-1 text-[13px] text-inksoft" title={student.lastViewedAt ? `${formatDateTime(student.lastViewedAt)}. Only you can see this.` : 'Only you can see this.'}>{student.lastViewedAt ? `Opened their page ${timeAgo(student.lastViewedAt)}` : 'Has not opened their page yet'}</p>}
           </div>
@@ -183,6 +188,7 @@ export default function StudentRecord() {
           <ExpeditionCard exp={expedition} name={student.name} loadMap={teacherMapPeople} />
 
           <DiscoveryJournal journey={journey} name={student.name} />
+          <TrophyShelf name={student.name} wins={stars.map((w) => ({ month: w.month, reason: w.reason, bonus: w.bonus, className: classes.find((c) => c.id === w.classId)?.name }))} />
 
           <StudentExams studentId={student.id} name={student.name} exams={exams} totals={examTotals} onChange={reload} />
 

@@ -1,7 +1,7 @@
 // Demo backend: keeps everything in the browser so the site can be explored
 // before Supabase and payments are set up. Nothing here is sent anywhere.
 import { seedCategories, seedLessons } from '../seed'
-import type { ClassMove, StudentMessage, Exam, ExamTotals, Award, AwardCategory, Booking, BookingSlot, Category, ClassGroup, ClassSession, CoreApi, StudentNote, BehaviourOption, Homework, HomeworkStatus, Inquiry, Lesson, Message, Profile, Purchase, Session, Student } from '../types'
+import type { MonthStar, ClassMove, StudentMessage, Exam, ExamTotals, Award, AwardCategory, Booking, BookingSlot, Category, ClassGroup, ClassSession, CoreApi, StudentNote, BehaviourOption, Homework, HomeworkStatus, Inquiry, Lesson, Message, Profile, Purchase, Session, Student } from '../types'
 import { seedTeaching } from './demo-seed'
 
 interface DemoUser extends Profile { password: string; behaviourOptions?: BehaviourOption[]; examTotals?: ExamTotals }
@@ -14,6 +14,8 @@ export interface DemoDb {
   exams: Owned<Exam>[]
   studentMessages: Owned<StudentMessage>[]
   classMoves: Owned<ClassMove>[]
+  /** Added later: older saved demos may not have it */
+  monthStars?: Owned<MonthStar>[]
   awardCategories: Owned<AwardCategory>[]
   awards: Owned<Award>[]
   homework: Owned<Homework>[]

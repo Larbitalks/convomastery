@@ -2,6 +2,7 @@ import { api } from './api'
 import { cleanAvatar } from './avatar'
 import { campOfClass, journeyOf, staysOf, unlockedCount, type MapPerson, type Tier } from './discoveries'
 import { expeditionOf, seriesOf, SUMMIT_POINTS } from './expedition'
+import { crownedIds, withStarBonus } from './monthStar'
 
 /** Everything the map needs about one student, from their awards and class moves */
 function climber(log: { points: number; at: string }[], moves: { at: string; className: string; classLevel: string }[], camp: Tier, seed: string) {
@@ -13,11 +14,12 @@ function climber(log: { points: number; at: string }[], moves: { at: string; cla
 
 /** Teacher: every student, worked out exactly from their awards and class moves. Hidden students are included and marked. */
 export async function teacherMapPeople(): Promise<(MapPerson & { hidden?: boolean })[]> {
-  const [students, classes, awards, moves] = await Promise.all([api.listStudents(), api.listClasses(), api.listAllAwards(), api.listClassMoves()])
+  const [students, classes, awards, moves, stars] = await Promise.all([api.listStudents(), api.listClasses(), api.listAllAwards(), api.listClassMoves(), api.listMonthStars()])
+  const crowns = crownedIds(stars)
   return students.map((s) => {
     const c = classes.find((x) => x.id === s.classId)
-    const log = awards.filter((a) => a.studentId === s.id).map((a) => ({ points: a.points, at: a.createdAt }))
-    return { key: s.id, name: s.name, avatar: s.avatar ?? null, hidden: s.showOnMap === false, ...climber(log, moves.filter((m) => m.studentId === s.id), campOfClass(c?.name, c?.level), s.id) }
+    const log = withStarBonus(awards.filter((a) => a.studentId === s.id).map((a) => ({ points: a.points, at: a.createdAt })), stars.filter((w) => w.studentId === s.id))
+    return { key: s.id, name: s.name, avatar: s.avatar ?? null, hidden: s.showOnMap === false, crown: crowns.has(s.id), ...climber(log, moves.filter((m) => m.studentId === s.id), campOfClass(c?.name, c?.level), s.id) }
   })
 }
 
@@ -27,7 +29,7 @@ export async function studentMapPeople(code: string): Promise<MapPerson[]> {
   if (!list) throw new Error('This code does not work.')
   return list.map((p, i) => {
     const camp = campOfClass(p.className, p.classLevel)
-    const base = { key: `p${i}`, name: p.name, avatar: cleanAvatar(p.avatar), me: p.me }
+    const base = { key: `p${i}`, name: p.name, avatar: cleanAvatar(p.avatar), me: p.me, crown: !!p.crown }
     // Newer servers send the award history, so the exact collection and position can be shown
     if (p.log) return { ...base, ...climber(p.log, p.moves ?? [], camp, p.seed ?? p.name) }
     const n = Math.max(0, unlockedCount(p.total) - unlockedCount(p.atMove))

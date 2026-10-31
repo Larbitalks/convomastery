@@ -239,4 +239,4 @@ export function trailPoint(camp: Tier, t: number): [number, number] {
 /** How far up their camp a student is: each find moves them up, slowing near the top so there is always room */
 export const campProgress = (findsInCamp: number) => 0.06 + 0.88 * (1 - Math.pow(0.82, findsInCamp))
 
-export interface MapPerson { mountainId?: string; steps?: number; cost?: number; summits?: number; finds?: Found[]; key: string; name: string; avatar?: import('./avatar').AvatarConfig | null; camp: Tier; findsInCamp: number; discoveries: number; me?: boolean }
+export interface MapPerson { mountainId?: string; steps?: number; cost?: number; summits?: number; finds?: Found[]; key: string; name: string; avatar?: import('./avatar').AvatarConfig | null; camp: Tier; findsInCamp: number; discoveries: number; me?: boolean; /** Student of the month right now */ crown?: boolean }

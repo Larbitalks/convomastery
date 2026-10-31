@@ -65,11 +65,12 @@ export default function ClassSessionPage() {
     ])
     const student = students.find((s) => s.id === id) ?? null
     if (!session || !student) return null
-    const [categories, classAwards, allAwards, classes, moves] = await Promise.all([api.listAwardCategories(student.classId), api.listAwards(student.classId), api.listAllAwards(), api.listClasses(), api.listClassMoves(student.id)])
+    const [categories, classAwards, allAwards, classes, moves, stars] = await Promise.all([api.listAwardCategories(student.classId), api.listAwards(student.classId), api.listAllAwards(), api.listClasses(), api.listClassMoves(student.id), api.listMonthStars({ studentId: student.id })])
     const cls = classes.find((c) => c.id === student.classId)
     const stays = staysOf(moves), camp = campOfClass(cls?.name, cls?.level)
     // Every award this student has had, in any class, for the discovery journey
-    const life = allAwards.filter((a) => a.studentId === student.id).map((a) => ({ id: a.id, points: a.points, at: a.createdAt }))
+    const life = [...allAwards.filter((a) => a.studentId === student.id).map((a) => ({ id: a.id, points: a.points, at: a.createdAt })),
+      ...stars.filter((w) => w.bonus > 0).map((w) => ({ id: w.id, points: w.bonus, at: w.createdAt }))].sort((a, b) => a.at.localeCompare(b.at))
     const previous = sessions.find((x) => x.id !== session.id && x.endedAt) ?? null
     // Awards already given during this class (for example before a page reload)
     const given = classAwards

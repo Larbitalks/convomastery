@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { NoteBody } from '../components/NoteBody'
+import { Crown, MonthStarReveal, TrophyShelf, type StarWin } from '../components/MonthStar'
+import { monthOf, prevMonth } from '../lib/monthStar'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Input, Notice, Spinner } from '../components/ui'
 import { api } from '../lib/api'
@@ -81,6 +83,8 @@ export function ProgressView() {
   const journey = journeyOf(data.awardLog ?? [], staysOf(data.moves ?? []), campOfClass(data.className, data.classLevel ?? data.level), data.seed ?? data.name)
   const expedition = expeditionOf(data.awardLog ?? [], staysOf(data.moves ?? []), campOfClass(data.className, data.classLevel ?? data.level), data.seed ?? data.name)
   const expEvents = eventsOf(expedition)
+  // Wears the crown while their latest win is for this month or last month
+  const crowned = !!data.crown
   const teacher = data.teacherName || 'your teacher'
   const first = teacher.split(/[\s(]/)[0] || 'your teacher'
   const perf = data.classes
@@ -99,7 +103,8 @@ export function ProgressView() {
         <div className="flex items-center gap-4">
           <Avatar avatar={cleanAvatar(data.avatar)} name={data.name} size={80} className="ring-4 ring-line" />
           <div>
-            <h1 className="text-4xl font-extrabold">{data.name}</h1>
+            <h1 className="flex items-center gap-2 text-4xl font-extrabold">{data.name}{crowned && <Crown className="h-8 w-10 -rotate-6" title="Student of the month" />}</h1>
+            {crowned && <p className="text-[14px] font-bold text-[#9A6A1F]">Student of the month</p>}
             <p className="mt-1 text-inksoft">{data.className}{data.level ? `, level ${data.level}` : ''}</p>
           </div>
         </div>
@@ -177,6 +182,7 @@ export function ProgressView() {
           <ExpeditionCard own exp={expedition} name={data.name} loadMap={loadMap} />
 
           <DiscoveryJournal own journey={journey} name={data.name} />
+          <TrophyShelf you name={data.name} wins={data.monthStars ?? []} />
 
           <StudentExams readOnly studentId="" name={data.name} exams={exams} totals={DEFAULT_EXAM_TOTALS} onChange={() => {}} />
 
@@ -251,31 +257,43 @@ export function ProgressView() {
       </div>
 
       <p className="mt-16 text-sm text-inksoft">This page is just for you. Keep your code private.</p>
-      <Celebrate code={code} name={data.name} found={journey.unlocked} events={expEvents} />
+      <Celebrate code={code} name={data.name} found={journey.unlocked} events={expEvents} stars={data.monthStars ?? []} />
     </div>
   )
 }
 
-/** Shows each discovery and expedition event since this browser last opened the page, one after another */
-function Celebrate({ code, name, found, events }: { code: string; name: string; found: Found[]; events: ExpeditionEvent[] }) {
+/** Shows a new student of the month win, then each discovery and expedition event since this browser last opened the page */
+function Celebrate({ code, name, found, events, stars }: { code: string; name: string; found: Found[]; events: ExpeditionEvent[]; stars: StarWin[] }) {
   const id = code.toUpperCase().replace(/[^A-Z0-9]/g, '')
-  const kF = `cm-discoveries-seen-${id}`, kE = `cm-expedition-seen-${id}`
-  const [queue, setQueue] = useState<({ find: Found; n: number } | { event: ExpeditionEvent; n: number })[]>([])
+  const kF = `cm-discoveries-seen-${id}`, kE = `cm-expedition-seen-${id}`, kS = `cm-stars-seen-${id}`
+  type Item = { find: Found; n: number } | { event: ExpeditionEvent; n: number } | { star: StarWin; n: number }
+  const [queue, setQueue] = useState<Item[]>([])
+  const recent = [monthOf(), prevMonth(monthOf())]
+  const starKey = stars.filter((w) => recent.includes(w.month)).map((w) => w.month).join(',')
   useEffect(() => {
     const read = (k: string, count: number) => { try { const v = Number(localStorage.getItem(k) ?? '-1'); return v < 0 ? Math.max(0, count - 1) : v } catch { return count } }
     const f = read(kF, found.length), e = read(kE, events.length)
+    let seen: string[] = []
+    try { seen = JSON.parse(localStorage.getItem(kS) ?? '[]') } catch { seen = recent }
     setQueue([
+      ...stars.filter((w) => recent.includes(w.month) && !seen.includes(w.month)).map((w) => ({ star: w, n: 0 })),
       ...found.slice(f).map((x, i) => ({ find: x, n: f + i + 1 })),
       ...events.slice(e).map((x, i) => ({ event: x, n: e + i + 1 })),
     ])
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kF, kE, found.length, events.length])
+  }, [kF, kE, kS, found.length, events.length, starKey])
   if (!queue.length) return null
   const head = queue[0]
   const close = () => {
-    try { localStorage.setItem('find' in head ? kF : kE, String(head.n)) } catch { /* private window: show again next time */ }
+    try {
+      if ('star' in head) {
+        const seen: string[] = JSON.parse(localStorage.getItem(kS) ?? '[]')
+        localStorage.setItem(kS, JSON.stringify([...seen, head.star.month]))
+      } else localStorage.setItem('find' in head ? kF : kE, String(head.n))
+    } catch { /* private window: show again next time */ }
     setQueue(queue.slice(1))
   }
+  if ('star' in head) return <MonthStarReveal win={head.star} name={name} onClose={close} />
   return 'find' in head
     ? <DiscoveryReveal found={head.find} name={name} more={queue.length - 1} onClose={close} />
     : <ExpeditionReveal event={head.event} name={name} more={queue.length - 1} onClose={close} />

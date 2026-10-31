@@ -2,6 +2,7 @@
 import { byLevel, DEFAULT_AWARD_CATEGORIES, DEFAULT_BEHAVIOURS, DEFAULT_EXAM_TOTALS, type Api, type ClassSession, type TeachApi } from '../types'
 import { getBlob, putBlob } from '../idb'
 import { toScoreClasses } from '../performance'
+import { crownedIds, withStarBonus } from '../monthStar'
 import { currentUser, demoCore, load, requireAdmin, requireUser, save, uid, wait } from './demo'
 
 const strip = <T extends { ownerId: string }>(x: T) => {
@@ -135,6 +136,7 @@ const demoTeach: TeachApi = {
     const cls = db.classes.find((c) => c.id === s.classId)
     const cats = db.awardCategories.filter((c) => c.classId === s.classId).sort((a, b) => a.position - b.position)
     const awards = db.awards.filter((a) => a.studentId === s.id)
+    const stars = (db.monthStars ?? []).filter((w) => w.studentId === s.id).sort((a, b) => b.month.localeCompare(a.month))
     const st = (hid: string) => db.homeworkStatus.find((x) => x.homeworkId === hid && x.studentId === s.id)
     return {
       name: s.name,
@@ -149,8 +151,10 @@ const demoTeach: TeachApi = {
         .map((m) => ({ fromTeacher: m.fromTeacher, body: m.body, createdAt: m.createdAt })),
       className: cls?.name ?? '',
       level: s.level || cls?.level || '',
-      totalPoints: awards.reduce((t, a) => t + a.points, 0),
-      awardLog: awards.map((a) => ({ points: a.points, at: a.createdAt })),
+      totalPoints: awards.reduce((t, a) => t + a.points, 0) + stars.reduce((t, w) => t + w.bonus, 0),
+      awardLog: withStarBonus(awards.map((a) => ({ points: a.points, at: a.createdAt })), stars),
+      crown: crownedIds((db.monthStars ?? []).filter((w) => w.ownerId === s.ownerId)).has(s.id),
+      monthStars: stars.map((w) => ({ month: w.month, reason: w.reason, bonus: w.bonus, className: db.classes.find((c) => c.id === w.classId)?.name ?? '', at: w.createdAt })),
       categories: cats.map((c) => ({ name: c.name, color: c.color, points: awards.filter((a) => a.categoryId === c.id).reduce((t, a) => t + a.points, 0), count: awards.filter((a) => a.categoryId === c.id).length })),
       recentAwards: [...awards].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10).map((a) => {
         const c = db.awardCategories.find((x) => x.id === a.categoryId)
@@ -185,15 +189,18 @@ const demoTeach: TeachApi = {
     const db = load()
     const s = norm(code).length >= 10 ? db.students.find((x) => x.shareCode && norm(x.shareCode) === norm(code)) : undefined
     if (!s) return null
+    const crowns = crownedIds((db.monthStars ?? []).filter((w) => w.ownerId === s.ownerId))
     return db.students.filter((x) => x.ownerId === s.ownerId && (x.showOnMap !== false || x.id === s.id)).map((x) => {
       const c = db.classes.find((k) => k.id === x.classId)
+      const stars = (db.monthStars ?? []).filter((w) => w.studentId === x.id)
       const mine = db.awards.filter((a) => a.studentId === x.id)
       const lastMove = db.classMoves.filter((m) => m.studentId === x.id).map((m) => m.at).sort().pop() ?? ''
       return {
         name: x.name, seed: x.id, avatar: x.avatar ?? null, me: x.id === s.id, className: c?.name ?? '', classLevel: c?.level ?? '',
-        total: mine.reduce((t, a) => t + a.points, 0),
+        total: mine.reduce((t, a) => t + a.points, 0) + stars.reduce((t, w) => t + w.bonus, 0),
         atMove: mine.filter((a) => a.createdAt < lastMove).reduce((t, a) => t + a.points, 0),
-        log: mine.map((a) => ({ points: a.points, at: a.createdAt })),
+        log: withStarBonus(mine.map((a) => ({ points: a.points, at: a.createdAt })), stars),
+        crown: crowns.has(x.id),
         moves: db.classMoves.filter((m) => m.studentId === x.id).map((m) => ({ at: m.at, className: m.className, classLevel: m.classLevel })),
       }
     }).sort((a, b) => a.name.localeCompare(b.name))
@@ -254,6 +261,28 @@ const demoTeach: TeachApi = {
     own(load().exams, id, 'exam')
     const db = load()
     db.exams = db.exams.filter((e) => e.id !== id)
+    save()
+  },
+  async listMonthStars(filter) {
+    return mine(load().monthStars ?? []).filter((w) => (!filter?.classId || w.classId === filter.classId) && (!filter?.studentId || w.studentId === filter.studentId))
+      .sort((a, b) => b.month.localeCompare(a.month)).map(strip)
+  },
+  async setMonthStar({ classId, studentId, month, reason, bonus }) {
+    const u = requireUser(); const db = load()
+    const st = own(db.students, studentId, 'student')
+    if (st.classId !== classId) throw new Error('That student is not in this class.')
+    if (!/^\d{4}-\d{2}$/.test(month)) throw new Error('Choose a month.')
+    const list = (db.monthStars ??= [])
+    const old = list.findIndex((w) => w.ownerId === u.id && w.classId === classId && w.month === month)
+    const row = { id: old >= 0 ? list[old].id : 'w-' + uid(), ownerId: u.id, classId, studentId, month, reason: reason.trim().slice(0, 300), bonus: Math.max(0, Math.min(50, bonus)), createdAt: new Date().toISOString() }
+    if (old >= 0) list[old] = row; else list.push(row)
+    save()
+    return strip(row)
+  },
+  async removeMonthStar(id) {
+    const db = load()
+    own(db.monthStars ?? [], id, 'student of the month')
+    db.monthStars = (db.monthStars ?? []).filter((w) => w.id !== id)
     save()
   },
   async listClassMoves(studentId) {

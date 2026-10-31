@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Spinner } from './ui'
 import { Avatar } from './Avatar'
+import { Crown } from './MonthStar'
 import { DiscoveryArt } from './DiscoveryArt'
 import { editionOf, RARITY_COLOR, type Found } from '../lib/discoveries'
 import { errorMessage } from '../lib/format'
@@ -268,13 +269,14 @@ export function MountainMap({ load, onClose, teacher = false, camp: startCamp, m
               {camp && placed.map((p) => {
                 const isSel = p.key === selected
                 return (
-                  <button key={p.key} type="button" aria-label={`${p.name}${p.me ? ' (you)' : ''}, ${p.discoveries} discoveries`}
+                  <button key={p.key} type="button" aria-label={`${p.name}${p.me ? ' (you)' : ''}${p.crown ? ', student of the month' : ''}, ${p.discoveries} discoveries`}
                     className="absolute left-0 top-0" style={{ transform: `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${k})`, zIndex: p.me ? 30 : isSel ? 20 : 10 }}
                     onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setSelected(p.key) }}>
                     <span className={`block rounded-full shadow-lg ${p.me ? 'border-[3px] border-[#E07A5F]' : 'border-2 border-white'} ${p.hidden ? 'opacity-50' : ''}`}
                       style={{ outline: isSel ? '3px solid #F2CC8F' : undefined }}>
                       <Avatar avatar={p.avatar} name={p.name} size={p.me ? 46 : 36} color={camp.color} />
                     </span>
+                    {p.crown && <Crown className="absolute -top-6 left-1/2 h-7 w-9 -translate-x-1/2 -rotate-6 drop-shadow-md" />}
                     <span className={`absolute left-1/2 top-full mt-0.5 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-bold shadow ${p.me ? 'bg-[#E07A5F] text-white' : 'bg-white text-ink'}`}>
                       {p.me ? `${p.name} (you)` : p.name}
                     </span>
@@ -299,7 +301,8 @@ export function MountainMap({ load, onClose, teacher = false, camp: startCamp, m
               <div className="flex items-center gap-3">
                 <Avatar avatar={sel.avatar} name={sel.name} size={48} color={camp.color} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-lg font-extrabold">{sel.me ? `${sel.name} (you)` : sel.name}</p>
+                  <p className="flex items-center gap-1.5 text-lg font-extrabold"><span className="truncate">{sel.me ? `${sel.name} (you)` : sel.name}</span>{sel.crown && <Crown className="h-5 w-6 shrink-0" title="Student of the month" />}</p>
+                  {sel.crown && <p className="text-[13px] font-bold text-[#9A6A1F]">Student of the month</p>}
                   <p className="text-[14px]"><span className="font-bold" style={{ color: camp.color }}>{mountain?.name}</span>{typeof sel.steps === 'number' && sel.cost ? `, ${sel.steps < sel.cost / 5 ? 'on the way to Base Camp' : `past ${MILESTONES[Math.min(3, Math.floor(sel.steps / (sel.cost / 5)) - 1)]}`}` : ''}</p>
                   <p className="text-[13px] text-inksoft">{sel.summits ?? 0} {sel.summits === 1 ? 'summit' : 'summits'}, {sel.discoveries} {sel.discoveries === 1 ? 'discovery' : 'discoveries'}</p>
                 </div>
@@ -329,7 +332,7 @@ export function MountainMap({ load, onClose, teacher = false, camp: startCamp, m
                         <button className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-[15px] hover:bg-board ${p.key === selected ? 'bg-board' : ''}`}
                           onClick={() => { enter(c.tier, p.key); if (window.innerWidth < 640) setPanel(false) }}>
                           <Avatar avatar={p.avatar} name={p.name} size={24} color={c.color} />
-                          <span className={`min-w-0 flex-1 truncate ${p.me ? 'font-extrabold' : ''} ${p.hidden ? 'text-inksoft' : ''}`}>{p.name}{p.me ? ' (you)' : ''}{p.hidden ? ' (hidden)' : ''}</span>
+                          <span className={`min-w-0 flex-1 truncate ${p.me ? 'font-extrabold' : ''} ${p.hidden ? 'text-inksoft' : ''}`}>{p.name}{p.me ? ' (you)' : ''}{p.hidden ? ' (hidden)' : ''}</span>{p.crown && <Crown className="h-4 w-5 shrink-0" title="Student of the month" />}
                           <span className="text-[12px] text-inksoft">{p.discoveries}</span>
                         </button>
                       </li>
