@@ -159,13 +159,15 @@ const ART: Record<string, JSX.Element> = {
       <circle cx="50" cy="58" r="4" fill={GOLD} strokeWidth={2} />
     </g>
   ),
-  'summit-trophy': (
+  'legend-compass': (
     <g {...S}>
-      <path d="M32 16 L68 16 L66 44 Q64 60 50 60 Q36 60 34 44 Z" fill={GOLD} />
-      <path d="M32 22 Q16 22 18 34 Q20 44 34 44 M68 22 Q84 22 82 34 Q80 44 66 44" fill="none" />
-      <path d="M46 60 L54 60 L56 72 L44 72 Z" fill={DGOLD} />
-      <rect x="32" y="72" width="36" height="12" rx="2" fill={INK} />
-      <path d="M40 40 l10 -14 l10 14 Z" fill={WHITE} strokeWidth={2} />
+      <path d="M44 10 h12 v8 h-12 Z" fill={DGOLD} />
+      <circle cx="50" cy="54" r="36" fill={GOLD} />
+      <circle cx="50" cy="54" r="27" fill={CREAM} />
+      <path d="M50 30 L57 54 L50 50 L43 54 Z" fill={CORAL} strokeWidth={2} />
+      <path d="M50 78 L57 54 L50 58 L43 54 Z" fill={WHITE} strokeWidth={2} />
+      <circle cx="50" cy="54" r="3.5" fill={INK} strokeWidth={0} />
+      <path d="M22 30 l4 4 M78 30 l-4 4 M22 78 l4 -4 M78 78 l-4 -4" strokeWidth={2.5} />
     </g>
   ),
   magnifier: (
