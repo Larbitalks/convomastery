@@ -17,6 +17,7 @@ import { DiscoveryReveal } from '../components/Discoveries'
 import { ExpeditionReveal, eventsOf, type ExpeditionEvent } from '../components/Expedition'
 import { expeditionOf, MILESTONES } from '../lib/expedition'
 import { Avatar } from '../components/Avatar'
+import { playAward, playUndo, setSoundsOn, soundsOn } from '../lib/sounds'
 import { AwardIcon } from '../components/AwardIcon'
 
 const ATTENDANCE: { value: Attendance; label: string; cls: string }[] = [
@@ -96,6 +97,7 @@ export default function ClassSessionPage() {
   const [awardsGiven, setAwardsGiven] = useState<{ id: string; categoryId?: string; name: string; points: number }[]>([])
   const [ending, setEnding] = useState(false)
   const [checklist, setChecklist] = useState<Missing[] | null>(null)
+  const [sound, setSound] = useState(soundsOn)
   const [editing, setEditing] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [saved, setSaved] = useState<'saved' | 'saving' | null>(null)
@@ -142,6 +144,7 @@ export default function ClassSessionPage() {
   const undoMark = () => patch({ behaviour: (latest.current?.behaviour ?? []).slice(0, -1) })
   const give = async (categoryId: string, name: string) => {
     setBurst((b) => ({ id: categoryId, key: (b?.key ?? 0) + 1 }))
+    playAward(categories.find((c) => c.id === categoryId)?.points ?? 1)
     try {
       const a = await api.giveAward({ classId: student.classId, studentId: student.id, categoryId, lessonId: s.lessonId })
       setAwardsGiven((x) => [...x, { id: a.id, categoryId, name, points: a.points }])
@@ -161,7 +164,7 @@ export default function ClassSessionPage() {
   const undoAward = async () => {
     const last = awardsGiven[awardsGiven.length - 1]
     if (!last) return
-    try { await api.undoAward(last.id); setAwardsGiven((x) => x.slice(0, -1)); setLife((x) => x.filter((a) => a.id !== last.id)) } catch (e) { setErr(errorMessage(e)) }
+    try { await api.undoAward(last.id); playUndo(); setAwardsGiven((x) => x.slice(0, -1)); setLife((x) => x.filter((a) => a.id !== last.id)) } catch (e) { setErr(errorMessage(e)) }
   }
 
   return (
@@ -258,7 +261,13 @@ export default function ClassSessionPage() {
             <section id="cs-awards" className="scroll-mt-28">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xl font-extrabold">Awards</h2>
-                {awardsGiven.length > 0 && <button className="text-sm font-bold underline" onClick={undoAward}>Undo last award</button>}
+                <div className="flex items-center gap-4">
+                  <button className="flex items-center gap-1.5 text-sm font-bold text-inksoft hover:text-ink" aria-pressed={sound} onClick={() => { setSoundsOn(!sound); setSound(!sound) }} title={sound ? 'Turn award sounds off' : 'Turn award sounds on'}>
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z" />{sound ? <><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M18.5 5.5a9 9 0 0 1 0 13" /></> : <path d="m16 9 6 6m0-6-6 6" />}</svg>
+                    {sound ? 'Sound on' : 'Sound off'}
+                  </button>
+                  {awardsGiven.length > 0 && <button className="text-sm font-bold underline" onClick={undoAward}>Undo last award</button>}
+                </div>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap">
                 {categories.map((c) => {
