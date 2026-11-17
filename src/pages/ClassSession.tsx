@@ -95,6 +95,7 @@ export default function ClassSessionPage() {
   const [burst, setBurst] = useState<{ id: string; key: number } | null>(null)
   const [awardsGiven, setAwardsGiven] = useState<{ id: string; categoryId?: string; name: string; points: number }[]>([])
   const [ending, setEnding] = useState(false)
+  const [checklist, setChecklist] = useState<Missing[] | null>(null)
   const [editing, setEditing] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [saved, setSaved] = useState<'saved' | 'saving' | null>(null)
@@ -186,12 +187,26 @@ export default function ClassSessionPage() {
           </div>
           <div className="ml-auto flex items-center gap-3">
             <span className="text-sm text-inksoft" aria-live="polite">{saved === 'saving' ? 'Saving' : saved === 'saved' ? 'All changes saved' : ''}</span>
-            {!finished && !ending && <button className="btn-primary" onClick={async () => { clearTimeout(timer.current); await flush(); setEnding(true) }}>End class</button>}
+            {!finished && !ending && <button className="btn-primary" onClick={async () => {
+              clearTimeout(timer.current); await flush()
+              const cur = latest.current ?? s
+              const missing: Missing[] = []
+              if (cur.attendance !== 'absent') {
+                if (!(cur.lessonTitle || lessons.find((l) => l.id === cur.lessonId))) missing.push({ id: 'cs-lesson', label: 'Type the lesson title' })
+                if (previous && !cur.review) missing.push({ id: 'cs-review', label: `Check if ${student.name} reviewed last lesson` })
+                if (!(cur.behaviour ?? []).length) missing.push({ id: 'cs-behaviour', label: `Rate ${student.name}'s behaviour` })
+                if (!awardsGiven.length) missing.push({ id: 'cs-awards', label: 'Give awards' })
+              }
+              if (missing.length) setChecklist(missing); else setEnding(true)
+            }}>End class</button>}
           </div>
         </div>
       </div>
 
       {err && <div className="mb-4"><Notice tone="error">{err}</Notice></div>}
+      {checklist && <EndChecklist name={student.name} missing={checklist} onClose={() => setChecklist(null)}
+        onGo={(sid) => { setChecklist(null); document.getElementById(sid)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+        onEnd={() => { setChecklist(null); setEnding(true) }} />}
 
       {ending || finished ? (
         <EndSummary session={s} studentName={student.name} lessonTitle={lessonName || undefined} elapsed={elapsed} awards={awardsGiven}
@@ -199,7 +214,7 @@ export default function ClassSessionPage() {
       ) : (
         <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
           <div className="grid content-start gap-8">
-            <section className="rounded-2xl border-2 border-line p-4">
+            <section id="cs-review" className="scroll-mt-28 rounded-2xl border-2 border-line p-4">
               <h2 className="text-xl font-extrabold">Review</h2>
               <p className="mt-1 text-[15px] text-inksoft">Did {student.name} review last lesson? Ask them to tell you what they remember.</p>
               <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Reviewed last lesson">
@@ -210,7 +225,7 @@ export default function ClassSessionPage() {
               </div>
             </section>
 
-            <section>
+            <section id="cs-behaviour" className="scroll-mt-28">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xl font-extrabold">Behaviour</h2>
                 <div className="flex gap-3 text-sm font-bold">
@@ -240,7 +255,7 @@ export default function ClassSessionPage() {
               )}
             </section>
 
-            <section>
+            <section id="cs-awards" className="scroll-mt-28">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xl font-extrabold">Awards</h2>
                 {awardsGiven.length > 0 && <button className="text-sm font-bold underline" onClick={undoAward}>Undo last award</button>}
@@ -314,7 +329,7 @@ export default function ClassSessionPage() {
           </div>
 
           <aside className="grid content-start gap-6">
-            <section className="panel p-5">
+            <section id="cs-lesson" className="scroll-mt-28 panel p-5">
               <h2 className="text-lg font-extrabold">Lesson</h2>
               <LessonBox value={lessonName} recent={data.recentLessons} lessons={lessons} onChange={(title) => {
                 // A name that matches a lesson on the website links to it, so its slides can be opened
@@ -525,5 +540,42 @@ function AwardBurst({ color, points }: { color: string; points: number }) {
       ))}
       <span className="award-float absolute left-1/2 top-0 rounded-full px-2.5 py-0.5 text-base font-extrabold text-white shadow-md" style={{ backgroundColor: color }}>+{points}</span>
     </span>
+  )
+}
+
+type Missing = { id: string; label: string }
+
+/** Shown when ending a class with things left to do, so nothing important is forgotten */
+function EndChecklist({ name, missing, onGo, onEnd, onClose }: { name: string; missing: Missing[]; onGo: (id: string) => void; onEnd: () => void; onClose: () => void }) {
+  const first = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    first.current?.focus()
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', esc)
+    return () => window.removeEventListener('keydown', esc)
+  }, [onClose])
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/60 p-4" role="dialog" aria-modal="true" aria-labelledby="ec-title" onClick={onClose}>
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 id="ec-title" className="text-2xl font-extrabold">Before you end the class</h2>
+        <p className="mt-1 text-inksoft">You haven't done {missing.length === 1 ? 'this' : 'these'} yet for {name}:</p>
+        <ul className="mt-4 grid gap-2">
+          {missing.map((m, i) => (
+            <li key={m.id}>
+              <button ref={i === 0 ? first : undefined} onClick={() => onGo(m.id)}
+                className="flex w-full items-center gap-3 rounded-xl border-2 border-line px-4 py-3 text-left font-bold hover:border-ink">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 border-coral" aria-hidden="true" />
+                <span className="flex-1">{m.label}</span>
+                <span className="text-sm text-inksoft underline">Do it</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <button className="btn-ghost" onClick={onEnd}>End class anyway</button>
+          <button className="btn-primary" onClick={onClose}>Go back</button>
+        </div>
+      </div>
+    </div>
   )
 }
