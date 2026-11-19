@@ -128,6 +128,14 @@ export default function ClassSessionPage() {
     if (debounce) timer.current = setTimeout(flush, 700)
     else flush()
   }
+  // Closing the tab during a class: the browser asks "Leave site?" so the class is not forgotten
+  const running = Boolean(s && !s.endedAt)
+  useEffect(() => {
+    if (!running) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [running])
   // Save anything still waiting when leaving the page
   useEffect(() => () => { clearTimeout(timer.current); flush() }, [])
 
